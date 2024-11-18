@@ -65,10 +65,6 @@ contains
     integer(ccs_int) :: it_start, it_end
 
     logical:: diverged = .false.
-
-    integer(ccs_int) :: write_frequency
-
-    logical :: flow_sol
     
     if (run_options%solve%unsteady) then
       call activate_timestepping()
@@ -83,25 +79,15 @@ contains
       ! num steps may not have been set
       num_steps = 1
     end if
-
-    flow_sol = check_flow_sol(par_env, flow_fields)
     
     call timer_register("I/O time for solution", timer_index_io_sol)
     call timer_register("Solver time inc I/O", timer_index_sol)
     
-    write_frequency = run_options%io%write_frequency
     do t = 1, num_steps
       call timer_start(timer_index_sol)
 
       ! XXX: Coupler update here
-      
-      if (flow_sol) then
-        call solve_nonlinear(par_env, run_options, eval_sources, mesh, flow_fields, diverged)
-      else
-        ! Only scalar transport
-        call update_scalars(par_env, mesh, eval_sources, flow_fields)
-      end if
-
+      call advance_step(par_env, run_options, eval_sources, flow_fields, diverged)
       ! XXX: Or coupler update here?
       
       if (timestepping_is_active()) then
@@ -112,16 +98,7 @@ contains
       
       call postproc(par_env, flow_fields)
 
-      ! If a STOP file exist, write solution and exit the main simulation loop
-      if (check_stop_run(par_env, diverged)) then
-        if (is_root(par_env)) then
-          if (diverged) then
-            print *, "INFO: Divergence detected, stopping"
-          else
-            print *, "INFO: STOP file present, stopping"
-          end if
-        end if
-        call write_step(par_env, run_options, t, flow_fields)
+      if (check_stop_run(par_env, run_options, t, flow_fields, diverged)) then
         exit
       end if
 
@@ -132,6 +109,119 @@ contains
     end do
 
   end subroutine run_solver
+
+  !> Advance the simulation by one step.
+  subroutine advance_step(par_env, run_options, eval_sources, flow_fields, diverged)
+
+    class(parallel_environment), allocatable, intent(in) :: par_env
+    type(ccs_options), intent(in) :: run_options
+    interface
+      !v Subroutine to evaluate source terms, case-specific.
+      !
+      !  Note this should return the integrated source.
+      subroutine eval_sources(flow, phi, R, S)
+        use types, only: fluid, field, ccs_vector
+        type(fluid), intent(in) :: flow !< Provides access to full flow field
+        class(field), intent(in) :: phi !< Field being transported
+        class(ccs_vector), intent(inout) :: R !< Work vector (for evaluating linear/implicit sources)
+        class(ccs_vector), intent(inout) :: S !< Work vector (for evaluating fixed/explicit sources)
+      end subroutine eval_sources
+    end interface
+    type(fluid), intent(inout) :: flow_fields
+    logical, intent(out) :: diverged
+
+    logical :: flow_sol
+
+    flow_sol = check_flow_sol(par_env, flow_fields)
+      
+    if (flow_sol) then
+      call solve_nonlinear(par_env, run_options, eval_sources, mesh, flow_fields, diverged)
+    else
+      ! Only scalar transport
+      diverged = .false.
+      call update_scalars(par_env, mesh, eval_sources, flow_fields)
+    end if
+    
+  end subroutine advance_step
+
+  !> Checks for stop conditions.
+  logical function check_stop_run(par_env, run_options, t, flow_fields, diverged)
+
+    class(parallel_environment), intent(in), allocatable :: par_env
+    type(ccs_options), intent(in) :: run_options
+    integer, intent(in) :: t
+    type(fluid), intent(inout) :: flow_fields
+    logical, intent(in) :: diverged
+
+    if (stop_if_diverged(par_env, run_options, t, flow_fields, diverged)) then
+      check_stop_run = .true.
+    else if (stop_on_request(par_env, run_options, t, flow_fields)) then
+      check_stop_run = .true.
+    else
+      check_stop_run = .false.
+    end if
+    
+  end function check_stop_run
+  
+  !> Checks for stop condition if divergence is detected and dumps solution if this occurs.
+  logical function stop_if_diverged(par_env, run_options, t, flow_fields, diverged)
+
+    class(parallel_environment), intent(in), allocatable :: par_env
+    type(ccs_options), intent(in) :: run_options
+    integer, intent(in) :: t
+    type(fluid), intent(inout) :: flow_fields
+    logical, intent(in) :: diverged
+    
+    if (diverged) then
+      if (is_root(par_env)) then
+        print *, "INFO: Divergence detected"
+      end if
+      call dump_run(par_env, run_options, t, flow_fields)
+
+      stop_if_diverged = .true.
+    else
+      stop_if_diverged = .false.
+    end if
+    
+  end function stop_if_diverged
+
+  !> Checks for stop condition due to STOP file and dumps solution if this occurs.
+  logical function stop_on_request(par_env, run_options, t, flow_fields)
+
+    use parallel, only: query_stop_run
+
+    class(parallel_environment), intent(in), allocatable :: par_env
+    type(ccs_options), intent(in) :: run_options
+    integer, intent(in) :: t
+    type(fluid), intent(inout) :: flow_fields
+
+    if (query_stop_run(par_env)) then
+      if (is_root(par_env)) then
+        print *, "INFO: Found STOP file"
+      end if
+      call dump_run(par_env, run_options, t, flow_fields)
+
+      stop_on_request = .true.
+    else
+      stop_on_request = .false.
+    end if
+
+  end function stop_on_request
+
+  !> Dumps the solution when stopping a simulation.
+  subroutine dump_run(par_env, run_options, t, flow_fields)
+
+    class(parallel_environment), intent(in), allocatable :: par_env
+    type(ccs_options), intent(in) :: run_options
+    integer, intent(in) :: t
+    type(fluid), intent(inout) :: flow_fields
+
+    if (is_root(par_env)) then
+      print *, "STOPPING SIMULATION"
+    end if
+    call write_step(par_env, run_options, t, flow_fields)
+
+  end subroutine dump_run
 
   !v Check whether we are solving fluid flow or scalars only. If pressure and at least one of u,v,w
   !  are present then we are solving the flow field, otherwise it is scalar transport with frozen
@@ -171,18 +261,6 @@ contains
     end if
     
   end function check_flow_sol
-
-  !> Predicate to test if a stop condition has been met
-  logical function check_stop_run(par_env, diverged)
-
-    use parallel, only: query_stop_run
-    
-    class(parallel_environment), intent(in) :: par_env !< The parallel environment
-    logical, intent(in) :: diverged                    !< Error flag raised by solver divergence
-    
-    check_stop_run = (query_stop_run(par_env) .or. diverged)
-
-  end function check_stop_run
   
   !> Predicate to test if conditions for solution output are met
   logical pure function check_to_write(run_options, t)
