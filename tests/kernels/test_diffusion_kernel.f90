@@ -1,47 +1,87 @@
-!> Test diffusion kernel implementation
-!
-!> The test is based on interpolating a known function over an interval, this allows us to test the diffusion
-!> kernels.
-
 program test_diffusion_kernel
+    !! Test the diffusion kernel by running a refinement loop, computing the discretisation
+    !!  error (difference between analytical and computed values), and checking the order of
+    !!  convergence is the theoretical order for the scheme
 
-    use kinds, only: ccs_real
-  
-    implicit none
-  
-    integer, parameter :: nref = 4 ! Number of interval refinements to perform
-    integer, parameter :: nstep0 = 10 ! Number of timesteps to perform before refinement
-    real(ccs_real), parameter :: alpha = 3.1415_ccs_real ! Arbitrary constant for linear ODE problem
-    real(ccs_real), parameter :: C = 1.617_ccs_real ! Arbitrary constant for non-linear ODE problem
-  
-    type(diffusion_kernel) :: diffusion ! The diffusion kernel
-    
-    real(ccs_real) :: x0, xend ! Start and end of interval
-    real(ccs_real) :: dx       ! mesh interval
-    integer :: nsteps ! Number of mesh intervals to integrate over
-    
-    real(ccs_real) :: ctol, r
-    real(ccs_real), dimension(nref + 1) :: err ! The error history
-  
-    real(ccs_real), dimension(:), allocatable :: f0 ! The initial value(s)
-  
-    integer :: i
-  
-    ! The convergence ratio between refinement levels should be (1/2)^p where p is the order of the
-    ! scheme. To allow some reasonable tolerance, 1.1/(2^p) has been used.
-    ctol = 1.1 / (2**diffusion%get_order())
-  
-    ! Allocate space for the old values
-    allocate(f0(diffusion%get_width()))
-    
-  contains
-  
-    !! Linear problem
-    pure real(ccs_real) function f1(x)
+
+  use kinds, only: ccs_real, ccs_int
+
+  implicit none
+
+
+  integer(ccs_int) :: i, num_iters=10
+  real(ccs_real) :: phi_P, interpol_factor
+  real(ccs_real) :: phi_N
+  real(ccs_real) :: dx
+  real(ccs_real), dimension(3) :: x_N, x_P, x_f
+  real(ccs_real), dimension(2) :: coeffs
+  real(ccs_real) :: rhs
+  real(ccs_real) :: u_f
+  real(ccs_real), dimension(num_iters) :: errors
+  real(ccs_real), dimension(num_iters) :: refinements
+  real(ccs_real) :: order
+
+
+  type(diffusion_kernel) :: diffusion
+
+  ! Initialising values
+  x_P = [0, 0, 0]
+  phi_P = phi(x_P(1))
+  interpol_factor = 2_ccs_real / 3_ccs_real
+
+  ! Refinement loop
+  do i = 1, num_iters
+      dx = 1.0_ccs_real / real(i)**2
+      x_N = x_P + [dx, 0, 0]
+      x_f = x_P + [dx/3, 0, 0]
+
+      phi_N = phi(dx)
+      u_f = interpol_factor*u(x_P(1)) + (1-interpol_factor)*u(x_N(1))
+
+      call diffusion%eval([phi_P, phi_N], u_f, x_P, x_N, x_f, &
+                          is_boundary=.false., coeffs, rhs)
+
+      ! Compute discretisation error
+      call get_error(coeffs, rhs, x_P, x_N, x_f, errors(i))
+      refinements(i) = dx
+  end do
+
+  ! Compute convergence order
+  call get_order(refinements, errors, order)
+
+  call assert_gt(order, diffusion%get_order()*0.95, "Convergence order not preserved by advection kernel")
+
+contains
+
+  function u(x)
+      ! Velocity field
+      real(ccs_real) :: u
       real(ccs_real), intent(in) :: x
-  
-      f1 = alpha * x + C
-    end function f1
+
+      u = cos(x)
+  end function u
+
+  function phi(x)
+      ! Function being tested
+      real(ccs_real) :: phi
+      real(ccs_real), intent(in) :: x
+
+      phi = sin(2*x + 17)
+  end function phi
+
+  subroutine get_error(coeffs, rhs, x_P, x_N, x_f, error)
+      ! Computes discretisation error by comparing with analytical value 
+      real(ccs_real), intent(in) :: coeffs(2), rhs
+      real(ccs_real), intent(in) :: x_P(3)
+      real(ccs_real), intent(in) :: x_N(3)
+      real(ccs_real), intent(in) :: x_f(3)
+      real(ccs_real), intent(out) :: error
+      real(ccs_real) :: analytical
+
+      analytical = u(x_f(1)) * phi(x_f(1))
+      error = abs(analytical - (coeffs(1) * phi(x_P(1)) + coeffs(2) * phi(x_N(1)) + rhs))
+  end subroutine get_error
+
     
   end program test_diffusion_kernel
   
