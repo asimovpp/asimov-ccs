@@ -26,7 +26,7 @@ module fv
   public :: add_fixed_source
   public :: add_linear_source
   public :: zero_sources
-  
+
   interface calc_advection_coeff
     module procedure calc_advection_coeff_cds
     module procedure calc_advection_coeff_uds
@@ -160,7 +160,7 @@ module fv
       real(ccs_real), dimension(ndim), intent(in) :: normal   !< boundary face normal direction
       real(ccs_real), intent(out) :: bc_value                 !< the value of the scalar field at the specified boundary
     end subroutine
-  
+
     pure module subroutine compute_boundary_coeffs(phi, component, loc_p, loc_f, normal, a, b)
       class(field), intent(inout) :: phi                      !< the field for which boundary values are being computed
       integer(ccs_int), intent(in) :: component               !< integer indicating direction of velocity field component
@@ -171,13 +171,13 @@ module fv
       real(ccs_real), intent(out) :: b                        !< The RHS entry (explicit)
     end subroutine
 
-    !> Linear interpolate of BC profile 
+    !> Linear interpolate of BC profile
     pure module subroutine get_value_from_bc_profile(x, profile, bc_value)
-        real(ccs_real), dimension(:), intent(in) :: x !< Location of the interpolation
-        type(bc_profile), intent(in) :: profile       !< boundary condition profile
-        real(ccs_real), intent(out) :: bc_value       !< Interpolated value
+      real(ccs_real), dimension(:), intent(in) :: x !< Location of the interpolation
+      type(bc_profile), intent(in) :: profile       !< boundary condition profile
+      real(ccs_real), intent(out) :: bc_value       !< Interpolated value
     end subroutine get_value_from_bc_profile
-    
+
     !v Zeros the linear and fixed sources. Can be used in place of a specific implementation when
     !  there are no sources, serves as a template for any case-specific source implementation.
     module subroutine zero_sources(flow, phi, R, S)
@@ -198,7 +198,7 @@ module fv
       class(ccs_vector), intent(inout) :: S !< The source field
       class(ccs_matrix), intent(inout) :: M !< The system
     end subroutine add_linear_source
-    
+
   end interface
 
 end module fv
