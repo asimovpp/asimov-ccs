@@ -6,7 +6,7 @@ program test_tgv_cartesian
 
   use core
   use testing_lib
-  use error_analysis, only: get_order, print_error_summary
+  use error_analysis, only: compute_order, print_error_summary
   use mesh_utils, only: build_square_mesh
   use tgv2d_core, only: run_tgv2d
   use ccs_base, only: mesh, bnd_names_default
@@ -57,8 +57,8 @@ program test_tgv_cartesian
 
     call print_error_summary(variable_labels, refinements, error_L2, error_Linf)
 
-    call get_order(refinements, error_L2, orders_L2)
-    call get_order(refinements, error_Linf, orders_Linf)
+    call compute_order(refinements, error_L2, orders_L2)
+    call compute_order(refinements, error_Linf, orders_Linf)
 
     call assert_gt(orders_L2(1), 1.9_ccs_real, "U not converging in 2nd order ")
     call assert_gt(orders_L2(2), 1.9_ccs_real, "V not converging in 2nd order ")

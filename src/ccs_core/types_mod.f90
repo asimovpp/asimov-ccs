@@ -293,4 +293,30 @@ module types
   type, public :: io_process
   end type io_process
 
+  !v Abstract kernel
+  !
+  ! Abstract kernel base class to specialised later
+  type, abstract, public :: abstract_kernel
+  contains
+     procedure(coeffs_interface), deferred :: coeffs
+     procedure(eval_interface), deferred :: eval
+  end type abstract_kernel
+
+  !> Abstract kernel interface
+  abstract interface
+     pure function coeffs_interface(this) result(coeffs)
+        use kinds, only: ccs_real
+        import :: abstract_kernel
+        class(abstract_kernel), intent(in) :: this
+        real(ccs_real), allocatable :: coeffs(:)
+     end function coeffs_interface
+
+     subroutine eval_interface(this, result)
+        use kinds, only: ccs_real
+        import :: abstract_kernel
+        class(abstract_kernel), intent(in) :: this
+        real(ccs_real), intent(out) :: result
+     end subroutine eval_interface
+  end interface
+
 end module types

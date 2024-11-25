@@ -7,6 +7,10 @@ module error_analysis
   use constants, only: ndim
   use meshing, only: get_centre, set_centre, create_cell_locator
 
+  interface compute_order
+    module procedure compute_order_single, compute_order_multi
+  end interface
+
 contains
 
   !v Prints errors provided in argument in a human readable way, plus displays associated orders
@@ -24,9 +28,9 @@ contains
     nvar = size(errors, dim=1)
     nref = size(refinements)
 
-    call get_order(refinements, errors, orders)
+    call compute_order(refinements, errors, orders)
     if (present(errors_secondary)) then
-      call get_order(refinements, errors_secondary, orders_secondary)
+      call compute_order(refinements, errors_secondary, orders_secondary)
     end if
 
     print *, "----------------------------------------------------"
@@ -61,46 +65,55 @@ contains
 
   end subroutine
 
-  !v Computes convergence orders from a refinement list and the associated errors
-  ! The orders are computed as the slope of the linear regression of the log of error against the log of refinements
-  pure subroutine get_order(refinements, errors, orders)
+
+  !v Computes convergence order from a refinement list and the associated errors
+  ! The order is computed as the slope of the linear regression of the log of error against the log of refinements
+  pure subroutine compute_order_single(refinements, errors, order)
+
+    real(ccs_real), dimension(:), intent(in) :: refinements !< refinement (likely in time or space) against which the orders are computed
+    real(ccs_real), dimension(:), intent(in) :: errors !< error values, error(variable, refinement)
+    real(ccs_real), intent(out) :: order !< the computed order
+    real(ccs_real), dimension(:), allocatable :: x, y
+    real(ccs_real) :: x_bar, y_bar, Sxx, Sxy
+    integer(ccs_int) :: nref, j
+
+    nref = size(refinements)
+
+    allocate (x(nref))
+    allocate (y(nref))
+
+    x(:) = log(refinements(:))
+    y(:) = log(errors(:))
+
+    x_bar = sum(x(:)) / nref
+    y_bar = sum(y(:)) / nref
+
+    Sxy = 0.0_ccs_real
+    Sxx = 0.0_ccs_real
+    do j = 1, nref
+      Sxy = Sxy + (x(j) - x_bar) * (y(j) - y_bar)
+      Sxx = Sxx + (x(j) - x_bar)**2
+    end do
+
+    order = Sxy / Sxx
+    !alpha = y_bar - order * x_bar
+
+  end subroutine
+
+  !v Computes convergence orders from several different error lists
+  pure subroutine compute_order_multi(refinements, errors, orders)
 
     real(ccs_real), dimension(:), intent(in) :: refinements !< refinement (likely in time or space) against which the orders are computed
     real(ccs_real), dimension(:, :), intent(in) :: errors !< error values, error(variable, refinement)
     real(ccs_real), dimension(:), allocatable, intent(out) :: orders !< the computed orders for each variable
-    real(ccs_real), dimension(:), allocatable :: x, y
-    real(ccs_real) :: x_bar, y_bar, Sxx, Sxy, alpha, beta
-    integer(ccs_int) :: nref, nvar, i, j
+    integer(ccs_int) :: nvar, i
 
     nvar = size(errors, dim=1)
-    nref = size(refinements)
-
-    allocate (orders(nvar))
-    allocate (x(nref))
-    allocate (y(nref))
-
+    allocate(orders(nvar))
     orders(:) = 0.0_ccs_real
 
     do i = 1, nvar
-
-      x(:) = log(refinements(:))
-      y(:) = log(errors(i, :))
-
-      x_bar = sum(x(:)) / nref
-      y_bar = sum(y(:)) / nref
-
-      Sxy = 0.0_ccs_real
-      Sxx = 0.0_ccs_real
-      do j = 1, nref
-        Sxy = Sxy + (x(j) - x_bar) * (y(j) - y_bar)
-        Sxx = Sxx + (x(j) - x_bar)**2
-      end do
-
-      beta = Sxy / Sxx
-      alpha = y_bar - beta * x_bar
-
-      orders(i) = beta
-
+      call compute_order_single(refinements, errors(i, :), orders(i))
     end do
 
   end subroutine
