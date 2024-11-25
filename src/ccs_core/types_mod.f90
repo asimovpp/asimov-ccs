@@ -317,7 +317,7 @@ module types
       import :: abstract_kernel
       import :: ccs_real
       class(abstract_kernel), intent(in) :: self
-      real(ccs_real), allocatable intent(out) :: result(:)
+      real(ccs_real), allocatable, intent(out) :: result(:)
     end subroutine eval_interface
 
     pure function width_interface(self) result(width)

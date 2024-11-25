@@ -1,6 +1,9 @@
 module advection_gamma_mod
   use advection_mod
   use types
+  use vec, only: get_vector_data, restore_vector_data
+  use meshing, only: get_face_interpolation, get_local_index, get_distance, get_centre
+  use types, only: neighbour_locator
 
   implicit none
 
@@ -13,9 +16,15 @@ module advection_gamma_mod
   end type gamma_kernel
 
   interface
-    module pure function advect_gamma_coeffs(self) result(coeffs)
+    module pure function advect_gamma_coeffs(self, phi, loc_f, mf, bc, loc_p, loc_nb) result(coeffs)
       class(advection_kernel), intent(in) :: self
-      real(ccs_real), allocatable :: coeffs(:)
+      type(gamma_field), intent(inout) :: phi       !< scalar field
+      type(face_locator), intent(in) :: loc_f       !< face locator
+      real(ccs_real), intent(in) :: mf              !< mass flux at the face
+      integer(ccs_int), intent(in) :: bc            !< flag indicating whether cell is on boundary
+      type(cell_locator), intent(in) :: loc_p       !< current cell locator
+      type(neighbour_locator), intent(in) :: loc_nb !< neighbour cell locator
+      real(ccs_real), dimension(2) :: coeffs        !< advection coefficient for current and neighbour cells
     end function advect_gamma_coeffs
 
     module subroutine advect_gamma_eval(self, result)

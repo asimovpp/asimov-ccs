@@ -1,6 +1,8 @@
 module advection_upwind_mod
   use advection_mod
   use types
+  use vec, only: get_vector_data, restore_vector_data
+  use meshing, only: get_face_interpolation, get_local_index, get_distance, get_centre
 
   implicit none
 
@@ -11,4 +13,32 @@ module advection_upwind_mod
     procedure get_width => get_upwind_width
     procedure get_order => get_upwind_order
   end type upwind_kernel
+
+  interface
+    !> Calculates advection coefficient for neighbouring cell using UDS discretisation
+    module pure function advect_upwind_coeffs(self, phi, loc_f, mf, bc,) result(coeffs)
+      class(advection_kernel), intent(in) :: self
+      type(central_field), intent(in) :: phi  !< scalar field
+      type(face_locator), intent(in) :: loc_f !< face locator
+      real(ccs_real), intent(in) :: mf        !< mass flux at the face
+      integer(ccs_int), intent(in) :: bc      !< flag indicating whether cell is on boundary
+      real(ccs_real), dimension(2) :: coeffs
+    end function advect_upwind_coeffs
+
+    module subroutine advect_upwind_eval(self, result)
+      class(advection_kernel), intent(in) :: self
+      real(ccs_real), intent(out) :: result
+    end subroutine advect_upwind_eval
+
+    module pure function get_upwind_width(self) result(width)
+      class(advection_kernel), intent(in) :: self
+      integer(ccs_int) :: width
+    end function get_upwind_width
+
+    module pure function get_upwind_order(self) result(order)
+      class(advection_kernel), intent(in) :: self
+      integer(ccs_int) :: order
+    end function get_upwind_order
+  end interface
+
 end module advection_upwind_mod

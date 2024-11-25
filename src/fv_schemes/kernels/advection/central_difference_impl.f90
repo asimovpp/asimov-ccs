@@ -4,6 +4,8 @@ submodule(advection_cds_mod) advection_cds_impl
   use vec, only: get_vector_data, restore_vector_data
   use meshing, only: get_face_interpolation, get_local_index, get_distance, get_centre
 
+  implicit none
+
 contains
   !> Calculates advection coefficient for neighbouring cell using CDS discretisation
   module procedure advect_cds_coeffs
@@ -26,7 +28,7 @@ contains
   coeffaF = interpolation_factor
   coeffaP = 1.0_ccs_real - coeffaF
 
-  coeffs = [coeffaF, coeffaP]
+  coeffs = [coeffaP, coeffaF]
   end procedure advect_cds_coeffs
 
 end submodule advection_cds_impl
