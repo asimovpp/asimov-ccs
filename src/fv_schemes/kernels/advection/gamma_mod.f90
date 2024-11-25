@@ -16,6 +16,7 @@ module advection_gamma_mod
   end type gamma_kernel
 
   interface
+    !> Calculates advection coefficient for neighbouring cell using gamma discretisation
     module pure function advect_gamma_coeffs(self, phi, loc_f, mf, bc, loc_p, loc_nb) result(coeffs)
       class(advection_kernel), intent(in) :: self
       type(gamma_field), intent(inout) :: phi       !< scalar field

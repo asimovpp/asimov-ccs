@@ -14,13 +14,13 @@ module advection_cds_mod
 
   interface
     !> Calculates advection coefficient for neighbouring cell using CDS discretisation
-    module pure function advect_cds_coeffs(self, phi, loc_f, mf, bc,) result(coeffs)
+    module pure function advect_cds_coeffs(self, phi, loc_f, mf, bc) result(coeffs)
       class(advection_kernel), intent(in) :: self
       type(central_field), intent(in) :: phi  !< scalar field
       type(face_locator), intent(in) :: loc_f !< face locator
       real(ccs_real), intent(in) :: mf        !< mass flux at the face
       integer(ccs_int), intent(in) :: bc      !< flag indicating whether cell is on boundary
-      real(ccs_real), dimension(2) :: coeffs
+      real(ccs_real), dimension(2) :: coeffs  !< advection coefficient for current and neighbour cells
     end function advect_cds_coeffs
 
     module subroutine advect_cds_eval(self, result)
