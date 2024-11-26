@@ -23,6 +23,12 @@ submodule(io_visualisation) io_visualisation_common
 
   logical, save :: initial_step = .true.
     
+  character(len=2), parameter :: l1 = '  '           ! Indentation level 1
+  character(len=4), parameter :: l2 = '    '         ! Indentation level 2
+  character(len=6), parameter :: l3 = '      '       ! Indentation level 3
+  character(len=8), parameter :: l4 = '        '     ! Indentation level 4
+  character(len=10), parameter :: l5 = '          '   ! Indentation level 5
+  character(len=12), parameter :: l6 = '            ' ! Indentation level 6
 
 contains
 
@@ -114,7 +120,7 @@ contains
   !> Write the XML descriptor file, which describes the grid and flow data in the 'heavy' data files
   module subroutine write_xdmf(par_env, run_options, flow, step, maxstep, dt)
 
-    use meshing, only: get_global_num_cells, get_vert_per_cell, get_global_num_vertices, get_mesh_generated
+    use meshing, only: get_global_num_cells
 
     ! Arguments
     class(parallel_environment), target, allocatable, intent(in) :: par_env  !< The parallel environment
@@ -127,32 +133,18 @@ contains
     ! Local variables
     character(len=:), allocatable :: xdmf_file   ! Name of the XDMF (XML) file
     character(len=:), allocatable :: sol_file    ! Name of the solution file
-    character(len=:), allocatable :: geo_file    ! Name of the mesh file
     character(len=50) :: fmt                     ! Format string
     integer(ccs_int), save :: ioxdmf             ! IO unit of the XDMF file
     integer(ccs_int), save :: step_counter = 0   ! ADIOS2 step counter
     integer(ccs_int) :: num_vel_cmp             ! Number of velocity components in output field list
     integer(ccs_int) :: i                       ! Loop counter
 
-    character(len=2), parameter :: l1 = '  '           ! Indentation level 1
-    character(len=4), parameter :: l2 = '    '         ! Indentation level 2
-    character(len=6), parameter :: l3 = '      '       ! Indentation level 3
-    character(len=8), parameter :: l4 = '        '     ! Indentation level 4
-    character(len=10), parameter :: l5 = '          '   ! Indentation level 5
-    character(len=12), parameter :: l6 = '            ' ! Indentation level 6
-
     integer(ccs_int) :: ncel
-    integer(ccs_int) :: vert_per_cell
-    integer(ccs_int) :: nvrt
-
-    logical :: is_generated
-    character(len=:), allocatable :: mesh_data_root ! Where in the mesh data path is topology/geometry stored?
 
     class(field), pointer :: phi
     
     xdmf_file = run_options%paths%case_name // '.sol.xmf'
     sol_file = run_options%paths%case_name // '.sol.h5'
-    geo_file = run_options%paths%case_name // '.geo'
 
     ! On first call, write the header of the XML file
     if (par_env%proc_id == par_env%root) then
@@ -184,8 +176,6 @@ contains
       end if
 
       call get_global_num_cells(ncel)
-      call get_vert_per_cell(vert_per_cell)
-      call get_global_num_vertices(nvrt)
 
       write (ioxdmf, '(a,a)') l3, '<Grid Name = "Mesh">'
 
@@ -193,32 +183,8 @@ contains
         write (ioxdmf, '(a,a,f10.7,a)') l4, '<Time Value = "', step * dt, '" />'
       end if
 
-      ! Check whether mesh was read or generated and set data path root appropriately
-      call get_mesh_generated(is_generated)
-      if (is_generated) then
-        mesh_data_root = "/Step0"
-      else
-        mesh_data_root = ""
-      end if
-
-      ! Topology
-      if (vert_per_cell == 4) then
-        write (ioxdmf, '(a,a,i0,a)') l4, '<Topology Type = "Quadrilateral" NumberOfElements = "', ncel, '" BaseOffset = "1">'
-      else
-        write (ioxdmf, '(a,a,i0,a)') l4, '<Topology Type = "Hexahedron" NumberOfElements = "', ncel, '" BaseOffset = "1">'
-      end if
-
-      fmt = '(a,a,i0,1x,i0,3(a))'
-      write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', ncel, vert_per_cell, '" Format = "HDF">', &
-        trim(geo_file), ':' // mesh_data_root // '/cell/vertices</DataItem>'
-      write (ioxdmf, '(a,a)') l4, '</Topology>'
-
-      ! Geometry
-      write (ioxdmf, '(a,a)') l4, '<Geometry Type = "XYZ">'
-      write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', nvrt, ndim, '" Format = "HDF">', trim(geo_file), &
-        ':' // mesh_data_root // '/vert</DataItem>'
-      write (ioxdmf, '(a,a)') l4, '</Geometry>'
-
+      call write_xdmf_mesh(run_options, ioxdmf)
+      
       ! Velocity vector
       ! Count number of velocity components in list of fields to be written out
       num_vel_cmp = 0
@@ -377,5 +343,67 @@ contains
     step_counter = step_counter + 1
 
   end subroutine write_xdmf
+
+  subroutine write_xdmf_mesh(run_options, ioxdmf)
+
+    use meshing, only: get_mesh_generated
+    
+    type(ccs_options), intent(in) :: run_options
+    integer(ccs_int), intent(in) :: ioxdmf
+    
+    logical :: is_generated
+    
+    ! Check whether mesh was read or generated and set data path root appropriately
+    call get_mesh_generated(is_generated)
+    if (is_generated) then
+      call write_xdmf_mesh_build()
+    else
+      call write_xdmf_mesh_file(run_options, ioxdmf)
+    end if
+
+  end subroutine write_xdmf_mesh
+
+  subroutine write_xdmf_mesh_file(run_options, ioxdmf)
+
+    use meshing, only: get_global_num_cells, get_vert_per_cell, get_global_num_vertices
+    
+    type(ccs_options), intent(in) :: run_options
+    integer(ccs_int), intent(in) :: ioxdmf
+    
+    integer(ccs_int) :: ncel
+    integer(ccs_int) :: vert_per_cell
+    integer(ccs_int) :: nvrt
+
+    character(len=:), allocatable :: geo_file    ! Name of the mesh file
+    character(len=:), allocatable :: fmt                     ! Format string
+
+    geo_file = run_options%paths%case_name // '.geo'
+
+    call get_global_num_cells(ncel)
+    call get_vert_per_cell(vert_per_cell)
+    call get_global_num_vertices(nvrt)
+
+    ! Topology
+    if (vert_per_cell == 4) then
+      write (ioxdmf, '(a,a,i0,a)') l4, '<Topology Type = "Quadrilateral" NumberOfElements = "', ncel, '" BaseOffset = "1">'
+    else
+      write (ioxdmf, '(a,a,i0,a)') l4, '<Topology Type = "Hexahedron" NumberOfElements = "', ncel, '" BaseOffset = "1">'
+    end if
+
+    fmt = '(a,a,i0,1x,i0,3(a))'
+    write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', ncel, vert_per_cell, '" Format = "HDF">', &
+         trim(geo_file), ':/cell/vertices</DataItem>'
+    write (ioxdmf, '(a,a)') l4, '</Topology>'
+
+    ! Geometry
+    write (ioxdmf, '(a,a)') l4, '<Geometry Type = "XYZ">'
+    write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', nvrt, ndim, '" Format = "HDF">', trim(geo_file), &
+         ':/vert</DataItem>'
+    write (ioxdmf, '(a,a)') l4, '</Geometry>'
+
+  end subroutine write_xdmf_mesh_file
+
+  subroutine write_xdmf_mesh_build()
+  end subroutine write_xdmf_mesh_build
 
 end submodule
