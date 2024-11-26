@@ -197,6 +197,7 @@ contains
         end if
       end do
 
+      ! TODO: Replace ncel with 'cps cps cps' for generated grids
       if (num_vel_cmp > 0) then
         write (ioxdmf, '(a,a)') l4, '<Attribute Name = "velocity" AttributeType = "Vector" Center = "Cell">'
 
@@ -356,13 +357,14 @@ contains
     ! Check whether mesh was read or generated and set data path root appropriately
     call get_mesh_generated(is_generated)
     if (is_generated) then
-      call write_xdmf_mesh_build()
+      call write_xdmf_mesh_build(run_options, ioxdmf)
     else
       call write_xdmf_mesh_file(run_options, ioxdmf)
     end if
 
   end subroutine write_xdmf_mesh
 
+  !> Write the XDMF entry for a mesh read from a file
   subroutine write_xdmf_mesh_file(run_options, ioxdmf)
 
     use meshing, only: get_global_num_cells, get_vert_per_cell, get_global_num_vertices
@@ -403,7 +405,62 @@ contains
 
   end subroutine write_xdmf_mesh_file
 
-  subroutine write_xdmf_mesh_build()
+  !> Write the XDMF entry for a CCS-generated mesh
+  subroutine write_xdmf_mesh_build(run_options, ioxdmf)
+
+    use core, only: build_mesh_2d, build_mesh_3d
+
+    type(ccs_options), intent(in) :: run_options
+    integer(ccs_int), intent(in) :: ioxdmf
+
+    integer(ccs_int) :: cps
+    real(ccs_real) :: L
+    real(ccs_real) :: h
+
+    integer(ccs_int) :: npt
+
+    cps = run_options%mesh%cps
+    L = run_options%mesh%domain_size
+    h = L / cps
+
+    npt = cps + 1 ! Number of points defining grid - this is the value required by XDMF
+
+    if (run_options%mesh%init_mesh_type == build_mesh_2d) then
+      ! Topology
+      write (ioxdmf, '(a,a,i0,a,i0,a)') l4, &
+           '<Topology Type = "2DCoRectMesh" NumberOfElements = "', npt, ' ', npt, '"/>'
+
+      ! Geometry
+      write (ioxdmf, '(a,a)') l4, '<Geometry Type = "Origin_DxDy">'
+      write (ioxdmf, '(a,a)') l4, &
+           '<DataItem Dimensions="2" NumberType="Float" Precision="8" Format="XML">'
+      write (ioxdmf, '(a,a)') l5, '0. 0.'
+      write (ioxdmf, '(a,a)') l4, '</DataItem>'
+      write (ioxdmf, '(a,a)') l4, &
+           '<DataItem Dimensions="2" NumberType="Float" Precision="8" Format="XML">'
+      write (ioxdmf, '(a,d23.16,a,d23.16)') l5, h, ' ', h
+      write (ioxdmf, '(a,a)') l4, '</DataItem>'
+      write (ioxdmf, '(a,a)') l4, '</Geometry>'
+    else if (run_options%mesh%init_mesh_type == build_mesh_3d) then
+      ! Topology
+      write (ioxdmf, '(a,a,i0,a,i0,a,i0,a)') l4, &
+           '<Topology Type = "3DCoRectMesh" NumberOfElements = "', npt, ' ', npt, ' ', npt, '"/>'
+
+      ! Geometry
+      write (ioxdmf, '(a,a)') l4, '<Geometry Type = "Origin_DxDyDz">'
+      write (ioxdmf, '(a,a)') l4, &
+           '<DataItem Dimensions="3" NumberType="Float" Precision="8" Format="XML">'
+      write (ioxdmf, '(a,a)') l5, '0. 0. 0.'
+      write (ioxdmf, '(a,a)') l4, '</DataItem>'
+      write (ioxdmf, '(a,a)') l4, &
+           '<DataItem Dimensions="3" NumberType="Float" Precision="8" Format="XML">'
+      write (ioxdmf, '(a,d23.16,a,d23.16,a,d23.16)') l5, h, ' ', h, ' ', h
+      write (ioxdmf, '(a,a)') l4, '</DataItem>'
+      write (ioxdmf, '(a,a)') l4, '</Geometry>'
+    else
+      error stop "Impossible state"
+    end if
+  
   end subroutine write_xdmf_mesh_build
 
 end submodule
