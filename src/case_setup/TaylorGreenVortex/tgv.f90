@@ -140,11 +140,216 @@ contains
     call get_field(flow_fields, "w", w)
     call calc_kinetic_energy(par_env, u, v, w)
     call calc_enstrophy(par_env, u, v, w)
+    call export_line(par_env, [1.0_ccs_real, 0.0_ccs_real, 0.0_ccs_real], &
+                              [0.0_ccs_real, 0.0_ccs_real, 0.0_ccs_real], 8, u, run_options%mesh%cps)
     nullify(u)
     nullify(v)
     nullify(w)
 
   end subroutine postproc_tgv
+
+
+  ! Get natural index from x_loc and cps, only works for 3D cartesian meshes
+  pure subroutine get_natural_index(x_loc, cps, ii)
+    real(ccs_real), intent(in), dimension(3) :: x_loc
+    integer(ccs_int), intent(in) :: cps
+    integer(ccs_int), intent(out) :: ii
+    integer(ccs_int) :: nx, ny, nz
+    real(ccs_real) :: x, y, z, domain_size
+
+    ii = 0
+    nx = cps
+    ny = cps
+    nz = cps
+    domain_size = 3.141592653589793238462643383279
+    x = x_loc(1)/domain_size - (1.0_ccs_real/nx)/2
+    y = x_loc(2)/domain_size - (1.0_ccs_real/ny)/2
+    z = x_loc(3)/domain_size - (1.0_ccs_real/nz)/2
+
+    ii = floor(x*nx + 0.5, ccs_int) 
+    ii = ii + nx* floor(y*ny + 0.5, ccs_int)
+    ii = ii + nx*ny* floor(z*nz + 0.5, ccs_int)
+    ii = ii +1
+
+  end subroutine
+
+
+  !> Get the 8 natural indice of cells part of the trilineal stencil around x_loc
+  pure subroutine get_stencil(x_loc, cps, natural_ids)
+    real(ccs_real), intent(in), dimension(3) :: x_loc
+    integer(ccs_int), intent(in) :: cps
+    integer(ccs_int), intent(out), dimension(8) :: natural_ids
+    real(ccs_real), dimension(3) :: s_loc
+    real(ccs_real) :: h, domain_size
+
+    domain_size = 3.141592653589793238462643383279
+
+    h = domain_size / cps /2
+    s_loc(:) = x_loc(:) + [ h, h, h]
+    call get_natural_index(s_loc, cps, natural_ids(1))
+
+    s_loc(:) = x_loc(:) + [ -h, -h, h]
+    call get_natural_index(s_loc, cps, natural_ids(2))
+
+    s_loc(:) = x_loc(:) + [ -h, h, h]
+    call get_natural_index(s_loc, cps, natural_ids(3))
+    
+    s_loc(:) = x_loc(:) + [ h, -h, h]
+    call get_natural_index(s_loc, cps, natural_ids(4))
+
+    s_loc(:) = x_loc(:) + [ h, h, -h]
+    call get_natural_index(s_loc, cps, natural_ids(5))
+
+    s_loc(:) = x_loc(:) + [ -h, -h, -h]
+    call get_natural_index(s_loc, cps, natural_ids(6))
+
+    s_loc(:) = x_loc(:) + [ -h, h, -h]
+    call get_natural_index(s_loc, cps, natural_ids(7))
+    
+    s_loc(:) = x_loc(:) + [ h, -h, -h]
+    call get_natural_index(s_loc, cps, natural_ids(8))
+
+  end subroutine
+
+  ! get array of local ids from natural indices, cells not on local rank will 
+  ! have a "0" local id
+  pure subroutine get_local_ids(natural_ids, local_ids)
+    use ccs_base, only: mesh
+    use meshing, only: get_local_num_cells
+    integer(ccs_int), intent(in), dimension(8) :: natural_ids
+    integer(ccs_int), intent(out), dimension(8) :: local_ids
+    integer(ccs_int) :: local_num_cells
+    integer(ccs_int), dimension(1) :: loc 
+    integer(ccs_int) :: i
+
+    local_ids(:) = 0
+    call get_local_num_cells(local_num_cells)
+    do i=1, 8
+      loc = findloc(mesh%topo%natural_indices(1:local_num_cells), natural_ids(i))
+      if (loc(1) /= 0) then
+        local_ids(i) = loc(1)
+      end if
+    end do
+
+  end subroutine
+
+  ! Gather field values of stencil points for location x_loc. Non local stencil value will be filled with 0
+  subroutine gather_local_stencil_values(x_loc, cps, phi, stencil_values)
+    use vec, only: get_vector_data_readonly, restore_vector_data_readonly
+    real(ccs_real), intent(in), dimension(3) :: x_loc
+    integer(ccs_int), intent(in) :: cps
+    class(field), pointer, intent(in) :: phi
+    real(ccs_real), dimension(8), intent(out) :: stencil_values
+    integer(ccs_int), dimension(8) :: natural_ids, local_ids
+    real(ccs_real), dimension(:), pointer :: phi_data
+    integer(ccs_int) :: i
+
+    stencil_values(:) = 0.0_ccs_real
+
+    call get_stencil(x_loc, cps, natural_ids)
+    call get_local_ids(natural_ids, local_ids)
+
+    call get_vector_data_readonly(phi%values, phi_data)
+
+    do i=1, 8
+      if (local_ids(i) /= 0) then
+        stencil_values(i) = phi_data(local_ids(i))
+      end if
+    end do
+
+    call restore_vector_data_readonly(phi%values, phi_data)
+
+  end subroutine
+
+
+  ! Stores in `value` the interpolated value for location x_loc
+  ! Handles parallel communication, every rank gets the interpolated value
+  ! -> lots of ways to improve performance: - caching natural index -> local index map
+  !                                         - not using all reduce, but point to point if needed
+  !                                         - doing parallel communication for every single interpolation at once
+  subroutine get_interpolated_value(par_env, x_loc, cps, phi, interpolated_value)
+    use parallel_types_mpi, only: parallel_environment_mpi
+
+    class(parallel_environment), allocatable, intent(in) :: par_env
+    real(ccs_real), intent(in), dimension(3) :: x_loc
+    integer(ccs_int), intent(in) :: cps
+    class(field), pointer, intent(in) :: phi
+    real(ccs_real), intent(out) :: interpolated_value
+    real(ccs_real), dimension(8) :: stencil_values
+    integer :: ierr
+
+    call gather_local_stencil_values(x_loc, cps, phi, stencil_values)
+
+    select type (par_env)
+    type is (parallel_environment_mpi)
+      call MPI_Allreduce(MPI_IN_PLACE, stencil_values, 8, MPI_DOUBLE_PRECISION, MPI_SUM, par_env%comm, ierr)
+    class default
+      call error_abort("invalid parallel environment")
+    end select
+
+    interpolated_value = sum(stencil_values)/8.0_ccs_real
+
+  end subroutine
+
+
+  ! Export phi on a line defined by its direction and offset from the centre of the domain
+  subroutine export_line(par_env, direction, offset, num_values, phi, cps)
+    use timestepping, only: get_current_time, get_current_step
+
+    class(parallel_environment), allocatable, intent(in) :: par_env
+    real(ccs_real), dimension(3), intent(in) :: direction
+    real(ccs_real), dimension(3), intent(in) :: offset
+    integer(ccs_int), intent(in) :: num_values
+    integer(ccs_int), intent(in) :: cps
+    class(field), pointer, intent(in) :: phi
+
+    real(ccs_real), dimension(:,:), allocatable :: x_loc
+    real(ccs_real), dimension(:), allocatable :: values
+    real(ccs_real) :: time, domain_size
+    integer(ccs_int) :: step
+    integer(ccs_int) :: i
+    integer :: io_unit
+    logical, save :: first_time = .true.
+    integer(ccs_int) :: timer_id
+
+    call timer_register_start("export_line", timer_id)
+
+    allocate(values(num_values))
+    allocate(x_loc(3, num_values))
+
+    domain_size = 3.141592653589793238462643383279
+    call get_current_time(time)
+    call get_current_step(step)
+
+    do i=1, num_values
+
+      x_loc(:, i) = [domain_size/2, domain_size/2, domain_size/2]*(1.0_ccs_real - direction) + offset &
+      + direction*i*domain_size/(num_values+1)
+
+      call get_interpolated_value(par_env, x_loc(:, i), cps, phi, values(i))
+    end do
+
+    if (is_root(par_env)) then
+
+      if (first_time) then
+        first_time = .false.
+        open (newunit=io_unit, file="line_export_"// trim(phi%name) //".dat", status="replace", form="formatted")
+      else
+        open (newunit=io_unit, file="line_export_"// trim(phi%name) //".dat", status="old", form="formatted", position="append")
+      end if
+
+      do i=1, num_values
+        write (io_unit, *) step, time, x_loc(:, i), values(i)
+      end do
+
+      close (io_unit)
+    end if
+
+    call timer_stop(timer_id)
+
+  end subroutine
+
+
 
   !> Case-specific source terms
   subroutine eval_sources(flow, phi, R, S)
