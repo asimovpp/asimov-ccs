@@ -334,6 +334,7 @@ contains
       if (first_time) then
         first_time = .false.
         open (newunit=io_unit, file="line_export_"// trim(phi%name) //".dat", status="replace", form="formatted")
+        write (io_unit, *) "# step, time, x, y, z, phi"
       else
         open (newunit=io_unit, file="line_export_"// trim(phi%name) //".dat", status="old", form="formatted", position="append")
       end if
