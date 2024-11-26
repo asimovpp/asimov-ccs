@@ -22,21 +22,21 @@ program bfs
 
   implicit none
 
-  class(parallel_environment), allocatable:: par_env
-  class(parallel_environment), allocatable:: shared_env
+  class(parallel_environment), allocatable :: par_env
+  class(parallel_environment), allocatable :: shared_env
 
-  class(field), pointer:: u
+  class(field), pointer :: u
 
-  integer(ccs_int):: irank  ! MPI rank ID
-  integer(ccs_int):: isize  ! Size of MPI world
+  integer(ccs_int) :: irank  ! MPI rank ID
+  integer(ccs_int) :: isize  ! Size of MPI world
 
-  integer(ccs_int):: timer_index_total
-  integer(ccs_int):: timer_index_init
+  integer(ccs_int) :: timer_index_total
+  integer(ccs_int) :: timer_index_init
 
-  type(fluid):: flow_fields
-  type(bc_profile), allocatable:: profile
+  type(fluid) :: flow_fields
+  type(bc_profile), allocatable :: profile
 
-  type(ccs_options):: run_options
+  type(ccs_options) :: run_options
 
   ! Launch MPI
   call initialise_parallel_environment(par_env)
@@ -94,9 +94,9 @@ contains
 
     use types, only: cell_locator
 
-    type(cell_locator), intent(in):: loc_p
-    character(len=*), intent(in):: field_name
-    real(ccs_real), intent(inout):: init_val
+    type(cell_locator), intent(in) :: loc_p
+    character(len=*), intent(in) :: field_name
+    real(ccs_real), intent(inout) :: init_val
 
     ! Silence compiler warnings
     associate(foo=>loc_p, bar=>field_name, baz=>init_val)
@@ -106,8 +106,8 @@ contains
   
   pure subroutine get_init_mass_flux(loc_f, init_val)
     use types, only: face_locator
-    type(face_locator), intent(in):: loc_f
-    real(ccs_real), intent(inout):: init_val
+    type(face_locator), intent(in) :: loc_f
+    real(ccs_real), intent(inout) :: init_val
 
     associate (foo => loc_f, bar => init_val)
     end associate
@@ -117,8 +117,8 @@ contains
   !> Subroutine to define case-specific postprocessing.
   subroutine postproc_bfs(par_env, flow_fields)
 
-    class(parallel_environment), allocatable, intent(in):: par_env
-    type(fluid), intent(in):: flow_fields
+    class(parallel_environment), allocatable, intent(in) :: par_env
+    type(fluid), intent(in) :: flow_fields
 
     ! All cases must define this, but if they don't require case-specific processing then simply
     ! make a no-op (use associate to silence unused variable compiler warnings)
@@ -129,15 +129,15 @@ contains
 
   subroutine read_bc_profile(filename, variable_id, profile)
     
-    character(len=*), intent(in):: filename
-    integer(ccs_int), intent(in):: variable_id
-    type(bc_profile), allocatable, intent(out):: profile
+    character(len=*), intent(in) :: filename
+    integer(ccs_int), intent(in) :: variable_id
+    type(bc_profile), allocatable, intent(out) :: profile
 
-    real(ccs_real), allocatable, dimension(:):: tmp_values
-    real(ccs_real):: tmp_coord
-    character(len = 128):: header_string, tmp
-    integer(ccs_int):: num_field, i
-    integer:: io_err, unit_io
+    real(ccs_real), allocatable, dimension(:) :: tmp_values
+    real(ccs_real) :: tmp_coord
+    character(len = 128) :: header_string, tmp
+    integer(ccs_int) :: num_field, i
+    integer :: io_err, unit_io
 
     allocate(profile)
 
@@ -157,7 +157,7 @@ contains
     num_field = -1
     do i = 1, len(header_string)
       if (header_string(i:i) == ',') then
-        num_field = num_field+1
+        num_field = num_field + 1
       end if
     end do
 
@@ -182,12 +182,12 @@ contains
     use types, only: fluid, field, ccs_vector
     use fv, only: zero_sources
 
-    type(fluid), intent(in):: flow !< Provides access to full flow field
-    class(field), intent(in):: phi !< Field being transported
-    class(ccs_vector), intent(inout):: R !< Work vector (for evaluating linear/implicit sources)
-    class(ccs_vector), intent(inout):: S !< Work vector (for evaluating fixed/explicit sources)
+    type(fluid), intent(in) :: flow !< Provides access to full flow field
+    class(field), intent(in) :: phi !< Field being transported
+    class(ccs_vector), intent(inout) :: R !< Work vector (for evaluating linear/implicit sources)
+    class(ccs_vector), intent(inout) :: S !< Work vector (for evaluating fixed/explicit sources)
     
-    ! Dummy implementation-just zeros the sources, see sero_sources for example implementation
+    ! Dummy implementation - just zeros the sources, see sero_sources for example implementation
     call zero_sources(flow, phi, R, S)
     
   end subroutine eval_sources
