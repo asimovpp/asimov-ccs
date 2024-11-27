@@ -363,7 +363,7 @@ contains
       end if
 
       do i=1, num_values
-        write (io_unit, *) step, time, x_loc(:, i), values(i)
+        write (io_unit, "(i0, 1x, 5(e23.16, 1x))") step, time, x_loc(:, i), values(i)
       end do
 
       close (io_unit)
