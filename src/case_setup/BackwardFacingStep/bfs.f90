@@ -24,15 +24,14 @@ program bfs
 
   class(parallel_environment), allocatable :: par_env
   class(parallel_environment), allocatable :: shared_env
-  character(len=:), allocatable :: case_path  ! Path to input directory with case name appended
 
   class(field), pointer :: u
 
-  integer(ccs_int) :: irank ! MPI rank ID
-  integer(ccs_int) :: isize ! Size of MPI world
+  integer(ccs_int) :: irank  ! MPI rank ID
+  integer(ccs_int) :: isize  ! Size of MPI world
 
-  integer(ccs_int):: timer_index_total
-  integer(ccs_int):: timer_index_init
+  integer(ccs_int) :: timer_index_total
+  integer(ccs_int) :: timer_index_init
 
   type(fluid) :: flow_fields
   type(bc_profile), allocatable :: profile
@@ -64,7 +63,7 @@ program bfs
   ! Read and set BC profiles
   ! Read u componemt (1st column)
   call get_field(flow_fields, "u", u)
-  call read_bc_profile(case_path // '.blasius.prf', 1, profile)
+  call read_bc_profile(run_options%paths%case_path // '.blasius.prf', 1, profile)
   profile%coordinates(:) = profile%coordinates(:) / mesh%geo%scalefactor
   profile%centre(:) = [ -4.0_ccs_real, 0.0_ccs_real, 0.5_ccs_real ] 
   
@@ -136,7 +135,7 @@ contains
 
     real(ccs_real), allocatable, dimension(:) :: tmp_values
     real(ccs_real) :: tmp_coord
-    character(len=128) :: header_string, tmp
+    character(len = 128) :: header_string, tmp
     integer(ccs_int) :: num_field, i
     integer :: io_err, unit_io
 
@@ -146,7 +145,7 @@ contains
     allocate(profile%values(0))
     allocate(profile%coordinates(0))
 
-    open(newunit=unit_io, file=trim(filename), status='old', action='read')
+    open(newunit = unit_io, file = trim(filename), status='old', action='read')
 
     read(unit_io, *)                      ! ignore profile type
     read(unit_io, *) tmp, profile%centre  ! read centre
@@ -156,7 +155,7 @@ contains
 
     ! Count the number of fields in file
     num_field = -1
-    do i=1, len(header_string)
+    do i = 1, len(header_string)
       if (header_string(i:i) == ',') then
         num_field = num_field + 1
       end if
@@ -167,7 +166,7 @@ contains
     ! Read file profile table
     do while (.true.)
 
-      read(unit_io, *, iostat=io_err) tmp_coord, tmp_values
+      read(unit_io, *, iostat = io_err) tmp_coord, tmp_values
       if (io_err /= 0) then
         exit
       end if
