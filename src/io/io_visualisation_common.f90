@@ -11,7 +11,7 @@ submodule(io_visualisation) io_visualisation_common
   use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, &
                     timer_print, timer_get_time, timer_print_all
 
-  use core, only: ccs_options
+  use core, only: ccs_options, build_mesh_2d, build_mesh_3d, read_input_mesh
   use types, only: field
   use utils, only: get_field
   
@@ -139,6 +139,7 @@ contains
     integer(ccs_int) :: num_vel_cmp             ! Number of velocity components in output field list
     integer(ccs_int) :: i                       ! Loop counter
 
+    character(len=:), allocatable :: dimstring
     integer(ccs_int) :: ncel
 
     class(field), pointer :: phi
@@ -175,7 +176,6 @@ contains
         write (ioxdmf, '(a,a)') l1, '<Domain>'
       end if
 
-      call get_global_num_cells(ncel)
 
       write (ioxdmf, '(a,a)') l3, '<Grid Name = "Mesh">'
 
@@ -197,26 +197,45 @@ contains
         end if
       end do
 
-      ! TODO: Replace ncel with 'cps cps cps' for generated grids
+      ! Build the "dimension string" to describe the data layout:
+      ! - Meshes read from file are represented by 1-D strings of ncel data
+      ! - Generated meshes are represented by NXxNY[xNZ] data (currently all equal-sized)
+      ! this is represented by a string that is spliced into the data descriptors.
+      if (run_options%mesh%init_mesh_type == read_input_mesh) then
+        call get_global_num_cells(ncel)
+        dimstring = "1000000000000000" ! Preallocate string for 1,000 trilion
+        write(dimstring, '(i0)') ncel
+      else
+        ncel = run_options%mesh%cps
+        dimstring = "1000000 1000000 1000000" ! Preallocate string for 1M^3
+        if (run_options%mesh%init_mesh_type == build_mesh_2d) then
+          write(dimstring, '(2(i0,1x))') ncel, ncel
+        else if (run_options%mesh%init_mesh_type == build_mesh_3d) then
+          write(dimstring, '(3(i0,1x))') ncel, ncel, ncel
+        else
+          error stop "Impossible condition"
+        end if
+      end if
+      
       if (num_vel_cmp > 0) then
         write (ioxdmf, '(a,a)') l4, '<Attribute Name = "velocity" AttributeType = "Vector" Center = "Cell">'
 
-        fmt = '(a,a,i0,1x,i0,a)'
+        fmt = '(a,a,a,1x,i0,a)'
         if (num_vel_cmp == 1) then
-          write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', ncel, 1, '" ItemType = "Function" Function = "JOIN($0)">'
+          write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', trim(dimstring), 1, '" ItemType = "Function" Function = "JOIN($0)">'
         else if (num_vel_cmp == 2) then
-          write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', ncel, 2, '" ItemType = "Function" Function = "JOIN($0, $1)">'
+          write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', trim(dimstring), 2, '" ItemType = "Function" Function = "JOIN($0, $1)">'
         else if (num_vel_cmp == 3) then
-          write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', ncel, 3, '" ItemType = "Function" Function = "JOIN($0, $1, $2)">'
+          write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', trim(dimstring), 3, '" ItemType = "Function" Function = "JOIN($0, $1, $2)">'
         end if
 
-        fmt = '(a,a,i0,3(a),i0,a)'
+        fmt = '(a,a,a,3(a),i0,a)'
 
         do i = 1, size(flow%fields)
           call get_field(flow, i, phi)
           if (phi%output) then
             if ((trim(phi%name) == 'u') .or. (trim(phi%name) == 'v') .or. (trim(phi%name) == 'w')) then
-              write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', ncel, '">', trim(sol_file), ':/Step', &
+              write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', trim(dimstring), '">', trim(sol_file), ':/Step', &
                    step_counter, '/'//trim(phi%name)//'</DataItem>'
             end if
           end if
@@ -226,25 +245,25 @@ contains
       end if
 
       ! Pressure
-      fmt = '(a,a,i0,3(a),i0,a)'
+      fmt = '(a,a,a,3(a),i0,a)'
       do i = 1, size(flow%fields)
         call get_field(flow, i, phi)
         if (trim(phi%name) == 'p') then
           write (ioxdmf, '(a,a)') l4, '<Attribute Name = "pressure" AttributeType = "Scalar" Center = "Cell">'
-          write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', ncel, '" Format = "HDF">', trim(sol_file), ':/Step', &
+          write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', trim(dimstring), '" Format = "HDF">', trim(sol_file), ':/Step', &
             step_counter, '/p</DataItem>'
           write (ioxdmf, '(a,a)') l4, '</Attribute>'
         end if
       end do
 
       ! Scalars
-      fmt = '(a,a,i0,3(a),i0,a)'
+      fmt = '(a,a,a,3(a),i0,a)'
       do i = 1, size(flow%fields)
         call get_field(flow, i, phi)
         if (phi%output) then
           if (.not. any(skip_fields == trim(phi%name))) then
             write (ioxdmf, '(a,a)') l4, '<Attribute Name = "'//phi%name//'" AttributeType = "Scalar" Center = "Cell">'
-            write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', ncel, '" Format = "HDF">', trim(sol_file), ':/Step', &
+            write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', trim(dimstring), '" Format = "HDF">', trim(sol_file), ':/Step', &
                  step_counter, '/'//trim(phi%name)//'</DataItem>'
             write (ioxdmf, '(a,a)') l4, '</Attribute>'
           end if
@@ -255,26 +274,26 @@ contains
       if (num_vel_cmp > 0) then
         write (ioxdmf, '(a,a)') l4, '<Attribute Name = "kinetic energy" AttributeType = "Scalar" Center = "Cell">'
 
-        fmt = '(a,a,i0,a,a)'
+        fmt = '(a,a,a,a,a)'
 
         if (num_vel_cmp == 1) then
-          write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', ncel, '" ItemType = "Function"', &
+          write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', trim(dimstring), '" ItemType = "Function"', &
             ' Function = "0.5 * ($0*$0)">'
         else if (num_vel_cmp == 2) then
-          write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', ncel, '" ItemType = "Function"', &
+          write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', trim(dimstring), '" ItemType = "Function"', &
             ' Function = "0.5 * ($0*$0 + $1*$1)">'
         else if (num_vel_cmp == 3) then
-          write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', ncel, '" ItemType = "Function"', &
+          write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', trim(dimstring), '" ItemType = "Function"', &
             ' Function = "0.5 * ($0*$0 + $1*$1 + $2*$2)">'
         end if
 
-        fmt = '(a,a,i0,3(a),i0,a)'
+        fmt = '(a,a,a,3(a),i0,a)'
 
         do i = 1, size(flow%fields)
           call get_field(flow, i, phi)
           if (phi%output) then
             if ((trim(phi%name) == 'u') .or. (trim(phi%name) == 'v') .or. (trim(phi%name) == 'w')) then
-              write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', ncel, '">', trim(sol_file), ':/Step', &
+              write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', trim(dimstring), '">', trim(sol_file), ':/Step', &
                    step_counter, '/'//trim(phi%name)//'</DataItem>'
             end if
           end if
@@ -287,22 +306,22 @@ contains
       if (run_options%io%write_gradients .and. (num_vel_cmp == 3)) then
         write (ioxdmf, '(a,a)') l4, '<Attribute Name = "enstrophy" AttributeType = "Scalar" Center = "Cell">'
 
-        fmt = '(a,a,i0,a,a)'
+        fmt = '(a,a,a,a,a)'
         write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', ncel, '" ItemType = "Function"', &
           ' Function = "0.5 * (($5-$3)*($5-$3) + ($1-$4)*($1-$4) + ($2-$0)*($2-$0))">'
 
         fmt = '(a,a,i0,3(a),i0,a)'
-        write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', ncel, '">', trim(sol_file), ':/Step', &
+        write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', trim(dimstring), '">', trim(sol_file), ':/Step', &
           step_counter, '/dudy</DataItem>'
-        write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', ncel, '">', trim(sol_file), ':/Step', &
+        write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', trim(dimstring), '">', trim(sol_file), ':/Step', &
           step_counter, '/dudz</DataItem>'
-        write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', ncel, '">', trim(sol_file), ':/Step', &
+        write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', trim(dimstring), '">', trim(sol_file), ':/Step', &
           step_counter, '/dvdx</DataItem>'
-        write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', ncel, '">', trim(sol_file), ':/Step', &
+        write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', trim(dimstring), '">', trim(sol_file), ':/Step', &
           step_counter, '/dvdz</DataItem>'
-        write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', ncel, '">', trim(sol_file), ':/Step', &
+        write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', trim(dimstring), '">', trim(sol_file), ':/Step', &
           step_counter, '/dwdx</DataItem>'
-        write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', ncel, '">', trim(sol_file), ':/Step', &
+        write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', trim(dimstring), '">', trim(sol_file), ':/Step', &
           step_counter, '/dwdy</DataItem>'
         write (ioxdmf, '(a,a)') l5, '</DataItem>'
         write (ioxdmf, '(a,a)') l4, '</Attribute>'
@@ -313,7 +332,7 @@ contains
         call get_field(flow, i, phi)
         if (allocated(phi%residuals)) then
           write (ioxdmf, '(a,a)') l4, '<Attribute Name = "residuals_' // trim(phi%name) // '" AttributeType = "Scalar" Center = "Cell">'
-          write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', ncel, '" Format = "HDF">', trim(sol_file), ':/Step', &
+          write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', trim(dimstring), '" Format = "HDF">', trim(sol_file), ':/Step', &
             step_counter, '/' // trim(phi%name) // '_res</DataItem>'
           write (ioxdmf, '(a,a)') l4, '</Attribute>'
         end if
