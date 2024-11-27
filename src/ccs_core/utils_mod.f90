@@ -364,7 +364,7 @@ contains
     use parallel, only: allreduce, error_handling
     use parallel_types_mpi, only: parallel_environment_mpi
     use parallel_types, only: parallel_environment
-    use meshing, only: get_local_num_cells
+    use meshing, only: get_local_num_cells, get_global_num_cells
     use timestepping, only: get_current_step
 
     class(parallel_environment), allocatable, intent(in) :: par_env !< parallel environment
@@ -372,7 +372,7 @@ contains
     class(field), intent(inout) :: v !< solve y velocity field
     class(field), intent(inout) :: w !< solve z velocity field
 
-    integer(ccs_int) :: local_num_cells
+    integer(ccs_int) :: local_num_cells, global_num_cells
     real(ccs_real) :: ens_local, ens_global
     real(ccs_real), dimension(:), pointer :: dudy, dudz, dvdx, dvdz, dwdx, dwdy
     integer(ccs_int) :: index_p
@@ -418,6 +418,9 @@ contains
     class default
       call error_abort("ERROR: Unknown type")
     end select
+
+    call get_global_num_cells(global_num_cells)
+    ens_global = ens_global / global_num_cells
 
     if (par_env%proc_id == par_env%root) then
       if (first_time) then
