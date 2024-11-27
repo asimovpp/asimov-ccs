@@ -5,7 +5,7 @@ submodule(core) core_init_mesh
   use ccs_base, only: mesh
   use parallel_types_mpi, only: parallel_environment_mpi
   use parallel, only: is_root
-  use mesh_utils, only: build_mesh, build_square_mesh, read_mesh, write_mesh
+  use mesh_utils, only: build_mesh, build_square_mesh, read_mesh
   use meshing, only: set_mesh_object
   use timers, only: timer_register_start, timer_stop
   use kinds, only: ccs_int
@@ -20,7 +20,6 @@ contains
     type(ccs_options), intent(in) :: run_options                       !< Object containing relevant options for building/reading the mesh
   
     integer(ccs_int) :: timer_index_build
-    integer(ccs_int) :: timer_index_io_init
 
     if (is_root(par_env)) then
       print *, "******************************************************************************"
@@ -63,11 +62,6 @@ contains
         print *, "******************************************************************************"
       end if
     end associate
-  
-    ! Write out mesh to file
-    call timer_register_start("I/O time for mesh", timer_index_io_init)
-    call write_mesh(par_env, run_options%paths%case_path, mesh)
-    call timer_stop(timer_index_io_init)
 
   end subroutine initialise_mesh
 
