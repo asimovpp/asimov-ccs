@@ -25,22 +25,22 @@ program tgv
 
   implicit none
 
-  class(parallel_environment), allocatable:: par_env
-  class(parallel_environment), allocatable:: shared_env
+  class(parallel_environment), allocatable :: par_env
+  class(parallel_environment), allocatable :: shared_env
 
   type(ccs_options) :: run_options
 
-  integer(ccs_int):: irank  ! MPI rank ID
-  integer(ccs_int):: isize  ! Size of MPI world
+  integer(ccs_int) :: irank  ! MPI rank ID
+  integer(ccs_int) :: isize  ! Size of MPI world
 
-  integer(ccs_int):: timer_index_total
-  integer(ccs_int):: timer_index_init
-  integer(ccs_int):: timer_index_io_sol
-  integer(ccs_int):: timer_index_sol
+  integer(ccs_int) :: timer_index_total
+  integer(ccs_int) :: timer_index_init
+  integer(ccs_int) :: timer_index_io_sol
+  integer(ccs_int) :: timer_index_sol
 
-  double precision:: sol_time, io_time
+  double precision :: sol_time, io_time
 
-  type(fluid):: flow_fields
+  type(fluid) :: flow_fields
 
   ! Launch MPI
   call initialise_parallel_environment(par_env)
@@ -129,9 +129,12 @@ contains
   end subroutine get_init_mass_flux
 
   subroutine postproc_tgv(par_env, flow_fields)
+    use timestepping, only: get_current_step
 
     class(parallel_environment), allocatable, intent(in) :: par_env
     type(fluid), intent(in) :: flow_fields
+    integer(ccs_int) :: step
+    logical :: first_time
 
     class(field), pointer:: u, v, w
 
@@ -140,8 +143,32 @@ contains
     call get_field(flow_fields, "w", w)
     call calc_kinetic_energy(par_env, u, v, w)
     call calc_enstrophy(par_env, u, v, w)
-    call export_line(par_env, [1.0_ccs_real, 0.0_ccs_real, 0.0_ccs_real], &
-                              [0.0_ccs_real, 0.0_ccs_real, 0.0_ccs_real], 8, u, run_options%mesh%cps)
+
+    call get_current_step(step)
+
+    if (modulo(step, 20) == 0) then
+      first_time = (step == 20)
+    ! Centre line
+      call export_line(par_env, [1.0_ccs_real, 0.0_ccs_real, 0.0_ccs_real], &
+                                [0.0_ccs_real, 0.0_ccs_real, 0.0_ccs_real], 40, u, run_options%mesh%cps, first_time)
+  
+      call export_line(par_env, [1.0_ccs_real, 0.0_ccs_real, 0.0_ccs_real], &
+                                [0.0_ccs_real, 0.0_ccs_real, 0.0_ccs_real], 40, v, run_options%mesh%cps, first_time)
+  
+      call export_line(par_env, [1.0_ccs_real, 0.0_ccs_real, 0.0_ccs_real], &
+                                [0.0_ccs_real, 0.0_ccs_real, 0.0_ccs_real], 40, w, run_options%mesh%cps, first_time)
+
+    ! 1/4 line                            
+      call export_line(par_env, [1.0_ccs_real, 0.0_ccs_real, 0.0_ccs_real], &
+                                [0.0_ccs_real, run_options%mesh%domain_size / 4.0_ccs_real, 0.0_ccs_real], 40, u, run_options%mesh%cps, .false.)
+  
+      call export_line(par_env, [1.0_ccs_real, 0.0_ccs_real, 0.0_ccs_real], &
+                                [0.0_ccs_real, run_options%mesh%domain_size / 4.0_ccs_real, 0.0_ccs_real], 40, v, run_options%mesh%cps, .false.)
+  
+      call export_line(par_env, [1.0_ccs_real, 0.0_ccs_real, 0.0_ccs_real], &
+                                [0.0_ccs_real, run_options%mesh%domain_size / 4.0_ccs_real, 0.0_ccs_real], 40, w, run_options%mesh%cps, .false.)
+    end if
+
     nullify(u)
     nullify(v)
     nullify(w)
@@ -155,16 +182,15 @@ contains
     integer(ccs_int), intent(in) :: cps
     integer(ccs_int), intent(out) :: ii
     integer(ccs_int) :: nx, ny, nz
-    real(ccs_real) :: x, y, z, domain_size
+    real(ccs_real) :: x, y, z
 
     ii = 0
     nx = cps
     ny = cps
     nz = cps
-    domain_size = 3.141592653589793238462643383279
-    x = x_loc(1)/domain_size - (1.0_ccs_real/nx)/2
-    y = x_loc(2)/domain_size - (1.0_ccs_real/ny)/2
-    z = x_loc(3)/domain_size - (1.0_ccs_real/nz)/2
+    x = x_loc(1)/run_options%mesh%domain_size - (1.0_ccs_real/nx)/2
+    y = x_loc(2)/run_options%mesh%domain_size - (1.0_ccs_real/ny)/2
+    z = x_loc(3)/run_options%mesh%domain_size - (1.0_ccs_real/nz)/2
 
     ii = floor(x*nx + 0.5, ccs_int) 
     ii = ii + nx* floor(y*ny + 0.5, ccs_int)
@@ -180,11 +206,9 @@ contains
     integer(ccs_int), intent(in) :: cps
     integer(ccs_int), intent(out), dimension(8) :: natural_ids
     real(ccs_real), dimension(3) :: s_loc
-    real(ccs_real) :: h, domain_size
+    real(ccs_real) :: h
 
-    domain_size = 3.141592653589793238462643383279
-
-    h = domain_size / cps /2
+    h = run_options%mesh%domain_size / cps /2
     s_loc(:) = x_loc(:) + [ h, h, h]
     call get_natural_index(s_loc, cps, natural_ids(1))
 
@@ -293,15 +317,16 @@ contains
 
 
   ! Export phi on a line defined by its direction and offset from the centre of the domain
-  subroutine export_line(par_env, direction, offset, num_values, phi, cps)
+  subroutine export_line(par_env, direction, offset, num_values, phi, cps, first_time)
     use timestepping, only: get_current_time, get_current_step
 
     class(parallel_environment), allocatable, intent(in) :: par_env
     real(ccs_real), dimension(3), intent(in) :: direction
     real(ccs_real), dimension(3), intent(in) :: offset
     integer(ccs_int), intent(in) :: num_values
-    integer(ccs_int), intent(in) :: cps
     class(field), pointer, intent(in) :: phi
+    integer(ccs_int), intent(in) :: cps
+    logical, intent(in) :: first_time
 
     real(ccs_real), dimension(:,:), allocatable :: x_loc
     real(ccs_real), dimension(:), allocatable :: values
@@ -309,7 +334,6 @@ contains
     integer(ccs_int) :: step
     integer(ccs_int) :: i
     integer :: io_unit
-    logical, save :: first_time = .true.
     integer(ccs_int) :: timer_id
 
     call timer_register_start("export_line", timer_id)
@@ -317,7 +341,7 @@ contains
     allocate(values(num_values))
     allocate(x_loc(3, num_values))
 
-    domain_size = 3.141592653589793238462643383279
+    domain_size = run_options%mesh%domain_size
     call get_current_time(time)
     call get_current_step(step)
 
@@ -332,7 +356,6 @@ contains
     if (is_root(par_env)) then
 
       if (first_time) then
-        first_time = .false.
         open (newunit=io_unit, file="line_export_"// trim(phi%name) //".dat", status="replace", form="formatted")
         write (io_unit, *) "# step, time, x, y, z, phi"
       else
