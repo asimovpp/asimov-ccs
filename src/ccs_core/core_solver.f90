@@ -61,6 +61,7 @@ contains
 
     integer(ccs_int) :: t ! Timestep counter
     integer(ccs_int) :: num_steps
+    integer(ccs_int):: timer_index_post
 
     integer(ccs_int) :: it_start, it_end
 
@@ -82,6 +83,7 @@ contains
     
     call timer_register("I/O time for solution", timer_index_io_sol)
     call timer_register("Solver time inc I/O", timer_index_sol)
+    call timer_register("Postproc", timer_index_post)
     
     do t = 1, num_steps
       call timer_start(timer_index_sol)
@@ -96,7 +98,9 @@ contains
         end if
       end if
       
+      call timer_start(timer_index_post)
       call postproc(par_env, flow_fields)
+      call timer_stop(timer_index_post)
 
       if (check_stop_run(par_env, run_options, t, flow_fields, diverged)) then
         exit
