@@ -427,7 +427,6 @@ contains
   !> Write the XDMF entry for a CCS-generated mesh
   subroutine write_xdmf_mesh_build(run_options, ioxdmf)
 
-    use core, only: build_mesh_2d, build_mesh_3d
 
     type(ccs_options), intent(in) :: run_options
     integer(ccs_int), intent(in) :: ioxdmf
@@ -457,7 +456,7 @@ contains
       write (ioxdmf, '(a,a)') l4, '</DataItem>'
       write (ioxdmf, '(a,a)') l4, &
            '<DataItem Dimensions="2" NumberType="Float" Precision="8" Format="XML">'
-      write (ioxdmf, '(a,d23.16,a,d23.16)') l5, h, ' ', h
+      write (ioxdmf, '(a,e23.16,a,e23.16)') l5, h, ' ', h
       write (ioxdmf, '(a,a)') l4, '</DataItem>'
       write (ioxdmf, '(a,a)') l4, '</Geometry>'
     else if (run_options%mesh%init_mesh_type == build_mesh_3d) then
@@ -473,7 +472,7 @@ contains
       write (ioxdmf, '(a,a)') l4, '</DataItem>'
       write (ioxdmf, '(a,a)') l4, &
            '<DataItem Dimensions="3" NumberType="Float" Precision="8" Format="XML">'
-      write (ioxdmf, '(a,d23.16,a,d23.16,a,d23.16)') l5, h, ' ', h, ' ', h
+      write (ioxdmf, '(a,e23.16,a,e23.16,a,e23.16)') l5, h, ' ', h, ' ', h
       write (ioxdmf, '(a,a)') l4, '</DataItem>'
       write (ioxdmf, '(a,a)') l4, '</Geometry>'
     else
