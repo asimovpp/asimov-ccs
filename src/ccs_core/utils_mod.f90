@@ -425,11 +425,11 @@ contains
     if (par_env%proc_id == par_env%root) then
       if (first_time) then
         first_time = .false.
-        open (newunit=io_unit, file="tgv2d-ens.log", status="replace", form="formatted")
+        open (newunit=io_unit, file="tgv-ens.log", status="replace", form="formatted")
       else
-        open (newunit=io_unit, file="tgv2d-ens.log", status="old", form="formatted", position="append")
+        open (newunit=io_unit, file="tgv-ens.log", status="old", form="formatted", position="append")
       end if
-      fmt = '(I0,1(1x,e12.4))'
+      fmt = '(I0,1(1x,e23.12))'
       write (io_unit, fmt) step, ens_global
       close (io_unit)
     end if
