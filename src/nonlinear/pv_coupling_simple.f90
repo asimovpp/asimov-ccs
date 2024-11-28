@@ -1417,7 +1417,10 @@ contains
     end if
 
     ! checks if RMS of residuals is below target
-    if (maxval(residuals(1:nvar)) < res_target) converged = .true.
+    ! if (maxval(residuals(1:nvar)) < res_target) converged = .true.
+
+    ! checks if L_infty of residuals is below target
+    if (maxval(residuals(nvar+1:2*nvar)) < res_target) converged = .true.
 
     if (present(diverged)) then
       diverged = (maxval(residuals) > huge(1.0_ccs_real)) 
