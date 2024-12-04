@@ -415,7 +415,7 @@ contains
     class(linear_solver), allocatable :: lin_solver
     integer(ccs_int) :: nvar ! Number of flow variables to solve
     integer(ccs_int) :: global_num_cells
-    integer(ccs_int) :: timer_coeffs
+    integer(ccs_int) :: timer_coeffs, timer_solve_mom
 
     ! First zero matrix/RHS
     call zero(vec)
@@ -508,7 +508,10 @@ contains
 
     ! Solve the linear system
     call dprint("GV: solve u")
+
+    call timer_register_start("Solve momentum", timer_solve_mom)
     call solve(lin_solver)
+    call timer_stop(timer_solve_mom)
 
     ! Clean up
     deallocate (lin_solver)
@@ -825,7 +828,7 @@ contains
     real(ccs_real) :: dxmag
 
     integer(ccs_int) :: global_num_cells
-    integer(ccs_int) :: timer_coeffs
+    integer(ccs_int) :: timer_coeffs, timer_solve_P
 
     call timer_register_start("Building coefficients", timer_coeffs)
     ! First zero matrix
@@ -976,7 +979,10 @@ contains
 
     ! Solve the linear system
     call dprint("P': solve")
+
+    call timer_register_start("Solve pressure", timer_solve_P)
     call solve(lin_solver)
+    call timer_stop(timer_solve_P)
 
   end subroutine calculate_pressure_correction
 
