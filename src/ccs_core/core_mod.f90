@@ -49,7 +49,7 @@ module core
   !v Options for IO configuration
   type :: io_options
     integer(ccs_int) :: write_frequency = huge(0)
-    logical :: write_gradients = .false.
+    logical :: write_gradients = .true.
   end type io_options
 
   !v Options for variable declarations

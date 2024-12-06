@@ -96,9 +96,15 @@ contains
     character(len=*), intent(in) :: field_name
     real(ccs_real), intent(inout) :: init_val
 
+    real(ccs_real), parameter :: Re = 10000.0_ccs_real ! Reynolds number
+
     ! Silence ompiler warnings
     associate(foo => loc_p, bar => field_name, baz => init_val)
     end associate
+
+    if (field_name == "viscosity") then
+      init_val = 1.0_ccs_real / Re
+    end if
     
   end subroutine get_init_flow
   
