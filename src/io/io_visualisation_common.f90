@@ -321,31 +321,6 @@ contains
           end if
         end do
       end if
-      
-     !!! ! Enstrophy
-     !!! if (run_options%io%write_gradients .and. (num_vel_cmp == 3)) then
-     !!!   write (ioxdmf, '(a,a)') l4, '<Attribute Name = "enstrophy" AttributeType = "Scalar" Center = "Cell">'
-
-     !!!   fmt = '(a,a,a,a,a)'
-     !!!   write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', ncel, '" ItemType = "Function"', &
-     !!!     ' Function = "0.5 * (($5-$3)*($5-$3) + ($1-$4)*($1-$4) + ($2-$0)*($2-$0))">'
-
-     !!!   fmt = '(a,a,i0,3(a),i0,a)'
-     !!!   write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', trim(dimstring), '">', trim(sol_file), ':/Step', &
-     !!!     step_counter, '/dudy</DataItem>'
-     !!!   write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', trim(dimstring), '">', trim(sol_file), ':/Step', &
-     !!!     step_counter, '/dudz</DataItem>'
-     !!!   write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', trim(dimstring), '">', trim(sol_file), ':/Step', &
-     !!!     step_counter, '/dvdx</DataItem>'
-     !!!   write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', trim(dimstring), '">', trim(sol_file), ':/Step', &
-     !!!     step_counter, '/dvdz</DataItem>'
-     !!!   write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', trim(dimstring), '">', trim(sol_file), ':/Step', &
-     !!!     step_counter, '/dwdx</DataItem>'
-     !!!   write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', trim(dimstring), '">', trim(sol_file), ':/Step', &
-     !!!     step_counter, '/dwdy</DataItem>'
-     !!!   write (ioxdmf, '(a,a)') l5, '</DataItem>'
-     !!!   write (ioxdmf, '(a,a)') l4, '</Attribute>'
-     !!! end if
 
       ! Residuals
       do i = 1, size(flow%fields)
