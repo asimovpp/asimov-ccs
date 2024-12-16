@@ -99,7 +99,7 @@ contains
     ! Silence ompiler warnings
     associate(foo => loc_p, bar => field_name, baz => init_val)
     end associate
-    
+
   end subroutine get_init_flow
   
   pure subroutine get_init_mass_flux(loc_f, init_val)
