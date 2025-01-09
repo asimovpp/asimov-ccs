@@ -62,9 +62,9 @@ viscocity : 1.0e-3
 #  v: 1.0
 #  w: 1.0
 
-#post:
-#  type: center
-#  variables: [u, v, w, p]
+post:
+  type: center
+  variables: [u, v, w, p]
 
 variables:
   enable_cell_corrections: true
