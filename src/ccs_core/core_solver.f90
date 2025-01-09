@@ -17,7 +17,7 @@ submodule (core) core_solver
 
   use timers, only: timer_register, timer_start, timer_stop
 
-  use timestepping, only: timestepping_is_active
+  use timestepping, only: timestepping_is_active, finalise_timestep
   
   implicit none
 
@@ -141,6 +141,7 @@ contains
       diverged = .false.
       call update_scalars(par_env, mesh, eval_sources, flow_fields)
     end if
+    call finalise_timestep()
     
   end subroutine advance_step
 

@@ -40,8 +40,6 @@ program scalar_transport
 
   type(fluid) :: flow_fields
 
-  real(ccs_real) :: L
-
   type(ccs_options) :: run_options
   
   ! Launch MPI
@@ -99,14 +97,18 @@ contains
     character(len=*), intent(in) :: field_name
     real(ccs_real), intent(inout) :: init_val
 
-    real(ccs_real), dimension(3) :: c, r, x
+    real(ccs_real), dimension(3) :: x
+    real(ccs_real), dimension(2) :: r
 
     real(ccs_real) :: whisky
 
+    real(ccs_real) :: L, c
+
+    L = run_options%mesh%domain_size
     c = L / 2
 
     call get_centre(loc_p, x)
-    r = x - c
+    r = x(1:2) - c
 
     if (any(r <= 0.0_ccs_real)) then
       whisky = 1.0_ccs_real
@@ -133,12 +135,16 @@ contains
     type(face_locator), intent(in) :: loc_f
     real(ccs_real), intent(inout) :: init_val
 
-    real(ccs_real), dimension(3) :: c, r, x
     real(ccs_real), dimension(3) :: face_normal, v
     real(ccs_real) :: rmag
     real(ccs_real) :: theta
     logical :: is_boundary
+
+    real(ccs_real), dimension(3) :: x
+    real(ccs_real), dimension(2) :: r
+    real(ccs_real) :: L, c
     
+    L = run_options%mesh%domain_size
     c = L / 2
 
     call get_boundary_status(loc_f, is_boundary)
@@ -149,7 +155,7 @@ contains
       call get_centre(loc_f, x)
 
       ! Create a rotating field that decays to zero on the boundaries
-      r = x - c
+      r = x(1:2) - c
       rmag = sqrt(sum(r(1:2)**2))
       theta = asin(abs(r(2)) / rmag)
       if (r(1) >= 0) then
