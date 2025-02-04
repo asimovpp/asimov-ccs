@@ -70,9 +70,9 @@ compute_bwidth : false
 #  v: 1.0
 #  w: 1.0
 
-#post:
-#  type: center
-#  variables: [u, v, w, p]
+post:
+  type: center
+  variables: [u, v, w, p]
 
 variables:
   store_residuals: false

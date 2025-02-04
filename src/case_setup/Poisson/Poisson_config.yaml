@@ -20,6 +20,10 @@ variables:
     type: central
     solve: on
 
+post:
+  type: center
+  variables: [u, v, w, p]
+
 boundaries:
   n_boundaries: 6
   boundary_1: 

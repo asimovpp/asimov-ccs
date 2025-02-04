@@ -171,6 +171,8 @@ contains
     integer(ccs_int), dimension(:), allocatable :: variable_types
     logical :: present, restart
 
+    character(len=:), allocatable :: post_type
+
     call get_variables(config_file, variable_names)
     if (size(variable_names) == 0) then
       call error_abort("No variables were specified.")
@@ -188,8 +190,7 @@ contains
       variables%restart =  restart
     end if
 
-    ! call get_output_type(config_file, post_type, variables%output_variables)
-    variables%output_variables = ['u', 'v', 'w', 'p']
+    call get_output_type(config_file, post_type, variables%output_variables)
     call get_solve(config_file, variables%solved_variables)
 
   end subroutine get_variable_definitions

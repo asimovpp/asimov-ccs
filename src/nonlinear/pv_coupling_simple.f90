@@ -30,7 +30,7 @@ submodule(pv_coupling) pv_coupling_simple
                      get_global_num_cells, &
                      get_max_faces, is_mesh_set
   use scalars, only: update_scalars
-  use timestepping, only: update_old_values, finalise_timestep, get_current_step, get_current_time
+  use timestepping, only: update_old_values, get_current_step, get_current_time
   use bc_constants, only: bc_type_dirichlet
 
   implicit none
@@ -242,7 +242,6 @@ contains
     end do outerloop
 
     deallocate (lin_solverP)
-    call finalise_timestep()
 
     ! Free up memory
     deallocate (residuals)

@@ -64,9 +64,9 @@ write_frequency: 5
 #output:
 #  every: 1000
 
-#post:
-#  type: center
-#  variables: [u, v, w, p]
+post:
+  type: center
+  variables: [whisky, water]
 
 variables:
   store_residuals: false
@@ -88,7 +88,7 @@ variables:
     type: central
 
 boundaries:
-  n_boundaries: 6
+  n_boundaries: 4
   boundary_1: 
     name: left
     type: neumann
