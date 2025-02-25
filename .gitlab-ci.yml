@@ -178,6 +178,7 @@ test_cray_A2:
   extends: [.general_setup, .setup_cray_A2, .test_common]
   variables:
     SLURM_ntasks: 5
+    SLURM_time: "00:20:00"
   script:
     - CMP=cray make tests
 
