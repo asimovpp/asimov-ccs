@@ -20,6 +20,8 @@ dt: 1.0e-5
 # domain size
 L: 3.1415926535
 
+mesh: read
+
 relaxation_factor:
   u: 0.7
   v: 0.7
