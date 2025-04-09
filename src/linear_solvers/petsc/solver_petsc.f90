@@ -154,8 +154,8 @@ contains
   !> Interface to set the preconditioner of a linear solver
   module subroutine set_solver_precon(precon_name, solver)
 
-    use petscksp, only: KSPGetPC
-    use petscpc, only: tPC, PCSetType, PCSetReusePreconditioner, PCSetFromOptions
+    use petscksp, only: KSPGetPC, tPC, PCSetType, PCSetReusePreconditioner, PCSetFromOptions
+!    use petscpc, only: tPC, PCSetType, PCSetReusePreconditioner, PCSetFromOptions
     use petsc, only: PETSC_TRUE
 
     ! Arguments
