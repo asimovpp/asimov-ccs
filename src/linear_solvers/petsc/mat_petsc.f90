@@ -18,7 +18,7 @@ contains
 
     use mpi
 
-    use petsc, only: PETSC_DETERMINE, PETSC_NULL_INTEGER
+    use petsc, only: PETSC_DETERMINE, PETSC_NULL_INTEGER_ARRAY
     use petscmat, only: MatCreate, MatSetSizes, MatSetFromOptions, MatSetUp, &
                         MatSeqAIJSetPreallocation, MatMPIAIJSetPreallocation
 
@@ -66,9 +66,9 @@ contains
           end if
           call MatSetUp(M%M, ierr)
         else
-          call MatSeqAIJSetPreallocation(M%M, mat_properties%nnz, PETSC_NULL_INTEGER, ierr)
-          call MatMPIAIJSetPreallocation(M%M, mat_properties%nnz, PETSC_NULL_INTEGER, mat_properties%nnz - 1, &
-                                         PETSC_NULL_INTEGER, ierr)
+          call MatSeqAIJSetPreallocation(M%M, mat_properties%nnz, PETSC_NULL_INTEGER_ARRAY, ierr)
+          call MatMPIAIJSetPreallocation(M%M, mat_properties%nnz, PETSC_NULL_INTEGER_ARRAY, mat_properties%nnz - 1, &
+                                         PETSC_NULL_INTEGER_ARRAY, ierr)
         end if
 
       class default
