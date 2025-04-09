@@ -103,7 +103,7 @@ contains
   !> Sets values in a PETSc vector
   module subroutine set_vector_values(val_dat, v)
 
-    use petsc, only: VecSetValues
+    use petsc, only: VecSetValues, eInsertMode
 
     use constants, only: insert_mode, add_mode
 
@@ -111,7 +111,7 @@ contains
     class(ccs_vector), intent(inout) :: v   !< the PETSc vector.
 
     integer(ccs_int) :: n    ! Number of elements to add
-    integer(ccs_int) :: mode ! Append or insert mode
+    type(eInsertMode) :: mode ! Append or insert mode
     integer(ccs_err) :: ierr ! Error code
 
     select type (v)
