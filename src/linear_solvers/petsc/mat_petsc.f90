@@ -103,11 +103,11 @@ contains
   ! see https://petsc.org/release/manualpages/Mat/MatInfo/ for all the available fields
   module subroutine get_info_matrix(M)
 
-    use petscmat, only: MAT_INFO_SIZE, MatGetInfo, MAT_INFO_MEMORY, MAT_INFO_NZ_ALLOCATED, MAT_LOCAL, &
-       MAT_INFO_NZ_USED, MAT_INFO_NZ_UNNEEDED
+    use petscmat, only: MatGetInfo, sMatInfo
+    use petscmatdef, only: MAT_LOCAL
 
     class(ccs_matrix), intent(inout) :: M
-    double precision, dimension(MAT_INFO_SIZE) :: info
+    type(sMatInfo) :: info
 
     integer(ccs_err) :: ierr
 
@@ -115,9 +115,9 @@ contains
     type is (matrix_petsc)
       call MatGetInfo(M%M, MAT_LOCAL, info, ierr)
       print *, "---"
-      print *, "nnz allocated: ", info(MAT_INFO_NZ_ALLOCATED)
-      print *, "nnz used: ", info(MAT_INFO_NZ_USED)
-      print *, "nnz unneeded: ", info(MAT_INFO_NZ_UNNEEDED)
+      print *, "nnz allocated: ", info%nz_allocated
+      print *, "nnz used: ", info%nz_used
+      print *, "nnz unneeded: ", info%nz_unneeded
     end select
 
   end subroutine get_info_matrix
