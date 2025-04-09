@@ -24,7 +24,7 @@ contains
 
     use petsc, only: PETSC_DECIDE, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE
     use petscvec, only: VecCreateGhost, VecSetSizes, VecSetFromOptions, VecSet, VecSetOption, &
-                        VecCreate
+                        VecCreate, VecSetOptionsPrefix
 
     use meshing, only: get_local_num_cells, get_halo_num_cells, get_num_faces
 

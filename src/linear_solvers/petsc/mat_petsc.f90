@@ -20,7 +20,7 @@ contains
 
     use petsc, only: PETSC_DETERMINE, PETSC_NULL_INTEGER_ARRAY
     use petscmat, only: MatCreate, MatSetSizes, MatSetFromOptions, MatSetUp, &
-                        MatSeqAIJSetPreallocation, MatMPIAIJSetPreallocation
+                        MatSeqAIJSetPreallocation, MatMPIAIJSetPreallocation, MatSetOptionsPrefix
 
     use meshing, only: get_local_num_cells
 

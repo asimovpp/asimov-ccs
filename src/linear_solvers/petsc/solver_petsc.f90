@@ -124,7 +124,7 @@ contains
   !> Interface to set the primary method of a linear solver
   module subroutine set_solver_method(method_name, solver)
 
-    use petscksp, only: KSPSetType, KSPSetFromOptions
+    use petscksp, only: KSPSetType, KSPSetFromOptions, KSPSetOptionsPrefix
 
     ! Arguments
     character(len=*), intent(in) :: method_name   !< String naming the linear solver to be used.
@@ -154,7 +154,8 @@ contains
   !> Interface to set the preconditioner of a linear solver
   module subroutine set_solver_precon(precon_name, solver)
 
-    use petscksp, only: KSPGetPC, tPC, PCSetType, PCSetReusePreconditioner, PCSetFromOptions
+    use petscksp, only: KSPGetPC, tPC, PCSetType, PCSetReusePreconditioner, PCSetFromOptions, &
+         PCSetOptionsPrefix, KSPSetOptionsPrefix
 !    use petscpc, only: tPC, PCSetType, PCSetReusePreconditioner, PCSetFromOptions
     use petsc, only: PETSC_TRUE
 
