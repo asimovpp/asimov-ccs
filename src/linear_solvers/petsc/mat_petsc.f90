@@ -186,6 +186,7 @@ contains
   !> Set values in a PETSc matrix.
   module subroutine set_matrix_values(mat_values, M)
 
+    use petsc, only: eInsertMode
     use petscmat, only: MatSetValues
     use constants, only: insert_mode, add_mode
 
@@ -193,7 +194,7 @@ contains
     class(ccs_matrix), intent(inout) :: M           !< the matrix
 
     integer(ccs_int) :: nrows, ncols ! number of rows/columns
-    integer(ccs_int) :: mode ! Add or insert values?
+    type(eInsertMode) :: mode ! Add or insert values?
 
     integer(ccs_err) :: ierr ! Error code
 
