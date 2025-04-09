@@ -412,7 +412,7 @@ contains
 
   !> Gets the data in a given vector with possibility to overwrite the data.
   module subroutine get_vector_data(vec, array)
-    use petscvec, only: VecGhostGetLocalForm, VecGetArrayF90
+    use petscvec, only: VecGhostGetLocalForm, VecGetArray
     class(ccs_vector), intent(inout) :: vec !< the vector to get data from
     real(ccs_real), dimension(:), pointer, intent(out) :: array !< an array to store the data in
     integer :: ierr
@@ -429,9 +429,9 @@ contains
 
       if (vec%ghosted) then
         call VecGhostGetLocalForm(vec%v, vec%v_local, ierr)
-        call VecGetArrayF90(vec%v_local, array, ierr)
+        call VecGetArray(vec%v_local, array, ierr)
       else
-        call VecGetArrayF90(vec%v, array, ierr)
+        call VecGetArray(vec%v, array, ierr)
       end if
 
       vec%checked_out = .true.
@@ -442,7 +442,7 @@ contains
 
   !> Resets the vector data if required for further processing
   module subroutine restore_vector_data(vec, array)
-    use petscvec, only: VecRestoreArrayF90, VecGhostRestoreLocalForm
+    use petscvec, only: VecRestoreArray, VecGhostRestoreLocalForm
 
     class(ccs_vector), intent(inout) :: vec !< the vector to reset
     real(ccs_real), dimension(:), pointer, intent(in) :: array !< the array containing the data to restore
@@ -456,10 +456,10 @@ contains
       end if
 
       if (vec%ghosted) then
-        call VecRestoreArrayF90(vec%v_local, array, ierr)
+        call VecRestoreArray(vec%v_local, array, ierr)
         call VecGhostRestoreLocalForm(vec%v, vec%v_local, ierr)
       else
-        call VecRestoreArrayF90(vec%v, array, ierr)
+        call VecRestoreArray(vec%v, array, ierr)
       end if
 
       vec%checked_out = .false.
@@ -471,7 +471,7 @@ contains
 
   !> Gets the data in a given vector with readonly access.
   module subroutine get_vector_data_readonly(vec, array)
-    use petscvec, only: VecGhostGetLocalForm, VecGetArrayReadF90
+    use petscvec, only: VecGhostGetLocalForm, VecGetArrayRead
     class(ccs_vector), intent(inout) :: vec !< the vector to get data from
     real(ccs_real), dimension(:), pointer, intent(out) :: array !< an array to store the data in
     integer :: ierr
@@ -480,9 +480,9 @@ contains
     type is (vector_petsc)
       if (vec%ghosted) then
         call VecGhostGetLocalForm(vec%v, vec%v_local, ierr)
-        call VecGetArrayReadF90(vec%v_local, array, ierr)
+        call VecGetArrayRead(vec%v_local, array, ierr)
       else
-        call VecGetArrayReadF90(vec%v, array, ierr)
+        call VecGetArrayRead(vec%v, array, ierr)
       end if
     class default
       call error_abort('Invalid vector type.')
@@ -491,7 +491,7 @@ contains
 
   !> Resets the vector data with readonly access.
   module subroutine restore_vector_data_readonly(vec, array)
-    use petscvec, only: VecRestoreArrayReadF90, VecGhostRestoreLocalForm
+    use petscvec, only: VecRestoreArrayRead, VecGhostRestoreLocalForm
 
     class(ccs_vector), intent(inout) :: vec !< the vector to reset
     real(ccs_real), dimension(:), pointer, intent(in) :: array !< the array containing the data to restore
@@ -501,10 +501,10 @@ contains
     select type (vec)
     type is (vector_petsc)
       if (vec%ghosted) then
-        call VecRestoreArrayReadF90(vec%v_local, array, ierr)
+        call VecRestoreArrayRead(vec%v_local, array, ierr)
         call VecGhostRestoreLocalForm(vec%v, vec%v_local, ierr)
       else
-        call VecRestoreArrayReadF90(vec%v, array, ierr)
+        call VecRestoreArrayRead(vec%v, array, ierr)
       end if
     class default
       call error_abort('Invalid vector type.')
@@ -591,7 +591,7 @@ contains
     use petscvec, only: tVec, &
                         VecCreate, VecSetSizes, VecSetFromOptions, &
                         VecSetValues, VecAssemblyBegin, VecAssemblyEnd, &
-                        VecGetArrayReadF90, VecRestoreArrayReadF90, &
+                        VecGetArrayRead, VecRestoreArrayRead, &
                         VecDestroy
     
     class(parallel_environment), intent(in) :: par_env
@@ -623,9 +623,9 @@ contains
     call VecAssemblyBegin(vec_tmp, ierr)
     call VecAssemblyEnd(vec_tmp, ierr)
 
-    call VecGetArrayReadF90(vec_tmp, data_tmp, ierr)
+    call VecGetArrayRead(vec_tmp, data_tmp, ierr)
     data_to(1:nlocal_out) = data_tmp(1:nlocal_out)
-    call VecRestoreArrayReadF90(vec_tmp, data_tmp, ierr)
+    call VecRestoreArrayRead(vec_tmp, data_tmp, ierr)
 
     call VecDestroy(vec_tmp, ierr)
     
