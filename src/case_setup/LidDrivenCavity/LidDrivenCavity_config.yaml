@@ -17,6 +17,7 @@ dt: 8.0e-1
 # Frequency (in terms of timesteps) of writing solution to file
 write_frequency: 5
 
+mesh: 2d
 # Square/cubic mesh generation parameters
 # cells per side
 cps: 16
@@ -30,6 +31,12 @@ relaxation_factor:
   p: 0.1
 
 target_residual: 1.0e-10
+
+# Report partition quality (true/false)
+compute_partqual : false
+
+# Compute matrix bandwidth (true/false)
+compute_bwidth : false
 
 ### VALUES BELOW THIS POINT ARE NOT CURRENTLY USED
 
@@ -62,28 +69,34 @@ target_residual: 1.0e-10
 #output:
 #  every: 1000
 
-#post:
-#  type: center
-#  variables: [u, v, w, p]
+post:
+ type: center
+ variables: [u, v, w, p]
 
 variables:
   store_residuals: false
+  enable_cell_corrections: false
   n_variables: 5
   variable_1:
     name: u
     type: central
+    solve: on
   variable_2:
     name: v
     type: upwind
+    solve: on
   variable_3:
     name: w
     type: upwind
+    solve: on
   variable_4:
     name: p
     type: central
+    solve: on
   variable_5:
     name: p_prime
     type: central
+    solve: off
 
 boundaries:
   n_boundaries: 4

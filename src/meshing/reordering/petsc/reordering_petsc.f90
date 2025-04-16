@@ -51,8 +51,8 @@ contains
       max_nb = max(max_nb, nnb)
     end do
 
-    allocate (idx(max_nb))
-    allocate (row(max_nb))
+    allocate (idx(max_nb+1))
+    allocate (row(max_nb+1))
 
     ! First build adjacency matrix for local cells
     call MatCreate(MPI_COMM_SELF, M, ierr)
@@ -60,6 +60,7 @@ contains
     call MatSetSizes(M, local_num_cells, local_num_cells, &
                      PETSC_DETERMINE, PETSC_DETERMINE, ierr)
     call MatSeqAIJSetPreallocation(M, max_nb, PETSC_NULL_INTEGER, ierr)
+
     do i = 1, local_num_cells
       row(:) = 0.0
       idx(:) = 0

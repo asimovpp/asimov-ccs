@@ -4,6 +4,7 @@ program test_compute_fluxes
 
   use testing_lib
   use ccs_base, only: bnd_names_default
+  use core
   use types, only: field, upwind_field, face_field, matrix_values_spec
   use mesh_utils, only: build_square_mesh
   use fv, only: calc_advection_coeff
@@ -32,10 +33,14 @@ program test_compute_fluxes
   real(ccs_real), dimension(3) :: mf_values
   integer(ccs_int), parameter :: n_boundaries = 4
 
+  type(ccs_options) :: run_options
+
   call init()
 
-  mesh = build_square_mesh(par_env, shared_env, cps, 1.0_ccs_real, &
-       bnd_names_default(1:4))
+  run_options%mesh%bnd_names = bnd_names_default(1:4)
+  run_options%mesh%cps = cps
+  run_options%mesh%domain_size = 1.0_ccs_real
+  mesh = build_square_mesh(par_env, shared_env, run_options)
   call set_mesh_object(mesh)
 
   allocate (upwind_field :: scalar)

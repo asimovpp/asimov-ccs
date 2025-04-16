@@ -1,5 +1,6 @@
 module fv_kernels
   use types
+  use kinds, only: ccs_real
   implicit none
   !> Advection kernel
   type, extends(abstract_kernel) :: advection_kernel

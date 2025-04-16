@@ -13,7 +13,6 @@ program test_partition_tri_mesh
                           partition_kway, compute_connectivity
   use kinds, only: ccs_int, ccs_long
   use types, only: topology, graph_connectivity
-  use mesh_utils, only: build_square_mesh
   use meshing, only: get_local_num_cells, set_local_num_cells, &
                      get_global_num_cells, set_global_num_cells, &
                      set_total_num_cells, set_halo_num_cells, &

@@ -37,12 +37,12 @@ contains
     use vec, only: get_global_data_vec
 
     ! Arguments
-    class(parallel_environment), allocatable, target, intent(in) :: par_env  !< The parallel environment
-    character(len=:), allocatable, intent(in) :: case_name                   !< The case name
-    type(ccs_mesh), intent(in) :: mesh                                       !< The mesh
-    type(fluid), intent(inout) :: flow                                       !< The flow variables
-    integer(ccs_int), optional, intent(in) :: step                           !< The current time-step count
-    integer(ccs_int), optional, intent(in) :: maxstep                        !< The maximum time-step count
+    class(parallel_environment), intent(in) :: par_env     !< The parallel environment
+    character(len=:), allocatable, intent(in) :: case_name !< The case name
+    type(ccs_mesh), intent(in) :: mesh                     !< The mesh
+    type(fluid), intent(inout) :: flow                     !< The flow variables
+    integer(ccs_int), optional, intent(in) :: step         !< The current time-step count
+    integer(ccs_int), optional, intent(in) :: maxstep      !< The maximum time-step count
 
     ! Local variables
     character(len=:), allocatable :: sol_file     ! Solution file name
@@ -187,13 +187,12 @@ contains
 
 
   !> Write the field data to file
-  module subroutine write_fields(par_env, case_name, mesh, flow, step, maxstep)
+  module subroutine write_fields(par_env, run_options, mesh, flow, step, maxstep)
 
     use kinds, only: ccs_long
     use constants, only: ndim, adiosconfig
     use vec, only: get_vector_data, restore_vector_data
-    use types, only: field_ptr, cell_locator
-    use case_config, only: write_gradients
+    use types, only: cell_locator
     use meshing, only: get_local_num_cells, get_global_num_cells, &
                        create_cell_locator, &
                        get_global_index
@@ -202,7 +201,7 @@ contains
 
     ! Arguments
     class(parallel_environment), allocatable, target, intent(in) :: par_env  !< The parallel environment
-    character(len=:), allocatable, intent(in) :: case_name                   !< The case name
+    type(ccs_options), intent(in) :: run_options                             !< The runtime configuration
     type(ccs_mesh), intent(in) :: mesh                                       !< The mesh
     type(fluid), intent(inout) :: flow                                       !< The flow variables
     integer(ccs_int), optional, intent(in) :: step                           !< The current time-step count
@@ -240,8 +239,8 @@ contains
 
     class(field), pointer :: phi
     
-    sol_file = case_name // '.sol.h5'
-    adios2_file = case_name // adiosconfig
+    sol_file = run_options%paths%case_name // '.sol.h5'
+    adios2_file = run_options%paths%case_name // adiosconfig
 
     call timer_register("Get natural data (output)", timer_index_nat_data_output)
     call timer_register("Get natural data (grads)", timer_index_nat_data)
@@ -313,7 +312,7 @@ contains
    
 
     ! Write out gradients, if required (e.g. for calculating enstrophy)
-    if (write_gradients) then
+    if (run_options%io%write_gradients) then
       call timer_start(timer_index_grad)
       do i = 1, size(flow%fields)
         call get_field(flow, i, phi)

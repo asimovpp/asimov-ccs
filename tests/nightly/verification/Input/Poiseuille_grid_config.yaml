@@ -1,6 +1,14 @@
 ---
 title: Poiseuille
 
+# restart capability
+restart: false 
+
+# unstaedy state
+unsteady: false
+
+mesh: 2d
+
 #  number of timesteps
 steps: 100
 #  number of iterations
@@ -56,9 +64,9 @@ viscocity : 1.0e-3
 #  v: 1.0
 #  w: 1.0
 
-#post:
-#  type: center
-#  variables: [u, v, w, p]
+post:
+  type: center
+  variables: [u, v, w, p]
 
 variables:
   n_variables: 5
@@ -66,18 +74,23 @@ variables:
   variable_1:
     name: u
     type: central
+    solve: on
   variable_2:
     name: v
     type: central
+    solve: on
   variable_3:
     name: w
     type: central
+    solve: on
   variable_4:
     name: p
     type: central
+    solve: on
   variable_5:
     name: p_prime
     type: central
+    solve: off
 
 boundaries:
   n_boundaries: 4

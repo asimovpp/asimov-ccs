@@ -1,6 +1,12 @@
 ---
 title: TaylorGreenVortex2D
 
+# restart capability
+restart: false 
+
+# unstaedy state
+unsteady: true
+
 #  number of timesteps
 steps: 1
 #  number of iterations
@@ -8,6 +14,7 @@ iterations: 250
 # time step size
 dt: 0.01
 
+mesh: 2d
 # Square/cubic mesh generation parameters
 # cells per side
 cps: 32
@@ -55,9 +62,9 @@ viscocity : 1.0e-3
 #  v: 1.0
 #  w: 1.0
 
-#post:
-#  type: center
-#  variables: [u, v, w, p]
+post:
+  type: center
+  variables: [u, v, w, p]
 
 variables:
   enable_cell_corrections: true
@@ -65,18 +72,23 @@ variables:
   variable_1:
     name: u
     type: central
+    solve: on
   variable_2:
     name: v
     type: central
+    solve: on
   variable_3:
     name: w
     type: central
+    solve: on
   variable_4:
     name: p
     type: central
+    solve: on
   variable_5:
     name: p_prime
     type: central
+    solve: off
 
 boundaries:
   n_boundaries: 4

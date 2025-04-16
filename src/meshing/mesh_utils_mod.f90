@@ -10,6 +10,7 @@ module mesh_utils
 
   use mpi
 
+  use core, only: ccs_options
   use constants, only: ndim, geoext, adiosconfig
   use utils, only: exit_print, str, debug_print
   use kinds, only: ccs_int, ccs_long, ccs_real, ccs_err
@@ -96,7 +97,6 @@ module mesh_utils
   public :: build_square_topology
   public :: build_mesh
   public :: read_mesh
-  public :: write_mesh
   public :: global_start
   public :: local_count
   public :: count_mesh_faces
@@ -110,7 +110,7 @@ module mesh_utils
 contains
 
   !v Read mesh from file
-  subroutine read_mesh(par_env, shared_env, case_name, bnd_names, mesh)
+  subroutine read_mesh(par_env, shared_env, run_options, mesh)
 
     use partitioning, only: compute_connectivity_get_local_cells, &
                             compute_partitioner_input
@@ -120,8 +120,7 @@ contains
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The parallel environment
-    character(len=*), intent(in) :: case_name
-    character(len=128), dimension(:), intent(in) :: bnd_names
+    type(ccs_options), intent(in) :: run_options
     type(ccs_mesh), intent(inout) :: mesh                                   !< The mesh
 
     ! Local variables
@@ -136,6 +135,8 @@ contains
     integer(ccs_int) :: timer_read_geo
     integer(ccs_int) :: timer_partitioner_input
 
+    character(len=:), allocatable :: case_name
+
     call timer_register("Read mesh topology", timer_read_topo)
     call timer_register("Compute partitioner input", timer_partitioner_input)
     call timer_register("Read mesh geometry", timer_read_geo)
@@ -144,8 +145,12 @@ contains
     call set_mesh_generated(.false.)
     call nullify_mesh_object()
 
+    case_name = run_options%paths%case_name
     geo_file = case_name // "_mesh" // geoext
     adios2_file = case_name // adiosconfig
+    if (is_root(par_env)) then
+      print *, "Mesh file:", geo_file
+    end if
 
     call create_shared_roots_comm(par_env, shared_env, reader_env)
 
@@ -162,7 +167,7 @@ contains
     call compute_partitioner_input(par_env, shared_env, mesh)
     call timer_stop(timer_partitioner_input)
 
-    call mesh_partition_reorder(par_env, shared_env, mesh)
+    call mesh_partition_reorder(par_env, shared_env, run_options, mesh)
 
     call set_offsets(shared_env, mesh)
 
@@ -180,7 +185,7 @@ contains
 
     call cleanup_topo(shared_env, mesh)
 
-    mesh%bnd_names = bnd_names
+    mesh%bnd_names = run_options%mesh%bnd_names
     call check_mesh_bnd_names(par_env, mesh)
     
   end subroutine read_mesh
@@ -714,222 +719,30 @@ contains
 
   end subroutine read_geometry
 
-  !v Write mesh to file
-  subroutine write_mesh(par_env, case_name, mesh)
-
-    ! Arguments
-    class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
-    character(len=:), allocatable, intent(in) :: case_name                  !< The case name
-    type(ccs_mesh), intent(inout) :: mesh                                   !< The mesh
-
-    ! Local variables
-    character(len=:), allocatable :: geo_file    ! Geo file name
-    character(len=:), allocatable :: adios2_file ! ADIOS2 config file name
-
-    class(io_environment), allocatable :: io_env
-    class(io_process), allocatable :: geo_writer
-
-    logical :: is_generated
-    
-    call get_mesh_generated(is_generated)
-
-    if (.not. is_generated) then
-      ! Mesh was read, no need to write again
-      return
-    end if
-
-    ! XXX: Return early to prevent memory issues with write_mesh
-    if (is_root(par_env)) then
-      print *, "WARNING: write mesh is disabled, if you want mesh output edit the subroutine by removing the early return."
-    end if
-    return
-
-    ! Set ADIOS2 config file name
-    adios2_file = case_name // adiosconfig
-
-    ! Set geo file name
-    geo_file = case_name // geoext
-
-    ! Open geo file for writing
-    call initialise_io(par_env, adios2_file, io_env)
-    call configure_io(io_env, "geo_writer", geo_writer)
-    call open_file(geo_file, "write", geo_writer)
-
-    ! Write mesh
-    call write_topology(par_env, geo_writer, mesh)
-    call write_geometry(par_env, geo_writer, mesh)
-
-    ! Close the file and ADIOS2 engine
-    call close_file(geo_writer)
-
-    ! Finalise the ADIOS2 environment
-    call cleanup_io(io_env)
-
-  end subroutine write_mesh
-
-  !v Write the mesh topology data to file
-  subroutine write_topology(par_env, geo_writer, mesh)
-
-    use mpi
-
-    ! Arguments
-    class(parallel_environment), intent(in) :: par_env               !< The parallel environment
-    class(io_process), allocatable, target, intent(in) :: geo_writer !< The IO process for writing the mesh ("geo") file
-    type(ccs_mesh), intent(in) :: mesh                               !< The mesh
-
-    ! Local variables
-    integer(ccs_long), dimension(2) :: sel2_shape
-    integer(ccs_long), dimension(2) :: sel2_start
-    integer(ccs_long), dimension(2) :: sel2_count
-
-    integer(ccs_int) :: global_num_cells
-    integer(ccs_int) :: local_num_cells
-    integer(ccs_int) :: vert_per_cell
-
-    type(cell_locator) :: loc_p
-    integer(ccs_int) :: index_global
-
-    integer(ccs_int), dimension(:), allocatable :: natural_vertices_1d
-    integer(ccs_int), dimension(:, :), allocatable :: natural_vertices_2d
-    integer(ccs_err) ierr
-
-    integer(ccs_int) :: i, j, idx
-
-    call get_local_num_cells(local_num_cells)
-    call get_global_num_cells(global_num_cells)
-    call get_vert_per_cell(vert_per_cell)
-
-    if (vert_per_cell == 0) then
-      call error_abort("Number of vertices per cell unset.")
-    end if
-
-    call create_cell_locator(1, loc_p)
-    call get_global_index(loc_p, index_global)
-
-    ! Write cell vertices
-    sel2_shape(1) = vert_per_cell
-    sel2_shape(2) = global_num_cells
-    sel2_start(1) = 0
-    sel2_start(2) = index_global - 1
-    sel2_count(1) = vert_per_cell
-    sel2_count(2) = local_num_cells
-
-    ! Get global vertex indices in cell natural order
-    allocate (natural_vertices_1d(vert_per_cell * global_num_cells))
-    natural_vertices_1d(:) = 0
-    do i = 1, local_num_cells
-      idx = vert_per_cell * (mesh%topo%natural_indices(i) - 1)
-      do j = 1, vert_per_cell
-        natural_vertices_1d(idx + j) = mesh%topo%loc_global_vertex_indices(j, i)
-      end do
-    end do
-    select type (par_env)
-    type is (parallel_environment_mpi)
-      call MPI_Allreduce(MPI_IN_PLACE, natural_vertices_1d, size(natural_vertices_1d), &
-                         MPI_INTEGER, MPI_SUM, par_env%comm, ierr)
-    class default
-      call error_abort("Unknown parallel environment")
-    end select
-
-    allocate (natural_vertices_2d(vert_per_cell, local_num_cells))
-    do i = 1, local_num_cells
-      idx = vert_per_cell * (mesh%topo%global_indices(i) - 1)
-      do j = 1, vert_per_cell
-        natural_vertices_2d(j, i) = natural_vertices_1d(idx + j)
-      end do
-    end do
-
-    deallocate (natural_vertices_1d)
-
-    call write_array(geo_writer, "/cell/vertices", sel2_shape, sel2_start, sel2_count, &
-                     natural_vertices_2d)
-
-    deallocate (natural_vertices_2d)
-
-  end subroutine write_topology
-
-  !v Write the mesh geometry data to file
-  subroutine write_geometry(par_env, geo_writer, mesh)
-
-    ! Arguments
-    class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
-    class(io_process), allocatable, target, intent(in) :: geo_writer        !< The IO process for writing the mesh ("geo") file
-    type(ccs_mesh), intent(inout) :: mesh                                   !< The mesh
-
-    ! Local variables
-    integer(ccs_long), dimension(2) :: sel2_shape
-    integer(ccs_long), dimension(2) :: sel2_start
-    integer(ccs_long), dimension(2) :: sel2_count
-
-    integer(ccs_int) :: i
-    integer(ccs_int) :: verts_per_side
-    integer(ccs_int) :: vert_per_cell
-    integer(ccs_int) :: global_num_vertices
-
-    real(ccs_real), dimension(:, :), allocatable :: vert_coords_tmp
-
-    call get_vert_per_cell(vert_per_cell)
-    call get_global_num_vertices(global_num_vertices)
-
-    if (vert_per_cell == 0) then
-      call error_abort("Number of vertices per cell unset.")
-    end if
-
-    ! Root process calculates all (global) vertex coords and stores temporarily
-    if (par_env%proc_id == par_env%root) then
-      allocate (vert_coords_tmp(ndim, global_num_vertices))
-
-      vert_coords_tmp = 0.0_ccs_real
-
-      if (vert_per_cell == 4) then
-        verts_per_side = nint(global_num_vertices**(1./2))
-      else
-        verts_per_side = nint(global_num_vertices**(1./3))
-      end if
-
-      do i = 1, global_num_vertices
-        vert_coords_tmp(1, i) = modulo(i - 1, verts_per_side) * mesh%geo%h
-        vert_coords_tmp(2, i) = modulo((i - 1) / verts_per_side, verts_per_side) * mesh%geo%h
-        vert_coords_tmp(3, i) = ((i - 1) / (verts_per_side * verts_per_side)) * mesh%geo%h
-      end do
-    end if
-
-    sel2_shape(1) = ndim
-    sel2_shape(2) = global_num_vertices
-    sel2_start(1) = 0
-    sel2_start(2) = 0
-    if (par_env%proc_id == par_env%root) then
-      sel2_count(1) = ndim
-      sel2_count(2) = global_num_vertices
-    else
-      sel2_count(1) = 0
-      sel2_count(2) = 0
-    end if
-
-    call write_array(geo_writer, "/vert", sel2_shape, sel2_start, sel2_count, vert_coords_tmp)
-
-    if (par_env%proc_id == par_env%root) then
-      deallocate (vert_coords_tmp)
-    end if
-
-  end subroutine write_geometry
-
   !v Utility constructor to build a 2D mesh with hex cells.
   !
   !  Builds a Cartesian grid of nx*ny cells.
-  function build_square_mesh(par_env, shared_env, cps, side_length, bnd_names) result(mesh)
+  function build_square_mesh(par_env, shared_env, run_options) result(mesh)
 
     use partitioning, only: compute_partitioner_input
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env    !< The parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared memory environment
-    integer(ccs_int), intent(in) :: cps                !< Number of cells per side of the mesh.
-    real(ccs_real), intent(in) :: side_length          !< The length of the side.
-    character(len=128), dimension(4), intent(in) :: bnd_names !< Boundary name list
+    type(ccs_options), intent(in) :: run_options
+
+    character(len=128), dimension(4) :: bnd_names      !< Boundary name list
     
     type(ccs_mesh) :: mesh                             !< The resulting mesh.
 
     character(:), allocatable :: error_message
+
+    real(ccs_real) :: side_length
+    integer :: cps
+
+    side_length = run_options%mesh%domain_size
+    cps = run_options%mesh%cps
+
+    bnd_names = run_options%mesh%bnd_names
     
     if (cps * cps < par_env%num_procs) then
       error_message = "ERROR: Global number of cells < number of ranks. &
@@ -945,7 +758,7 @@ contains
 
     call compute_partitioner_input(par_env, shared_env, mesh)
 
-    call mesh_partition_reorder(par_env, shared_env, mesh)
+    call mesh_partition_reorder(par_env, shared_env, run_options, mesh)
 
     call set_offsets(shared_env, mesh)
 
@@ -1506,7 +1319,7 @@ contains
   !v Utility constructor to build a 3D mesh with hex cells.
   !
   !  Builds a Cartesian grid of nx*ny*nz cells.
-  function build_mesh(par_env, shared_env, nx, ny, nz, side_length, bnd_names) result(mesh)
+  function build_mesh(par_env, shared_env, run_options) result(mesh)
 
     use partitioning, only: compute_partitioner_input
     use parallel, only: timer
@@ -1514,11 +1327,9 @@ contains
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env    !< The parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared memory environment
-    integer(ccs_int), intent(in) :: nx                 !< Number of cells in the x direction.
-    integer(ccs_int), intent(in) :: ny                 !< Number of cells in the y direction.
-    integer(ccs_int), intent(in) :: nz                 !< Number of cells in the z direction.
-    real(ccs_real), intent(in) :: side_length          !< The length of the side.
-    character(len=128), dimension(6), intent(in) :: bnd_names
+    type(ccs_options), intent(in) :: run_options
+
+    character(len=128), dimension(6) :: bnd_names
     
     type(ccs_mesh) :: mesh                             !< The resulting mesh.
 
@@ -1527,6 +1338,16 @@ contains
     integer(ccs_int) :: timer_build_topo
     integer(ccs_int) :: timer_build_geo
     integer(ccs_int) :: timer_partitioner_input
+
+    real(ccs_real) :: side_length
+    integer :: nx, ny, nz
+
+    side_length = run_options%mesh%domain_size
+    nx = run_options%mesh%cps
+    ny = run_options%mesh%cps
+    nz = run_options%mesh%cps
+    
+    bnd_names = run_options%mesh%bnd_names
     
     call timer_register("Build mesh topology", timer_build_topo)
     call timer_register("Compute partitioner input", timer_partitioner_input)
@@ -1555,7 +1376,7 @@ contains
     call compute_partitioner_input(par_env, shared_env, mesh)
     call timer_stop(timer_partitioner_input)
 
-    call mesh_partition_reorder(par_env, shared_env, mesh)
+    call mesh_partition_reorder(par_env, shared_env, run_options, mesh)
 
     call set_offsets(shared_env, mesh)
 
@@ -3003,7 +2824,7 @@ contains
     end if
   end subroutine cleanup_topo
 
-  subroutine mesh_partition_reorder(par_env, shared_env, mesh)
+  subroutine mesh_partition_reorder(par_env, shared_env, run_options, mesh)
 
     use partitioning, only: partition_kway, &
                             compute_connectivity, &
@@ -3015,8 +2836,10 @@ contains
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The parallel environment
-    class(parallel_environment), allocatable, target :: roots_env !< The parallel environment
+    type(ccs_options), intent(in) :: run_options
     type(ccs_mesh), intent(inout) :: mesh                                   !< The mesh
+    class(parallel_environment), allocatable, target :: roots_env !< The parallel environment
+
 
     integer(ccs_int) :: timer_partitioning
     integer(ccs_int) :: timer_compute_connectivity
@@ -3035,7 +2858,7 @@ contains
     else
       call partition_stride(par_env, shared_env, roots_env, mesh)
     end if
-    call print_partition_quality(par_env)
+    call print_partition_quality(par_env, run_options)
     call timer_stop(timer_partitioning)
 
     call timer_start(timer_compute_connectivity)
@@ -3044,7 +2867,7 @@ contains
 
 ! insert halo / local cells computation here
 
-    call print_bandwidth(par_env)
+    call print_bandwidth(par_env, run_options)
 
     call timer_start(timer_reordering)
     call reorder_cells(par_env, shared_env, mesh)
@@ -3052,7 +2875,7 @@ contains
 
     call cleanup_partitioner_data(shared_env, mesh)
 
-    call print_bandwidth(par_env)
+    call print_bandwidth(par_env, run_options)
 
     call nullify_mesh_object()
 
@@ -3099,13 +2922,15 @@ contains
     type(neighbour_locator) :: loc_nb
     logical :: cell_local
 
+    integer, parameter :: alloc_step = 100 ! How many entries to increase an array by
+    integer, dimension(:), allocatable :: tmp
 
-    allocate (xadj(0))
-    allocate (adjncy(0))
-    ctr = 1
-    xadj = [xadj, ctr]
-    
     call get_local_num_cells(local_num_cells)
+    allocate (xadj(local_num_cells + 1))
+    allocate (adjncy(3 * local_num_cells)) ! A reasonable starting point (minimal faces per cell is 3 == TRI)
+    ctr = 1
+    xadj(1) = ctr
+    
     do i = 1, local_num_cells
       call create_cell_locator(i, loc_p)
       call count_neighbours(loc_p, nnb)
@@ -3114,13 +2939,26 @@ contains
         call get_local_status(loc_nb, cell_local)
         if (cell_local) then
           call get_local_index(loc_nb, idx)
-          adjncy = [adjncy, idx]
+          if (ctr > size(adjncy)) then
+            allocate(tmp(size(adjncy) + alloc_step))
+            tmp(1:size(adjncy)) = adjncy(:)
+            adjncy = tmp
+            deallocate(tmp)
+          end if
+          adjncy(ctr) = idx
           ctr = ctr + 1
         end if
       end do
-      xadj = [xadj, ctr]
+      xadj(i + 1) = ctr
     end do
 
+    if (size(adjncy) > (ctr - 1)) then
+      ! Shrink adjncy array
+      allocate(tmp(ctr - 1))
+      tmp(:) = adjncy(1:(ctr-1))
+      adjncy = tmp
+    end if
+    
   end subroutine build_adjacency_matrix
 
   !v Sets the offsets used for indexing into shared arrays for data that belongs to each rank. 
