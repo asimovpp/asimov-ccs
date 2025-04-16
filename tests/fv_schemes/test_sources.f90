@@ -5,7 +5,8 @@ program test_sources
 
   use testing_lib
 
-  use ccs_base, only: bnd_names_default
+  use core
+  
   use types, only: ccs_matrix, ccs_mesh, ccs_vector
 
   use meshing, only: get_centre, get_local_num_cells, &
@@ -26,6 +27,8 @@ program test_sources
   class(ccs_vector), allocatable :: x   ! Solution vector
   class(ccs_vector), allocatable :: S   ! Source vector
   class(ccs_matrix), allocatable :: M   ! System matrix
+  
+  type(ccs_options) :: run_options
   
   call init()
 
@@ -123,6 +126,7 @@ contains
   subroutine init_case()
 
     use constants, only: cell
+    use ccs_base, only: bnd_names_default
     use types, only: matrix_spec, vector_spec
 
     use vec, only: create_vector, set_vector_location
@@ -144,8 +148,10 @@ contains
     real(ccs_real), dimension(:), pointer :: S_data
     
     ! Initialise mesh
-    mesh = build_mesh(par_env, shared_env, n, n, n, l, &
-         bnd_names_default)
+    run_options%mesh%bnd_names = bnd_names_default
+    run_options%mesh%cps = n
+    run_options%mesh%domain_size = l
+    mesh = build_mesh(par_env, shared_env, run_options)
     call set_mesh_object(mesh)
 
     ! Initialise vectors

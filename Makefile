@@ -41,7 +41,6 @@ ifeq ($(NEED_CMP),yes)
   include $(ARCH_DIR)/Makefile.$(CMP)
 endif
 
-
 EXE = ccs_app
 TOOLS=$(CCS_DIR)/build_tools
 

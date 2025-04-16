@@ -7,6 +7,10 @@ module error_analysis
   use constants, only: ndim
   use meshing, only: get_centre, set_centre, create_cell_locator
 
+  interface compute_order
+    module procedure compute_order_single, compute_order_multi
+  end interface
+
 contains
 
   !v Prints errors provided in argument in a human readable way, plus displays associated orders
@@ -24,9 +28,9 @@ contains
     nvar = size(errors, dim=1)
     nref = size(refinements)
 
-    call get_order(refinements, errors, orders)
+    call compute_order(refinements, errors, orders)
     if (present(errors_secondary)) then
-      call get_order(refinements, errors_secondary, orders_secondary)
+      call compute_order(refinements, errors_secondary, orders_secondary)
     end if
 
     print *, "----------------------------------------------------"
@@ -64,14 +68,14 @@ contains
 
   !v Computes convergence order from a refinement list and the associated errors
   ! The order is computed as the slope of the linear regression of the log of error against the log of refinements
-  pure subroutine get_order(refinements, errors, order)
+  pure subroutine compute_order_single(refinements, errors, order)
 
     real(ccs_real), dimension(:), intent(in) :: refinements !< refinement (likely in time or space) against which the orders are computed
     real(ccs_real), dimension(:), intent(in) :: errors !< error values, error(variable, refinement)
     real(ccs_real), intent(out) :: order !< the computed order
     real(ccs_real), dimension(:), allocatable :: x, y
     real(ccs_real) :: x_bar, y_bar, Sxx, Sxy
-    integer(ccs_int) :: nref, i, j
+    integer(ccs_int) :: nref, j
 
     nref = size(refinements)
 
@@ -97,7 +101,7 @@ contains
   end subroutine
 
   !v Computes convergence orders from several different error lists
-  pure subroutine get_orders(refinements, errors, orders)
+  pure subroutine compute_order_multi(refinements, errors, orders)
 
     real(ccs_real), dimension(:), intent(in) :: refinements !< refinement (likely in time or space) against which the orders are computed
     real(ccs_real), dimension(:, :), intent(in) :: errors !< error values, error(variable, refinement)
@@ -105,10 +109,11 @@ contains
     integer(ccs_int) :: nvar, i
 
     nvar = size(errors, dim=1)
+    allocate(orders(nvar))
     orders(:) = 0.0_ccs_real
 
     do i = 1, nvar
-      call get_order(refinements, errors(i, :), orders(i))
+      call compute_order_single(refinements, errors(i, :), orders(i))
     end do
 
   end subroutine

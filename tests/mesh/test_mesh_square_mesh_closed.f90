@@ -7,6 +7,8 @@ program test_mesh_square_mesh_closed
   use testing_lib
 
   use ccs_base, only: bnd_names_default
+  use core
+  
   use constants
 
   use meshing, only: create_face_locator, get_face_normal, get_face_area, get_local_num_cells
@@ -32,14 +34,18 @@ program test_mesh_square_mesh_closed
   integer(ccs_int), dimension(7) :: m = (/4, 8, 16, 20, 40, 80, 100/)
   integer(ccs_int) :: mctr
 
+  type(ccs_options) :: run_options
+
   call init()
 
   do mctr = 1, size(m)
     n = m(mctr)
 
     l = parallel_random(par_env)
-    mesh = build_square_mesh(par_env, shared_env, n, l, &
-         bnd_names_default(1:4))
+    run_options%mesh%bnd_names = bnd_names_default(1:4)
+    run_options%mesh%cps = n
+    run_options%mesh%domain_size = l
+    mesh = build_square_mesh(par_env, shared_env, run_options)
     call set_mesh_object(mesh)
 
     A_expected = l / n

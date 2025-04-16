@@ -2,6 +2,7 @@ submodule(timestepping) timestepping_common
 #include "ccs_macros.inc"
 
   use meshing, only: get_local_num_cells, create_cell_locator, get_volume
+  use transient_kernels, only: transient_kernel
   use types, only: cell_locator
   use utils, only: exit_print
 
@@ -136,59 +137,13 @@ contains
 
   end subroutine
 
-  module subroutine apply_timestep_first_order(phi, diag, M, b)
-
+  module subroutine apply_timestep_kernel(transient, phi, diag, M, b)
     use kinds, only: ccs_int
     use mat, only: set_matrix_diagonal, get_matrix_diagonal
-    use vec, only: get_vector_data, restore_vector_data
+    use vec, only: get_vector_data, restore_vector_data, get_vector_data_readonly, restore_vector_data_readonly
     use utils, only: update, finalise
 
-    class(field), intent(inout) :: phi
-    class(ccs_vector), intent(inout) :: diag
-    class(ccs_matrix), intent(inout) :: M
-    class(ccs_vector), intent(inout) :: b
-
-    real(ccs_real), dimension(:), pointer :: diag_data
-    real(ccs_real), dimension(:), pointer :: b_data
-    real(ccs_real), dimension(:), pointer :: phi_data
-    integer(ccs_int) :: i
-    integer(ccs_int) :: local_num_cells
-
-    real(ccs_real) :: V_p
-    type(cell_locator) :: loc_p
-
-    call finalise(M)
-    call get_matrix_diagonal(M, diag)
-
-    call get_vector_data(phi%old_values(1)%vec, phi_data)
-    call get_vector_data(diag, diag_data)
-    call update(b)
-    call get_vector_data(b, b_data)
-
-    call get_local_num_cells(local_num_cells)
-    do i = 1, local_num_cells
-      call create_cell_locator(i, loc_p)
-      call get_volume(loc_p, V_p)
-
-      ! A = A + V/dt
-      diag_data(i) = diag_data(i) + V_p / get_timestep()
-
-      ! b = b + V/dt * phi_old
-      b_data(i) = b_data(i) + V_p / get_timestep() * phi_data(i)
-    end do
-    call restore_vector_data(phi%old_values(1)%vec, phi_data)
-    call restore_vector_data(diag, diag_data)
-    call restore_vector_data(b, b_data)
-    call set_matrix_diagonal(diag, M)
-
-  end subroutine apply_timestep_first_order
-
-  module subroutine apply_timestep_second_order(phi, diag, M, b)
-    use kinds, only: ccs_int
-    use mat, only: set_matrix_diagonal, get_matrix_diagonal
-    use vec, only: get_vector_data, restore_vector_data
-    use utils, only: update, finalise
-
+    class(transient_kernel), intent(inout) :: transient ! The transient kernel
     class(field), intent(inout) :: phi
     class(ccs_vector), intent(inout) :: diag
     class(ccs_matrix), intent(inout) :: M
@@ -203,15 +158,24 @@ contains
     integer(ccs_int) :: local_num_cells
 
     type(cell_locator) :: loc_p
-    real(ccs_real) :: V_p
+    real(ccs_real) :: V_p, coeff, rhs
+    real(ccs_real), allocatable, dimension(:) :: old
 
     rho = 1.0
+
+    call transient%init()
+    call transient%set_step(current_step+1)
+    call transient%set_dt(get_timestep())
 
     call finalise(M)
     call get_matrix_diagonal(M, diag)
 
-    call get_vector_data(phi%old_values(1)%vec, phi_old1_data)
-    call get_vector_data(phi%old_values(2)%vec, phi_old2_data)
+    allocate(old(transient%get_width()))
+    call get_vector_data_readonly(phi%old_values(1)%vec, phi_old1_data)
+    if (transient%get_width() == 2) then
+      call get_vector_data_readonly(phi%old_values(2)%vec, phi_old2_data)
+    end if
+
     call get_vector_data(diag, diag_data)
     call update(b)
     call get_vector_data(b, b_data)
@@ -221,70 +185,29 @@ contains
       call create_cell_locator(i, loc_p)
       call get_volume(loc_p, V_p)
 
-      ! A = A + 1.5*rho*V/dt
-      diag_data(i) = diag_data(i) + 1.5 * rho * V_p / get_timestep()
+      call transient%eval_coeffs(rho, V_p, coeff)
 
-      ! b = b + rho*V/dt * (2*phi_old(n-1) - 0.5*phi_old(n-2))
-      b_data(i) = b_data(i) + rho * V_p / get_timestep() * (2 * phi_old1_data(i) - 0.5 * phi_old2_data(i))
+      if (transient%get_width() == 1) then
+        old = [ phi_old1_data(i) ]
+      else
+        old = [ phi_old1_data(i), phi_old2_data(i) ]
+      end if
+
+      call transient%eval_explicit(rho, V_p, old, rhs)
+
+      diag_data(i) = diag_data(i) + coeff
+      b_data(i) = b_data(i) + rhs
     end do
-    call restore_vector_data(phi%old_values(1)%vec, phi_old1_data)
-    call restore_vector_data(phi%old_values(2)%vec, phi_old2_data)
+
+    call restore_vector_data_readonly(phi%old_values(1)%vec, phi_old1_data)
+    if (transient%get_width() == 2) then
+      call restore_vector_data_readonly(phi%old_values(2)%vec, phi_old2_data)
+    end if
     call restore_vector_data(diag, diag_data)
     call restore_vector_data(b, b_data)
     call set_matrix_diagonal(diag, M)
-  end subroutine apply_timestep_second_order
+  end subroutine apply_timestep_kernel
 
-  module subroutine apply_timestep_theta(theta, phi, diag, M, b)
-    use kinds, only: ccs_int
-    use mat, only: set_matrix_diagonal, get_matrix_diagonal
-    use vec, only: get_vector_data, restore_vector_data
-    use utils, only: update, finalise
-    use meshing, only: get_local_num_cells
-
-    real(ccs_real), intent(in) :: theta
-    class(field), intent(inout) :: phi
-    class(ccs_vector), intent(inout) :: diag
-    class(ccs_matrix), intent(inout) :: M
-    class(ccs_vector), intent(inout) :: b
-
-    real(ccs_real), dimension(:), pointer :: diag_data
-    real(ccs_real), dimension(:), pointer :: b_data
-    real(ccs_real), dimension(:), pointer :: phi_old1_data
-    real(ccs_real), dimension(:), pointer :: phi_old2_data
-    real(ccs_real) :: rho
-    integer(ccs_int) :: i
-    integer(ccs_int) :: local_num_cells
-
-    type(cell_locator) :: loc_p
-    real(ccs_real) :: V_p
-
-    rho = 1.0
-
-    call finalise(M)
-    call get_matrix_diagonal(M, diag)
-
-    call get_vector_data(phi%old_values(1)%vec, phi_old1_data)
-    call get_vector_data(phi%old_values(2)%vec, phi_old2_data)
-    call get_vector_data(diag, diag_data)
-    call update(b)
-    call get_vector_data(b, b_data)
-
-    call get_local_num_cells(local_num_cells)
-    do i = 1, local_num_cells
-      call create_cell_locator(i, loc_p)
-      call get_volume(loc_p, V_p)
-
-      ! A = A + (1.0 + 0.5 * theta)*rho*V/dt
-      diag_data(i) = diag_data(i) + (1.0 + 0.5 * theta) * rho * V_p / get_timestep()
-
-      ! b = b + rho*V/dt * ((1.0 + theta)*phi_old(n-1) - 0.5*theta*phi_old(n-2))
-      b_data(i) = b_data(i) + rho * V_p / get_timestep() * ((1.0 + theta) * phi_old1_data(i) - 0.5 * theta * phi_old2_data(i))
-    end do
-    call restore_vector_data(phi%old_values(1)%vec, phi_old1_data)
-    call restore_vector_data(phi%old_values(2)%vec, phi_old2_data)
-    call restore_vector_data(diag, diag_data)
-    call restore_vector_data(b, b_data)
-    call set_matrix_diagonal(diag, M)
-  end subroutine apply_timestep_theta
+ 
 
 end submodule timestepping_common

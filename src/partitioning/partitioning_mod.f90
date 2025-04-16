@@ -4,6 +4,7 @@
 
 module partitioning
 
+  use core, only: ccs_options
   use kinds, only: ccs_long
   use types, only: ccs_mesh
   use parallel_types, only: parallel_environment
@@ -65,8 +66,9 @@ module partitioning
     !  - The "surface to volume ratio" nhalo / nlocal (averaged)
     !  - The minimum departure from load balance min(nlocal) / avg(nlocal)
     !  - The maximum departure from load balance max(nlocal) / avg(nlocal)
-    module subroutine print_partition_quality(par_env) 
+    module subroutine print_partition_quality(par_env, run_options) 
       class(parallel_environment), intent(in) :: par_env
+      type(ccs_options), intent(in) :: run_options
     end subroutine print_partition_quality
     
   end interface
