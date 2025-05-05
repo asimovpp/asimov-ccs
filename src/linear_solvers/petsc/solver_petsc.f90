@@ -5,6 +5,7 @@
 !  @build petsc
 submodule(solver) solver_petsc
 #include "ccs_macros.inc"
+#include <petscversion.h>
 
   use kinds, only: ccs_err
   use petsctypes, only: linear_solver_petsc, matrix_petsc, vector_petsc
@@ -124,8 +125,11 @@ contains
   !> Interface to set the primary method of a linear solver
   module subroutine set_solver_method(method_name, solver)
 
+#if PETSC_VERSION_GE(3,23,0)
     use petscksp, only: KSPSetType, KSPSetFromOptions, KSPSetOptionsPrefix
-
+#else
+    use petscksp, only: KSPSetType, KSPSetFromOptions
+#endif
     ! Arguments
     character(len=*), intent(in) :: method_name   !< String naming the linear solver to be used.
     class(linear_solver), intent(inout) :: solver !< The linear solver object
@@ -154,9 +158,14 @@ contains
   !> Interface to set the preconditioner of a linear solver
   module subroutine set_solver_precon(precon_name, solver)
 
+#if PETSC_VERSION_GE(3,23,0)
     use petscksp, only: KSPGetPC, tPC, PCSetType, PCSetReusePreconditioner, PCSetFromOptions, &
-         PCSetOptionsPrefix, KSPSetOptionsPrefix
-!    use petscpc, only: tPC, PCSetType, PCSetReusePreconditioner, PCSetFromOptions
+                        PCSetOptionsPrefix, KSPSetOptionsPrefix
+#else
+    use petscksp, only: KSPGetPC
+    use petscpc, only: tPC, PCSetType, PCSetReusePreconditioner, PCSetFromOptions
+#endif
+
     use petsc, only: PETSC_TRUE
 
     ! Arguments

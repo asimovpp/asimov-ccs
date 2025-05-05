@@ -1,5 +1,6 @@
 submodule(mat) mat_petsc
 #include "ccs_macros.inc"
+#include <petscversion.h>
 
   use kinds, only: ccs_err
   use petsctypes, only: matrix_petsc, vector_petsc
@@ -18,9 +19,15 @@ contains
 
     use mpi
 
+#if PETSC_VERSION_GE(3,23,0)
     use petsc, only: PETSC_DETERMINE, PETSC_NULL_INTEGER_ARRAY
     use petscmat, only: MatCreate, MatSetSizes, MatSetFromOptions, MatSetUp, &
                         MatSeqAIJSetPreallocation, MatMPIAIJSetPreallocation, MatSetOptionsPrefix
+#else
+    use petsc, only: PETSC_DETERMINE, PETSC_NULL_INTEGER
+    use petscmat, only: MatCreate, MatSetSizes, MatSetFromOptions, MatSetUp, &
+                        MatSeqAIJSetPreallocation, MatMPIAIJSetPreallocation
+#endif
 
     use meshing, only: get_local_num_cells
 
@@ -66,9 +73,16 @@ contains
           end if
           call MatSetUp(M%M, ierr)
         else
+
+#if PETSC_VERSION_GE(3,23,0)
           call MatSeqAIJSetPreallocation(M%M, mat_properties%nnz, PETSC_NULL_INTEGER_ARRAY, ierr)
           call MatMPIAIJSetPreallocation(M%M, mat_properties%nnz, PETSC_NULL_INTEGER_ARRAY, mat_properties%nnz - 1, &
                                          PETSC_NULL_INTEGER_ARRAY, ierr)
+#else
+          call MatSeqAIJSetPreallocation(M%M, mat_properties%nnz, PETSC_NULL_INTEGER, ierr)
+          call MatMPIAIJSetPreallocation(M%M, mat_properties%nnz, PETSC_NULL_INTEGER, mat_properties%nnz - 1, &
+                                         PETSC_NULL_INTEGER, ierr)
+#endif
         end if
 
       class default
@@ -103,6 +117,7 @@ contains
   ! see https://petsc.org/release/manualpages/Mat/MatInfo/ for all the available fields
   module subroutine get_info_matrix(M)
 
+#if PETSC_VERSION_GE(3,23,0)
     use petscmat, only: MatGetInfo, sMatInfo
     use petscmatdef, only: MAT_LOCAL
 
@@ -118,7 +133,28 @@ contains
       print *, "nnz allocated: ", info%nz_allocated
       print *, "nnz used: ", info%nz_used
       print *, "nnz unneeded: ", info%nz_unneeded
+
     end select
+
+#else
+    use petscmat, only: MAT_INFO_SIZE, MatGetInfo, MAT_INFO_MEMORY, MAT_INFO_NZ_ALLOCATED, MAT_LOCAL, &
+       MAT_INFO_NZ_USED, MAT_INFO_NZ_UNNEEDED
+
+    class(ccs_matrix), intent(inout) :: M
+    double precision, dimension(MAT_INFO_SIZE) :: info
+
+    integer(ccs_err) :: ierr
+
+    select type (M)
+    type is (matrix_petsc)
+      call MatGetInfo(M%M, MAT_LOCAL, info, ierr)
+      print *, "---"
+      print *, "nnz allocated: ", info(MAT_INFO_NZ_ALLOCATED)
+      print *, "nnz used: ", info(MAT_INFO_NZ_USED)
+      print *, "nnz unneeded: ", info(MAT_INFO_NZ_UNNEEDED)
+    end select
+    
+#endif
 
   end subroutine get_info_matrix
 
@@ -186,7 +222,9 @@ contains
   !> Set values in a PETSc matrix.
   module subroutine set_matrix_values(mat_values, M)
 
+#if PETSC_VERSION_GE(3,23,0)
     use petsc, only: eInsertMode
+#endif
     use petscmat, only: MatSetValues
     use constants, only: insert_mode, add_mode
 
@@ -194,8 +232,11 @@ contains
     class(ccs_matrix), intent(inout) :: M           !< the matrix
 
     integer(ccs_int) :: nrows, ncols ! number of rows/columns
+#if PETSC_VERSION_GE(3,23,0)
     type(eInsertMode) :: mode ! Add or insert values?
-
+#else
+    integer(ccs_int) :: mode ! Add or insert values?
+#endif
     integer(ccs_err) :: ierr ! Error code
 
     associate (ridx => mat_values%global_row_indices, &
