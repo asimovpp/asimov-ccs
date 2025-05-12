@@ -1,7 +1,10 @@
 module fv_kernels
+
   use types
   use kinds, only: ccs_real
+
   implicit none
+
   !> Advection kernel
   type, extends(abstract_kernel) :: advection_kernel
   contains
@@ -31,5 +34,6 @@ module fv_kernels
       class(advection_kernel), intent(in) :: self
       integer(ccs_int) :: order  
     end function advection_order
+  end interface
 
 end module fv_kernels
