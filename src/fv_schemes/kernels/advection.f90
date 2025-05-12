@@ -11,7 +11,7 @@ contains
   end procedure advection_coeffs
 
   module procedure advection_eval
-    result = sum(this % coeffs())
+    result = sum(self%eval_coeffs())
   end procedure advection_eval
 
   module procedure advection_width
