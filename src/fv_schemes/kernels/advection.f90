@@ -7,11 +7,11 @@ contains
 
   !> Simple prototype
   module procedure advection_coeffs
-    coeffs = [1.0, 2.0, 3.0, 4.0]  ! Example coefficients
+    coeffs = [1.0, 2.0]  ! Example coefficients
   end procedure advection_coeffs
 
   module procedure advection_eval
-    result = sum(self%eval_coeffs())
+    expl = sum(self%eval_coeffs(flux_coeff))
   end procedure advection_eval
 
   module procedure advection_width

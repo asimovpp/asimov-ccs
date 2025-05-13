@@ -306,19 +306,24 @@ module types
 
   !> Abstract kernel interface
   abstract interface
-    pure function coeffs_interface(self) result(coeffs)
+    pure function coeffs_interface(self, flux_coeff) result(coeffs)
       import :: abstract_kernel
       import :: ccs_real
       class(abstract_kernel), intent(in) :: self
-      real(ccs_real), allocatable :: coeffs(:)
+      real(ccs_real), intent(in) :: flux_coeff
+      real(ccs_real), dimension(2) :: coeffs
     end function coeffs_interface
 
-    subroutine eval_interface(self, result)
+    pure function eval_interface(self, flux_coeff, lf, rvecs, grads) result(expl)
       import :: abstract_kernel
       import :: ccs_real
       class(abstract_kernel), intent(in) :: self
-      real(ccs_real), intent(out) :: result
-    end subroutine eval_interface
+      real(ccs_real), intent(in) :: flux_coeff
+      real(ccs_real), intent(in) :: lf
+      real(ccs_real), dimension(3, 2), intent(in) :: rvecs
+      real(ccs_real), dimension(3, 2), intent(in) :: grads
+      real(ccs_real):: expl
+    end function eval_interface
 
     pure function width_interface(self) result(width)
       import :: abstract_kernel
