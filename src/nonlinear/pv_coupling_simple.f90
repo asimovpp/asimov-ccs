@@ -857,6 +857,8 @@ contains
       call clear_entries(vec_values)
 
       call create_cell_locator(index_p, loc_p)
+
+      ! ---> Rhie-Chow/Poisson equation
       call get_global_index(loc_p, global_index_p)
       call count_neighbours(loc_p, nnb)
 
@@ -882,7 +884,6 @@ contains
 
         call get_boundary_status(loc_f, is_boundary)
 
-        ! ---> Rhie-Chow/Poisson equation
         ! Determine Rhie-Chow coefficient
         if (.not. is_boundary) then
           call create_neighbour_locator(loc_p, j, loc_nb)
@@ -912,7 +913,6 @@ contains
         rvecs = 0.0_ccs_real ! There's no orthogonality correction to apply
         grads = 0.0_ccs_real ! There's no orthogonality correction to apply
         b = diff_kernel%eval_explicit(coeff_f, interpol_factor, rvecs, grads)
-        ! <--- Rhie-Chow/Poisson equation
 
         coeff_p = coeff_p + coeffs(1)
 
@@ -957,6 +957,7 @@ contains
 
       call set_row(global_index_p, vec_values)
       call set_entry(r, vec_values)
+      ! <--- Rhie-Chow/Poisson equation
 
       ! Set the values
       call set_values(mat_coeffs, M)
