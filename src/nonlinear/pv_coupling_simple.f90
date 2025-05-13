@@ -768,6 +768,7 @@ contains
   subroutine calculate_pressure_correction(par_env, run_options, invA, M, vec, lin_sys, p_prime, lin_solver)
 
     use fv, only: compute_boundary_coeffs
+    use fv_kernels, only: diffusion_kernel
     use timers, only: timer_register_start, timer_stop
 
     ! Arguments
@@ -794,6 +795,8 @@ contains
     real(ccs_real) :: face_area
     real(ccs_real), dimension(ndim) :: face_normal
     real(ccs_real) :: r
+    real(ccs_real), dimension(2) :: coeffs
+    real(ccs_real) :: b
     real(ccs_real) :: coeff_f, coeff_p, coeff_nb
     real(ccs_real) :: aPb, bP
     logical :: is_boundary
@@ -825,6 +828,10 @@ contains
 
     integer(ccs_int) :: global_num_cells
     integer(ccs_int) :: timer_coeffs
+
+    type(diffusion_kernel) :: diff_kernel
+    real(ccs_real), dimension(3, 2) :: rvecs
+    real(ccs_real), dimension(3, 2) :: grads
 
     call timer_register_start("Building coefficients", timer_coeffs)
     ! First zero matrix
@@ -875,47 +882,58 @@ contains
 
         call get_boundary_status(loc_f, is_boundary)
 
+        ! ---> Rhie-Chow/Poisson equation
+        ! Determine Rhie-Chow coefficient
         if (.not. is_boundary) then
-          ! Interior face
           call create_neighbour_locator(loc_p, j, loc_nb)
-          call get_global_index(loc_nb, global_index_nb)
           call get_local_index(loc_nb, index_nb)
           call get_face_interpolation(loc_f, interpol_factor)
 
           call get_distance(loc_p, loc_nb, dx)
           dxmag = sqrt(sum(dx**2))
-          coeff_f = (1.0 / dxmag) * face_area
 
           call get_volume(loc_nb, V_nb)
           Vf = interpol_factor * Vp + (1.0_ccs_real - interpol_factor) * V_nb
 
           invA_nb = invA_data(index_nb)
           invA_f = interpol_factor * invA_p + (1.0_ccs_real - interpol_factor) * invA_nb
-
-          coeff_f = -(Vf * invA_f) * coeff_f
-
-          coeff_nb = coeff_f
-          col = global_index_nb
         else
           call get_distance(loc_p, loc_f, dx)
-          dxmag = sqrt(sum(dx**2))
+          dxmag = 2 * sqrt(sum(dx**2))
+          Vf = Vp
+          invA_f = invA_p
+          interpol_factor = 0.5_ccs_real
+        end if
+        coeff_f = (1.0 / dxmag) * face_area
+        coeff_f = (Vf * invA_f) * coeff_f
 
-          coeff_f = (1.0 / (2 * dxmag)) * face_area
-          coeff_f = -(Vp * invA_p) * coeff_f
+        ! Compute Poisson equation coefficients and RHS
+        coeffs = diff_kernel%eval_coeffs(coeff_f)
+        rvecs = 0.0_ccs_real ! There's no orthogonality correction to apply
+        grads = 0.0_ccs_real ! There's no orthogonality correction to apply
+        b = diff_kernel%eval_explicit(coeff_f, interpol_factor, rvecs, grads)
+        ! <--- Rhie-Chow/Poisson equation
 
+        coeff_p = coeff_p + coeffs(1)
+
+        ! Set equation entries
+        if (.not. is_boundary) then
+          call create_neighbour_locator(loc_p, j, loc_nb)
+          call get_global_index(loc_nb, global_index_nb)
+          coeff_nb = coeffs(2)
+          col = global_index_nb
+        else
+          ! Apply boundary modification to discretised equation
           call compute_boundary_coeffs(p_prime, 0, loc_p, loc_f, face_normal, aPb, bP)
           coeff_p = coeff_p + coeff_f * aPb
           r = r - coeff_f * bP
           col = -1 ! Don't attempt to set neighbour coefficients
           coeff_nb = 0.0
         end if
-        coeff_p = coeff_p - coeff_f
 
         call set_row(row, mat_coeffs)
         call set_col(col, mat_coeffs)
         call set_entry(coeff_nb, mat_coeffs)
-        ! call clear_entries(mat_coeffs)
-
       end do
 
       ! XXX: Need to fix pressure somewhere
