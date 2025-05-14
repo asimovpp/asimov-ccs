@@ -13,15 +13,24 @@ module advection_mod
   end type advection_kernel
 
   interface
-    module pure function advection_coeffs(self) result(coeffs)
+    ! Using deferred correction phi_f = (a_P,UD phi_P + a_F,UD phi_F)^{n+1} + {[(a_P - a_P,UD) phi_P + (a_F - a_F,UD) phi_F]}^{n}
+    ! So advection_coeffs returns the upwind coefficients for all versions
+    ! advection_eval returns the explicit evaluation of the difference between advection scheme and upwind + any correction terms.
+
+    module pure function advection_coeffs(self, mf) result(coeffs)
       class(advection_kernel), intent(in) :: self
-      real(ccs_real), allocatable :: coeffs(:)
+      real(ccs_real), dimension(2) :: coeffs
     end function advection_coeffs
 
-    module subroutine advection_eval(self, result)
+    module function advection_eval(self, mf, lf, grads, rvecs, result) ! TODO update return
       class(advection_kernel), intent(in) :: self
       real(ccs_real), intent(out) :: result
     end subroutine advection_eval
+    
+    module subroutine diff_eval(self, muAdx, grads, rvecs, result)
+      class(advection_kernel), intent(in) :: self
+      real(ccs_real), intent(out) :: result
+    end subroutine diff_eval
 
     module pure function advection_width(self) result(width)
       class(advection_kernel), intent(in) :: self
