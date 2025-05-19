@@ -1,5 +1,5 @@
 module advection_cds_mod
-  use advection_mod
+  use fv_kernels
   use types
 
   implicit none

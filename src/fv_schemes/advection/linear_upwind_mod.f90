@@ -1,5 +1,5 @@
 module advection_luw_mod
-  use advection_mod
+  use fv_kernels
   use types
   use vec, only: get_vector_data, restore_vector_data
   use meshing, only: get_face_interpolation, get_local_index, get_distance, get_centre
