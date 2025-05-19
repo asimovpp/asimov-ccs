@@ -1,4 +1,4 @@
-submodule(fv_kernels:advection_mod) upwind_advection_impl
+submodule(fv_kernels:advection_common) upwind_advection
 implicit none
 
 contains
@@ -51,4 +51,4 @@ module pure function get_upwind_order(self) result(order)
   order = 1
 end function get_upwind_order
 
-end submodule advection_upwind_impl
+end submodule advection_upwind

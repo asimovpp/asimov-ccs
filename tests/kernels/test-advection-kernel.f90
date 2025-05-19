@@ -3,9 +3,10 @@ program test_advection_kernel
     !! Test the advection kernel by running a refinement loop, computing the discretisation
     !!  error (difference between analytical and computed values), and checking the order of
     !!  convergence is the theoretical order for the scheme
-    implicit none
 
-    use kinds, only: ccs_real
+    use kinds, only: ccs_real, ccs_int
+    use fv_kernels
+    implicit none
 
 
     integer(ccs_int) :: i, num_iters=10
@@ -75,7 +76,7 @@ contains
         real(ccs_real), intent(in) :: x_N(3)
         real(ccs_real), intent(in) :: x_f(3)
         real(ccs_real), intent(out) :: error
-        real(ccs_real) :: analytical, error
+        real(ccs_real) :: analytical
 
         analytical = u(x_f(1)) * phi(x_f(1))
         error = abs(analytical - (coeffs(1) * phi(x_P(1)) + coeffs(2) * phi(x_N(1)) + rhs))

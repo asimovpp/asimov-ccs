@@ -1,4 +1,4 @@
-submodule(fv_kernels) advection_mod
+submodule(fv_kernels) advection_common
   use kinds, only: ccs_real
   implicit none
 
