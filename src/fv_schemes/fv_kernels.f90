@@ -66,12 +66,12 @@ module fv_kernels
     end subroutine advect_upwind_eval
 
     module pure function get_upwind_width(self) result(width)
-      class(advection_kernel), intent(in) :: self
+      class(upwind_advection_kernel), intent(in) :: self
       integer(ccs_int) :: width
     end function get_upwind_width
 
     module pure function get_upwind_order(self) result(order)
-      class(advection_kernel), intent(in) :: self
+      class(upwind_advection_kernel), intent(in) :: self
       integer(ccs_int) :: order
     end function get_upwind_order
   end interface
