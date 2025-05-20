@@ -117,9 +117,10 @@ contains
     do index_p = 1, local_num_cells
       call clear_entries(mat_coeffs)
       call clear_entries(b_coeffs)
-
-      ! Calculate contribution from neighbours
       call create_cell_locator(index_p, loc_p)
+
+!!! ==== Transport equation ===>
+      ! Calculate contribution from neighbours
       call get_global_index(loc_p, global_index_p)
       call count_neighbours(loc_p, nnb)
 
@@ -248,6 +249,7 @@ contains
         end if
         call set_entry(loe - hoe, b_coeffs)
       end do
+!!! <=== Transport equation ====
 
       call set_values(b_coeffs, b)
       call set_col(global_index_p, mat_coeffs)
