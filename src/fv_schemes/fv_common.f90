@@ -205,8 +205,6 @@ contains
             hoe = hoe + diff_coeff * (dot_product(grad_phi_nb, x_nb_prime - x_nb) - dot_product(grad_phi_p, x_p_prime - x_p))
           end if
 
-          call set_entry(-hoe, b_coeffs)
-
           ! Low-order
           if ((sgn * mf(index_f)) > 0.0_ccs_real) then
             aP = sgn * mf(index_f) * face_area
@@ -218,7 +216,6 @@ contains
           aP = aP - sgn * mf(index_f) * face_area
 
           loe = aP * phi%values_ro(index_p) + aF * phi%values_ro(index_nb)
-          call set_entry(loe, b_coeffs) ! Explicit low-order term
 
           call get_global_index(loc_nb, global_index_nb)
           call set_col(global_index_nb, mat_coeffs)
@@ -250,7 +247,8 @@ contains
           aP = aP * (mf(index_f) * face_area)
           aF = aF * (mf(index_f) * face_area)
           aP = aP - mf(index_f) * face_area
-          call set_entry(-(aP * phi%values_ro(index_p) + aF * (aPb * phi%values_ro(index_p) + bP)), b_coeffs)
+          hoe = aP * phi%values_ro(index_p) + aF * (aPb * phi%values_ro(index_p) + bP)
+
           if (mf(index_f) > 0.0_ccs_real) then
             aP = mf(index_f) * face_area
             aF = 0.0_ccs_real
@@ -259,14 +257,15 @@ contains
             aF = mf(index_f) * face_area
           end if
           aP = aP - mf(index_f) * face_area
-
-          call set_entry(aP * phi%values_ro(index_p) + aF * (aPb * phi%values_ro(index_p) + bP), b_coeffs)
+          loe = aP * phi%values_ro(index_p) + aF * (aPb * phi%values_ro(index_p) + bP)
 
           call set_entry(-(aF + diff_coeff) * bP, b_coeffs)
 
           adv_coeff_total = adv_coeff_total + aP + aPb * aF
           diff_coeff_total = diff_coeff_total - diff_coeff + aPb * diff_coeff
         end if
+
+        call set_entry(loe - hoe, b_coeffs)
       end do
 
       call set_values(b_coeffs, b)
