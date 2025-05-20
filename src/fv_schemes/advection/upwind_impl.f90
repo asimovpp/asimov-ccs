@@ -15,8 +15,8 @@ module pure function advect_upwind_coeffs(self, flux_coeff) result(coeffs)
   end associate
 
   ! Calculate coefficients
-  a_P  = max( F_f, 0.0_ccs_real )
-  a_F  = max(-F_f, 0.0_ccs_real )
+  a_P  = max( flux_coeff, 0.0_ccs_real )
+  a_F  = max(-flux_coeff, 0.0_ccs_real )
   coeffs = [a_P, a_F]
 end function advect_upwind_coeffs
 
