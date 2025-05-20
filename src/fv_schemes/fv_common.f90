@@ -103,6 +103,8 @@ contains
     real(ccs_real) :: dx_orth ! distance between cell centers projected to the face othogonal (used for corrections)
     real(ccs_real) :: SchmidtNo
 
+    real(ccs_real) :: phiP, phiF ! current field at central/neighbour cells
+
     call set_matrix_values_spec_nrows(1_ccs_int, mat_val_spec)
     call set_matrix_values_spec_ncols(n_int_cells, mat_val_spec)
     call create_matrix_values(mat_val_spec, mat_coeffs)
@@ -205,24 +207,8 @@ contains
             hoe = hoe + diff_coeff * (dot_product(grad_phi_nb, x_nb_prime - x_nb) - dot_product(grad_phi_p, x_p_prime - x_p))
           end if
 
-          ! Low-order
-          if ((sgn * mf(index_f)) > 0.0_ccs_real) then
-            aP = sgn * mf(index_f) * face_area
-            aF = 0.0_ccs_real
-          else
-            aP = 0.0_ccs_real
-            aF = sgn * mf(index_f) * face_area
-          end if
-          aP = aP - sgn * mf(index_f) * face_area
-
-          loe = aP * phi%values_ro(index_p) + aF * phi%values_ro(index_nb)
-
-          call get_global_index(loc_nb, global_index_nb)
-          call set_col(global_index_nb, mat_coeffs)
-          call set_entry(aF + diff_coeff, mat_coeffs)
-
-          adv_coeff_total = adv_coeff_total + aP
-          diff_coeff_total = diff_coeff_total - diff_coeff
+          phiP = phi%values_ro(index_p)
+          phiF = phi%values_ro(index_nb)
         else
           call compute_boundary_coeffs(phi, component, loc_p, loc_f, face_normal, aPb, bP)
 
@@ -230,6 +216,7 @@ contains
           ! Correct boundary face distance to distance to immaginary boundary "node"
           diff_coeff = diff_coeff / 2.0_ccs_real
           
+          sgn = 1.0_ccs_real
           select type (phi)
           type is (central_field)
             call calc_advection_coeff(phi, loc_f, mf(index_f), index_nb, adv_coeffaP, adv_coeffaF)
@@ -249,22 +236,33 @@ contains
           aP = aP - mf(index_f) * face_area
           hoe = aP * phi%values_ro(index_p) + aF * (aPb * phi%values_ro(index_p) + bP)
 
-          if (mf(index_f) > 0.0_ccs_real) then
-            aP = mf(index_f) * face_area
-            aF = 0.0_ccs_real
-          else
-            aP = 0.0_ccs_real
-            aF = mf(index_f) * face_area
-          end if
-          aP = aP - mf(index_f) * face_area
-          loe = aP * phi%values_ro(index_p) + aF * (aPb * phi%values_ro(index_p) + bP)
-
-          call set_entry(-(aF + diff_coeff) * bP, b_coeffs)
-
-          adv_coeff_total = adv_coeff_total + aP + aPb * aF
-          diff_coeff_total = diff_coeff_total - diff_coeff + aPb * diff_coeff
+          ! Use boundary condition to compute ghost neighbour value
+          phiP = phi%values_ro(index_p)
+          phiF = aPb * phiP + bP
         end if
 
+        ! Low-order advection contribution
+        if ((sgn * mf(index_f)) > 0.0_ccs_real) then
+          aP = sgn * mf(index_f) * face_area
+          aF = 0.0_ccs_real
+        else
+          aP = 0.0_ccs_real
+          aF = sgn * mf(index_f) * face_area
+        end if
+        aP = aP - sgn * mf(index_f) * face_area
+        loe = aP * phiP + aF * phiF
+
+        adv_coeff_total = adv_coeff_total + aP
+        diff_coeff_total = diff_coeff_total - diff_coeff
+        if (.not. is_boundary) then
+          call get_global_index(loc_nb, global_index_nb)
+          call set_col(global_index_nb, mat_coeffs)
+          call set_entry(aF + diff_coeff, mat_coeffs)
+        else
+          adv_coeff_total = adv_coeff_total + aPb * aF
+          diff_coeff_total = diff_coeff_total + aPb * diff_coeff
+          call set_entry(-(aF + diff_coeff) * bP, b_coeffs)
+        end if
         call set_entry(loe - hoe, b_coeffs)
       end do
 
