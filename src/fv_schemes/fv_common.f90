@@ -167,12 +167,17 @@ contains
             call get_centre(loc_nb, x_nb)
             call get_centre(loc_f, x_f)
 
-            dx_orth = min(dot_product(x_f - x_p, face_normal), dot_product(x_nb - x_f, face_normal))
+            dx_orth = min(dot_product(x_f - x_p, face_normal), &
+                          dot_product(x_nb - x_f, face_normal))
             x_nb_prime = x_f + dx_orth * face_normal
             x_p_prime = x_f - dx_orth * face_normal
 
-            grad_phi_p = [ phi%x_gradients_ro(index_p), phi%y_gradients_ro(index_p), phi%z_gradients_ro(index_p) ]
-            grad_phi_nb = [ phi%x_gradients_ro(index_nb), phi%y_gradients_ro(index_nb), phi%z_gradients_ro(index_nb) ]
+            grad_phi_p = [ phi%x_gradients_ro(index_p), &
+                           phi%y_gradients_ro(index_p), &
+                           phi%z_gradients_ro(index_p) ]
+            grad_phi_nb = [ phi%x_gradients_ro(index_nb), &
+                            phi%y_gradients_ro(index_nb), &
+                            phi%z_gradients_ro(index_nb) ]
           end if
         else
           call compute_boundary_coeffs(phi, component, loc_p, loc_f, face_normal, aPb, bP)
@@ -185,7 +190,10 @@ contains
         rvecs = 0.0_ccs_real
         grads = 0.0_ccs_real
         if (.not. is_boundary) then
-          call calc_diffusion_coeff(index_p, j, phi%enable_cell_corrections, visc(index_p), visc(index_nb), dens(index_p), dens(index_nb), SchmidtNo, diff_coeff)
+          call calc_diffusion_coeff(index_p, j, phi%enable_cell_corrections, &
+                                    visc(index_p), visc(index_nb), &
+                                    dens(index_p), dens(index_nb), &
+                                    SchmidtNo, diff_coeff)
 
           if (phi%enable_cell_corrections) then
             grads(:, 1) = grad_phi_p(:)
@@ -194,7 +202,10 @@ contains
             rvecs(:, 2) = x_nb_prime(:) - x_nb(:)
           end if
         else
-          call calc_diffusion_coeff(index_p, j, .false., visc(index_p), 0.0_ccs_real, dens(index_p), 0.0_ccs_real, SchmidtNo, diff_coeff)
+          call calc_diffusion_coeff(index_p, j, .false., &
+                                    visc(index_p), 0.0_ccs_real, &
+                                    dens(index_p), 0.0_ccs_real, &
+                                    SchmidtNo, diff_coeff)
           ! Correct boundary face distance to distance to immaginary boundary "node"
           diff_coeff = diff_coeff / 2.0_ccs_real
         end if
