@@ -15,20 +15,20 @@ module fv_kernels
   end type advection_kernel
 
   interface
-    module pure function advection_coeffs(self, flux_coeff) result(coeffs)
+    module pure function advection_eval_coeffs(self, flux_coeff) result(coeffs)
       class(advection_kernel), intent(in) :: self
       real(ccs_real), intent(in) :: flux_coeff
       real(ccs_real), dimension(2) :: coeffs
-    end function advection_coeffs
+    end function advection_eval_coeffs
 
-    module pure function advection_eval(self, flux_coeff, lf, rvecs, grads) result(expl)
+    module pure function advection_eval_explicit(self, flux_coeff, lf, rvecs, grads) result(expl)
       class(advection_kernel), intent(in) :: self
       real(ccs_real), intent(in) :: flux_coeff
       real(ccs_real), intent(in) :: lf
       real(ccs_real), dimension(3, 2), intent(in) :: rvecs
       real(ccs_real), dimension(3, 2), intent(in) :: grads
       real(ccs_real):: expl
-    end function advection_eval
+    end function advection_eval_explicit
 
     module pure function advection_width(self) result(width)
       class(advection_kernel), intent(in) :: self
@@ -44,28 +44,28 @@ module fv_kernels
   !> Advection scheme kernels
   type, extends(advection_kernel) :: upwind_advection_kernel
   contains
-    procedure :: eval_coeffs => advect_upwind_coeffs
-    procedure :: eval_explicit => advect_upwind_eval
+    procedure :: eval_coeffs => advect_upwind_eval_coeffs
+    procedure :: eval_explicit => advect_upwind_eval_explicit
     procedure :: get_width => get_upwind_width
     procedure :: get_order => get_upwind_order
   end type upwind_advection_kernel
 
   interface
     !> Calculates advection coefficient for neighbouring cell using upwind discretisation
-    module pure function advect_upwind_coeffs(self, flux_coeff) result(coeffs)
+    module pure function advect_upwind_eval_coeffs(self, flux_coeff) result(coeffs)
       class(upwind_advection_kernel), intent(in) :: self
       real(ccs_real), intent(in) :: flux_coeff
       real(ccs_real), dimension(2) :: coeffs
-    end function advect_upwind_coeffs
+    end function advect_upwind_eval_coeffs
 
-    module pure function advect_upwind_eval(self, flux_coeff, lf, rvecs, grads) result(expl)
+    module pure function advect_upwind_eval_explicit(self, flux_coeff, lf, rvecs, grads) result(expl)
       class(upwind_advection_kernel), intent(in) :: self
       real(ccs_real), intent(in) :: flux_coeff
       real(ccs_real), intent(in) :: lf
       real(ccs_real), dimension(3, 2), intent(in) :: rvecs
       real(ccs_real), dimension(3, 2), intent(in) :: grads
       real(ccs_real) :: expl
-    end function  advect_upwind_eval
+    end function  advect_upwind_eval_explicit
 
     module pure function get_upwind_width(self) result(width)
       class(upwind_advection_kernel), intent(in) :: self

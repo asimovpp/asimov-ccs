@@ -1,9 +1,9 @@
-submodule(fv_kernels:advection_common) upwind_advection
+submodule(fv_kernels) upwind_advection
 implicit none
 
 contains
 !> Calculates advection coefficient for neighbouring cell using UDS discretisation
-module pure function advect_upwind_coeffs(self, flux_coeff) result(coeffs)
+module pure function advect_upwind_eval_coeffs(self, flux_coeff) result(coeffs)
   class(upwind_advection_kernel), intent(in) :: self
   real(ccs_real), intent(in) :: flux_coeff
   real(ccs_real), dimension(2) :: coeffs
@@ -18,9 +18,9 @@ module pure function advect_upwind_coeffs(self, flux_coeff) result(coeffs)
   a_P  = max( flux_coeff, 0.0_ccs_real )
   a_F  = max(-flux_coeff, 0.0_ccs_real )
   coeffs = [a_P, a_F]
-end function advect_upwind_coeffs
+end function advect_upwind_eval_coeffs
 
-module subroutine advect_upwind_eval(self, flux_coeff, lf, rvecs, grads) result(expl)
+module pure function advect_upwind_eval_explicit(self, flux_coeff, lf, rvecs, grads) result(expl)
   class(upwind_advection_kernel), intent(in) :: self
   real(ccs_real), intent(in) :: flux_coeff
   real(ccs_real), intent(in) :: lf
@@ -37,7 +37,7 @@ module subroutine advect_upwind_eval(self, flux_coeff, lf, rvecs, grads) result(
   ! Calculate explicit term
   expl = 0.0_ccs_real
 
-end subroutine advect_upwind_eval
+end function advect_upwind_eval_explicit
 
 module pure function get_upwind_width(self) result(width)
   class(upwind_advection_kernel), intent(in) :: self
@@ -51,4 +51,4 @@ module pure function get_upwind_order(self) result(order)
   order = 1
 end function get_upwind_order
 
-end submodule advection_upwind
+end submodule upwind_advection
