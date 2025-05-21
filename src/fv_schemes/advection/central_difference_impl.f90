@@ -1,6 +1,5 @@
-submodule(advection_cds_mod) advection_cds_impl
+submodule(fv_kernels:advection_common) central_difference_advection
   use types
-  use advection_cds_mod
   use vec, only: get_vector_data, restore_vector_data
   use meshing, only: get_face_interpolation, get_local_index, get_distance, get_centre
 

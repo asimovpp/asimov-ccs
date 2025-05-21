@@ -8,8 +8,8 @@ module fv_kernels
   !> Advection kernel
   type, extends(abstract_kernel) :: advection_kernel
   contains
-    procedure :: eval_coeffs => advection_coeffs
-    procedure :: eval_explicit => advection_eval
+    procedure :: eval_coeffs => advection_eval_coeffs
+    procedure :: eval_explicit => advection_eval_explicit
     procedure :: get_width => advection_width
     procedure :: get_order => advection_order
   end type advection_kernel

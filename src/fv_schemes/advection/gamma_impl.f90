@@ -1,5 +1,4 @@
-submodule(advection_gamma_mod) advection_gamma_impl
-  use advection_gamma_mod
+submodule(fv_kernels:advection_common)) gamma_advection
   use vec, only: get_vector_data, restore_vector_data
   use meshing, only: get_face_interpolation, get_local_index, get_distance, get_centre
   use types, only: neighbour_locator
