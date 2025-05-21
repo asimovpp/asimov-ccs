@@ -44,10 +44,10 @@ module fv_kernels
   !> Advection scheme kernels
   type, extends(advection_kernel) :: upwind_advection_kernel
   contains
-    procedure eval_coeffs => advect_upwind_coeffs
-    procedure eval_explicit => advect_upwind_eval
-    procedure get_width => get_upwind_width
-    procedure get_order => get_upwind_order
+    procedure :: eval_coeffs => advect_upwind_coeffs
+    procedure :: eval_explicit => advect_upwind_eval
+    procedure :: get_width => get_upwind_width
+    procedure :: get_order => get_upwind_order
   end type upwind_advection_kernel
 
   interface
@@ -58,14 +58,14 @@ module fv_kernels
       real(ccs_real), dimension(2) :: coeffs
     end function advect_upwind_coeffs
 
-    module subroutine advect_upwind_eval(self, flux_coeff, lf, rvecs, grads) result(expl)
+    module pure function advect_upwind_eval(self, flux_coeff, lf, rvecs, grads) result(expl)
       class(upwind_advection_kernel), intent(in) :: self
       real(ccs_real), intent(in) :: flux_coeff
       real(ccs_real), intent(in) :: lf
       real(ccs_real), dimension(3, 2), intent(in) :: rvecs
       real(ccs_real), dimension(3, 2), intent(in) :: grads
       real(ccs_real) :: expl
-    end subroutine advect_upwind_eval
+    end function  advect_upwind_eval
 
     module pure function get_upwind_width(self) result(width)
       class(upwind_advection_kernel), intent(in) :: self
@@ -76,42 +76,6 @@ module fv_kernels
       class(upwind_advection_kernel), intent(in) :: self
       integer(ccs_int) :: order
     end function get_upwind_order
-  end interface
-
-  !> Diffusion kernel
-  type, extends(abstract_kernel) :: diffusion_kernel
-  contains
-    procedure :: eval_coeffs => diffusion_coeffs
-    procedure :: eval_explicit => diffusion_eval
-    procedure :: get_width => diffusion_width
-    procedure :: get_order => diffusion_order
-  end type diffusion_kernel
-
-  interface
-    module pure function diffusion_coeffs(self, flux_coeff) result(coeffs)
-      class(diffusion_kernel), intent(in) :: self
-      real(ccs_real), intent(in) :: flux_coeff
-      real(ccs_real), dimension(2) :: coeffs
-    end function diffusion_coeffs
-
-    module pure function diffusion_eval(self, flux_coeff, lf, rvecs, grads) result(expl)
-      class(diffusion_kernel), intent(in) :: self
-      real(ccs_real), intent(in) :: flux_coeff
-      real(ccs_real), intent(in) :: lf
-      real(ccs_real), dimension(3, 2), intent(in) :: rvecs
-      real(ccs_real), dimension(3, 2), intent(in) :: grads
-      real(ccs_real) :: expl
-    end function diffusion_eval
-
-    module pure function diffusion_width(self) result(width)
-      class(diffusion_kernel), intent(in) :: self
-      integer(ccs_int) :: width
-    end function diffusion_width
-
-    module pure function diffusion_order(self) result(order)
-      class(diffusion_kernel), intent(in) :: self
-      integer(ccs_int) :: order
-    end function diffusion_order
   end interface
 
   !> Diffusion kernel
