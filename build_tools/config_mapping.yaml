@@ -35,6 +35,7 @@ bases:
       core_conf: core_configuration
       core_fields_init: core_fields
       core_flow: core_init_flow
+      diffusion_kernel: diffusion
       advection_common: advection_common
       upwind_advection: upwind_advection
     options:
@@ -78,6 +79,8 @@ bases:
       core_conf: core_configuration
       core_flow: core_init_flow
       core_fields_init: core_fields
+      advection_kernel: advection
+      diffusion_kernel: diffusion
     options:
       timestepping: [timestepping_first_order, timestepping_second_order, timestepping_theta]
       reordering: [reordering_rcm, reordering_petsc, reordering_zcurve, reordering_none]
