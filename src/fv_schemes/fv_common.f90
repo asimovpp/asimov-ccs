@@ -63,6 +63,9 @@ contains
 
   !> Computes the matrix coefficient for cells in the interior of the mesh
   subroutine compute_coeffs(phi, mf, visc, dens, component, n_int_cells, M, b)
+
+    use fv_kernels, only: diffusion_kernel
+    
     class(field), intent(inout) :: phi                !< scalar field structure
     real(ccs_real), dimension(:), intent(in) :: mf !< mass flux array defined at faces
     real(ccs_real), dimension(:), intent(in) :: visc !< viscosity
@@ -98,6 +101,7 @@ contains
 
     real(ccs_real) :: sgn ! Sign indicating face orientation
     real(ccs_real) :: aP, aF, bP, aPb
+    real(ccs_real), dimension(2) :: coeffs
     real(ccs_real) :: hoe ! High-order explicit flux
     real(ccs_real) :: loe ! Low-order explicit flux
     real(ccs_real) :: dx_orth ! distance between cell centers projected to the face othogonal (used for corrections)
@@ -105,6 +109,11 @@ contains
 
     real(ccs_real) :: phiP, phiF ! current field at central/neighbour cells
 
+    real(ccs_real), dimension(3, 2) :: grads, rvecs ! Cell gradients and relative vectors
+
+    type(diffusion_kernel) :: diff_kernel
+    real(ccs_real) :: interpol_factor
+    
     call set_matrix_values_spec_nrows(1_ccs_int, mat_val_spec)
     call set_matrix_values_spec_ncols(n_int_cells, mat_val_spec)
     call create_matrix_values(mat_val_spec, mat_coeffs)
@@ -143,8 +152,12 @@ contains
 
         call get_face_area(loc_f, face_area)
         call get_local_index(loc_f, index_f)
+        call get_face_interpolation(loc_f, interpol_factor)
         
+        ! Initialise accumulators
+        coeffs(:) = 0.0_ccs_real
         hoe = 0.0_ccs_real
+        loe = 0.0_ccs_real
         
         if (.not. is_boundary) then
           phiF = phi%values_ro(index_nb)
@@ -169,18 +182,24 @@ contains
         end if
 
 !!! ---- Diffusion coefficients --->
+        rvecs = 0.0_ccs_real
+        grads = 0.0_ccs_real
         if (.not. is_boundary) then
           call calc_diffusion_coeff(index_p, j, phi%enable_cell_corrections, visc(index_p), visc(index_nb), dens(index_p), dens(index_nb), SchmidtNo, diff_coeff)
 
           if (phi%enable_cell_corrections) then
-            ! Non-orthogonality correction (diffusive flux) (Ferziger & Peric 4th ed, sec 9.7.2)
-            hoe = hoe + diff_coeff * (dot_product(grad_phi_nb, x_nb_prime - x_nb) - dot_product(grad_phi_p, x_p_prime - x_p))
+            grads(:, 1) = grad_phi_p(:)
+            grads(:, 2) = grad_phi_nb(:)
+            rvecs(:, 1) = x_p_prime(:) - x_p(:)
+            rvecs(:, 2) = x_nb_prime(:) - x_nb(:)
           end if
         else
           call calc_diffusion_coeff(index_p, j, .false., visc(index_p), 0.0_ccs_real, dens(index_p), 0.0_ccs_real, SchmidtNo, diff_coeff)
           ! Correct boundary face distance to distance to immaginary boundary "node"
           diff_coeff = diff_coeff / 2.0_ccs_real
         end if
+        coeffs = diff_kernel%eval_coeffs(diff_coeff)
+        hoe = hoe + diff_kernel%eval_explicit(diff_coeff, interpol_factor, rvecs, grads)
 !!! <--- Diffusion coefficients ----
 
 !!! ---- Advection coefficients --->
@@ -237,15 +256,15 @@ contains
 !!! <--- Advection coefficients ----
 
         adv_coeff_total = adv_coeff_total + aP
-        diff_coeff_total = diff_coeff_total - diff_coeff
+        diff_coeff_total = diff_coeff_total + coeffs(1)
         if (.not. is_boundary) then
           call get_global_index(loc_nb, global_index_nb)
           call set_col(global_index_nb, mat_coeffs)
-          call set_entry(aF + diff_coeff, mat_coeffs)
+          call set_entry(aF + coeffs(2), mat_coeffs)
         else
           adv_coeff_total = adv_coeff_total + aPb * aF
-          diff_coeff_total = diff_coeff_total + aPb * diff_coeff
-          call set_entry(-(aF + diff_coeff) * bP, b_coeffs)
+          diff_coeff_total = diff_coeff_total + aPb * coeffs(2)
+          call set_entry(-(aF + coeffs(2)) * bP, b_coeffs)
         end if
         call set_entry(loe - hoe, b_coeffs)
       end do
@@ -474,7 +493,7 @@ contains
       diffusion_factor = visc_p / (dens_p * SchmidtNo)
     end if
     
-    coeff = -face_area * diffusion_factor / dxmag
+    coeff = face_area * diffusion_factor / dxmag
   end subroutine calc_diffusion_coeff
 
   !> Interpolate field to face center from cell center, applied gradient correction (if enabled in the field

@@ -885,10 +885,10 @@ contains
         call get_boundary_status(loc_f, is_boundary)
 
         ! Determine Rhie-Chow coefficient
+        call get_face_interpolation(loc_f, interpol_factor)
         if (.not. is_boundary) then
           call create_neighbour_locator(loc_p, j, loc_nb)
           call get_local_index(loc_nb, index_nb)
-          call get_face_interpolation(loc_f, interpol_factor)
 
           call get_distance(loc_p, loc_nb, dx)
           dxmag = sqrt(sum(dx**2))

@@ -36,13 +36,12 @@ contains
     real(ccs_real):: expl
 
     ! Silence unused compiler warnings
-    associate(foo => self)
-    end associate
-    associate(foo => lf, bar => rvecs, baz => grads)
+    associate(foo => self, bar => lf)
     end associate
 
-    expl = 0.0_ccs_real
-    expl = flux_coeff * expl
+    ! Non-orthogonality correction (diffusive flux) (Ferziger & Peric 4th ed, sec 9.7.2)
+    expl = (dot_product(grads(:, 2), rvecs(:, 2)) - dot_product(grads(:, 1), rvecs(:, 1)))
+    expl = -flux_coeff * expl
     
   end function diffusion_eval
 
