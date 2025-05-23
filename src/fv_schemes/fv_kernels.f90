@@ -41,7 +41,9 @@ module fv_kernels
     end function advection_order
   end interface
 
-  !> Advection scheme kernels
+  !> Upwind Advection Kernel
+  !> This kernel is used for the upwind discretisation of the advection term
+  !> in the finite volume scheme.
   type, extends(advection_kernel) :: upwind_advection_kernel
   contains
     procedure :: eval_coeffs => advect_upwind_eval_coeffs
@@ -78,7 +80,9 @@ module fv_kernels
     end function get_upwind_order
   end interface
 
-  !> Advection scheme kernels
+  !> Central Difference Advection Kernel
+  !> This kernel is used for the central difference discretisation of the advection term
+  !> in the finite volume scheme.
   type, extends(advection_kernel) :: cd_advection_kernel
     private
     !> Interpolation factor for central difference scheme
@@ -128,6 +132,60 @@ module fv_kernels
       class(cd_advection_kernel), intent(in) :: self
       real(ccs_real) :: interpol_fact
     end function get_interpolation_factor
+
+  end interface
+
+  !> Gamma Advection Kernel
+  !> This kernel is used for the gamma discretisation of the advection term
+  !> in the finite volume scheme.
+  type, extends(advection_kernel) :: gamma_advection_kernel
+    private
+    real(ccs_real) :: beta_m = 0.35_ccs_real
+  contains
+    procedure :: eval_coeffs => advect_gamma_eval_coeffs
+    procedure :: eval_explicit => advect_gamma_eval_explicit
+    procedure :: get_width => get_gamma_width
+    procedure :: get_order => get_gamma_order
+    procedure :: set_beta_m
+    procedure :: get_beta_m
+  end type gamma_advection_kernel
+
+  interface
+    !> Calculates advection coefficient for neighbouring cell using central difference discretisation
+    module pure function advect_gamma_eval_coeffs(self, flux_coeff) result(coeffs)
+      class(gamma_advection_kernel), intent(in) :: self
+      real(ccs_real), intent(in) :: flux_coeff
+      real(ccs_real), dimension(2) :: coeffs
+    end function advect_gamma_eval_coeffs
+
+    module pure function advect_gamma_eval_explicit(self, flux_coeff, lf, rvecs, grads) result(expl)
+      class(gamma_advection_kernel), intent(in) :: self
+      real(ccs_real), intent(in) :: flux_coeff
+      real(ccs_real), intent(in) :: lf
+      real(ccs_real), dimension(3, 2), intent(in) :: rvecs
+      real(ccs_real), dimension(3, 2), intent(in) :: grads
+      real(ccs_real) :: expl
+    end function advect_gamma_eval_explicit
+
+    module pure function get_gamma_width(self) result(width)
+      class(gamma_advection_kernel), intent(in) :: self
+      integer(ccs_int) :: width
+    end function get_gamma_width
+
+    module pure function get_gamma_order(self) result(order)
+      class(gamma_advection_kernel), intent(in) :: self
+      integer(ccs_int) :: order
+    end function get_gamma_order
+
+    module pure subroutine set_beta_m(self, new_bm)
+      class(gamma_advection_kernel), intent(inout) :: self
+      real(ccs_real), intent(in) :: new_bm
+    end subroutine set_beta_m
+
+    module pure function get_beta_m(self) result(bm)
+      class(gamma_advection_kernel), intent(in) :: self
+      real(ccs_real) :: bm
+    end function get_beta_m
 
   end interface
 
