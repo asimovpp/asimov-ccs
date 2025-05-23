@@ -8,6 +8,9 @@ contains
     real(ccs_real), intent(in) :: flux_coeff     ! ṁ_f
     real(ccs_real), dimension(2) :: coeffs
 
+! Silence unused-variable warnings (if you compile with -Werror)
+    associate (foo => self); end associate
+
     coeffs(1) = max(-flux_coeff, 0.0_ccs_real)   ! neighbour F
     coeffs(2) = max(flux_coeff, 0.0_ccs_real)    ! owner    P
   end function advect_gamma_eval_coeffs
@@ -82,12 +85,19 @@ contains
   module pure function get_gamma_width(self) result(width)
     class(gamma_advection_kernel), intent(in) :: self
     integer(ccs_int) :: width
+
+    ! Silence unused-variable warnings (if you compile with -Werror)
+    associate (foo => self); end associate
+
     width = 1
   end function get_gamma_width
 
   module pure function get_gamma_order(self) result(order)
     class(gamma_advection_kernel), intent(in) :: self
     integer(ccs_int) :: order
+! Silence unused-variable warnings (if you compile with -Werror)
+    associate (foo => self); end associate
+
     order = 2
   end function get_gamma_order
 

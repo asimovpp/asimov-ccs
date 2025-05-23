@@ -8,6 +8,9 @@ contains
     real(ccs_real), intent(in) :: flux_coeff   ! ρ u A with sign
     real(ccs_real), dimension(2) :: coeffs       ! (F, P)
 
+    ! Silence unused-variable warnings (if you compile with -Werror)
+    associate (foo => self); end associate
+
     coeffs(1) = max(-flux_coeff, 0.0_ccs_real)   ! neighbour
     coeffs(2) = max(flux_coeff, 0.0_ccs_real)   ! owner
   end function advect_luds_eval_coeffs
@@ -27,6 +30,9 @@ contains
     real(ccs_real), dimension(3) :: gradP, d_pf, d_up
     real(ccs_real) :: dphi, ddphi, phiPt, phiLUDS, phiUp
     real(ccs_real), parameter :: one = 1.0_ccs_real
+
+    ! Silence unused-variable warnings (if you compile with -Werror)
+    associate (foo => self, bar => lf); end associate
 
     posFlux = flux_coeff >= 0.0_ccs_real
 
@@ -69,12 +75,19 @@ contains
   module pure function get_luds_width(self) result(width)
     class(luds_advection_kernel), intent(in) :: self
     integer(ccs_int) :: width
-    width = 1                      ! compact stencil
+! Silence unused-variable warnings (if you compile with -Werror)
+    associate (foo => self); end associate
+
+    width = 1
   end function get_luds_width
 
   module pure function get_luds_order(self) result(order)
     class(luds_advection_kernel), intent(in) :: self
     integer(ccs_int) :: order
+
+! Silence unused-variable warnings (if you compile with -Werror)
+    associate (foo => self); end associate
+
     order = 2                      ! formal second order
   end function get_luds_order
 

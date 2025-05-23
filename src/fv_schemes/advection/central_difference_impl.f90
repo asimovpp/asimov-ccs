@@ -18,9 +18,6 @@ contains
     real(ccs_real), intent(in) :: flux_coeff   ! ṁ_f = ρ u_f A_f
     real(ccs_real), dimension(2) :: coeffs
 
-    ! Silence unused-variable warnings (if you compile with -Werror)
-    associate (foo => self); end associate
-
     ! Central interpolation : φ_f = ½(φ_P + φ_F)
     coeffs(1) = self % get_interpolation_factor() * flux_coeff          ! ← neighbour-side contribution
     coeffs(2) = (1 - self % get_interpolation_factor()) * flux_coeff    ! ← owner-side contribution
@@ -36,7 +33,7 @@ contains
     real(ccs_real), dimension(2), intent(in), optional :: phi_coeffs
     real(ccs_real) :: expl
 
-    associate (foo => self, bar => rvecs, baz => grads, qux => phi_coeffs); end associate
+    associate (foo => self, bar => rvecs, baz => grads, qux => phi_coeffs, lux => lf, psi => flux_coeff); end associate
     expl = 0.0_ccs_real          ! nothing is deferred in a plain CD scheme
   end function advect_cd_eval_explicit
 
@@ -44,6 +41,9 @@ contains
   module pure function get_cd_width(self) result(width)
     class(cd_advection_kernel), intent(in) :: self
     integer(ccs_int) :: width
+! Silence unused-variable warnings (if you compile with -Werror)
+    associate (foo => self); end associate
+
     width = 1
   end function get_cd_width
 
@@ -51,6 +51,10 @@ contains
   module pure function get_cd_order(self) result(order)
     class(cd_advection_kernel), intent(in) :: self
     integer(ccs_int) :: order
+
+    ! Silence unused-variable warnings (if you compile with -Werror)
+    associate (foo => self); end associate
+
     order = 2                     ! second-order in space
   end function get_cd_order
 

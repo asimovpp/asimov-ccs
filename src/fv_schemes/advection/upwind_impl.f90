@@ -11,8 +11,7 @@ contains
     real(ccs_real) :: a_F  !< advection coefficient for neighbour cell
 
     ! Silence unused compiler warnings
-    associate (foo => self)
-    end associate
+    associate (foo => self); end associate
 
     ! Calculate coefficients
     a_P = max(flux_coeff, 0.0_ccs_real)
@@ -31,10 +30,7 @@ contains
     real(ccs_real) :: expl
 
     ! Silence unused compiler warnings
-    associate (foo => self)
-    end associate
-    associate (foo => lf, bar => rvecs, baz => grads, qux => phi_coeffs)
-    end associate
+    associate (foo => self, bar => rvecs, baz => grads, qux => phi_coeffs, lux => lf, psi => flux_coeff); end associate
 
     ! Calculate explicit term
     expl = 0.0_ccs_real
@@ -44,12 +40,20 @@ contains
   module pure function get_upwind_width(self) result(width)
     class(upwind_advection_kernel), intent(in) :: self
     integer(ccs_int) :: width
+
+! Silence unused-variable warnings (if you compile with -Werror)
+    associate (foo => self); end associate
+
     width = 1
   end function get_upwind_width
 
   module pure function get_upwind_order(self) result(order)
     class(upwind_advection_kernel), intent(in) :: self
     integer(ccs_int) :: order
+
+    ! Silence unused-variable warnings (if you compile with -Werror)
+    associate (foo => self); end associate
+
     order = 1
   end function get_upwind_order
 
