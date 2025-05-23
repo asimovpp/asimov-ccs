@@ -14,11 +14,11 @@ contains
 
   module pure function advect_gamma_eval_explicit(self, flux_coeff, lf, rvecs, grads) result(expl)
     class(gamma_advection_kernel), intent(in) :: self
-    real(ccs_real), intent(in) :: flux_coeff           ! ṁ_f
-    real(ccs_real), intent(in) :: lf                   ! f_x interpolation factor
-    real(ccs_real), dimension(3, 2), intent(in) :: rvecs             ! vectors P→f and F→f
-    real(ccs_real), dimension(3, 2), intent(in) :: grads             ! ∇φ_P , ∇φ_F
-    real(ccs_real) :: expl                                          ! deferred flux
+    real(ccs_real), intent(in) :: flux_coeff                          ! ṁ_f
+    real(ccs_real), intent(in) :: lf                                  ! f_x interpolation factor
+    real(ccs_real), dimension(3, 2), intent(in) :: rvecs              ! vectors P→f and F→f
+    real(ccs_real), dimension(3, 2), intent(in) :: grads              ! ∇φ_P , ∇φ_F
+    real(ccs_real) :: expl                                            ! deferred flux
 
     !--- local aliases ---------------------------------------------------------
     real(ccs_real) :: phiP, phiF            ! scalar values in owner / neighbour
@@ -30,8 +30,8 @@ contains
     bm = self % beta_m
     ! NOTE: the caller must guarantee that phi values live at the same indices
     !       as the gradients just passed in, i.e.  grads(:,1) => P, grads(:,2) => F
-    phiP = lf        ! <-- convention: caller passes φ_P  in lf   (see below)
-    phiF = rvecs(1, 1)   ! <-- convention: caller packs φ_F in rvecs(1,1)
+    phiP = lf             ! <-- convention: caller passes φ_P  in lf   (see below)
+    phiF = rvecs(1, 1)    ! <-- convention: caller packs φ_F in rvecs(1,1)
 
     !--- build the NVD normalised variable  φ~ = φPt ---------------------------
     d = rvecs(:, 1) - rvecs(:, 2)             ! d = xF - xP   (owner→neigh.)
