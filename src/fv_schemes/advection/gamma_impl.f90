@@ -32,7 +32,6 @@ contains
     !       as the gradients just passed in, i.e.  grads(:,1) => P, grads(:,2) => F
     phiP = lf        ! <-- convention: caller passes φ_P  in lf   (see below)
     phiF = rvecs(1, 1)   ! <-- convention: caller packs φ_F in rvecs(1,1)
-    !              (if your driver packs them differently, adjust here just once)
 
     !--- build the NVD normalised variable  φ~ = φPt ---------------------------
     d = rvecs(:, 1) - rvecs(:, 2)             ! d = xF - xP   (owner→neigh.)
