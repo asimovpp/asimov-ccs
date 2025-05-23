@@ -18,7 +18,7 @@ contains
     real(ccs_real), dimension(2) :: coeffs
 
     ! Silence unused compiler warnings
-    associate(foo => self)
+    associate (foo => self)
     end associate
 
     coeffs(1) = flux_coeff
@@ -33,42 +33,41 @@ contains
     real(ccs_real), intent(in) :: lf
     real(ccs_real), dimension(3, 2), intent(in) :: rvecs
     real(ccs_real), dimension(3, 2), intent(in) :: grads
-    real(ccs_real):: expl
+    real(ccs_real) :: expl
 
     ! Silence unused compiler warnings
-    associate(foo => self)
+    associate (foo => self)
     end associate
-    associate(foo => lf, bar => rvecs, baz => grads)
+    associate (foo => lf, bar => rvecs, baz => grads)
     end associate
 
     expl = 0.0_ccs_real
     expl = flux_coeff * expl
-    
-  end function diffusion_eval
 
+  end function diffusion_eval
 
   module pure function diffusion_width(self) result(width)
     class(diffusion_kernel), intent(in) :: self
     integer(ccs_int) :: width
 
     ! Silence unused compiler warnings
-    associate(foo => self)
+    associate (foo => self)
     end associate
 
     width = 1
-    
+
   end function diffusion_width
 
   module pure function diffusion_order(self) result(order)
     class(diffusion_kernel), intent(in) :: self
-    integer(ccs_int) :: order  
+    integer(ccs_int) :: order
 
     ! Silence unused compiler warnings
-    associate(foo => self)
+    associate (foo => self)
     end associate
 
     order = 2
-    
+
   end function diffusion_order
-  
+
 end submodule fv_diffusion_kernel

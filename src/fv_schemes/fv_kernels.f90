@@ -27,7 +27,7 @@ module fv_kernels
       real(ccs_real), intent(in) :: lf
       real(ccs_real), dimension(3, 2), intent(in) :: rvecs
       real(ccs_real), dimension(3, 2), intent(in) :: grads
-      real(ccs_real):: expl
+      real(ccs_real) :: expl
     end function advection_eval_explicit
 
     module pure function advection_width(self) result(width)
@@ -37,7 +37,7 @@ module fv_kernels
 
     module pure function advection_order(self) result(order)
       class(advection_kernel), intent(in) :: self
-      integer(ccs_int) :: order  
+      integer(ccs_int) :: order
     end function advection_order
   end interface
 
@@ -65,7 +65,7 @@ module fv_kernels
       real(ccs_real), dimension(3, 2), intent(in) :: rvecs
       real(ccs_real), dimension(3, 2), intent(in) :: grads
       real(ccs_real) :: expl
-    end function  advect_upwind_eval_explicit
+    end function advect_upwind_eval_explicit
 
     module pure function get_upwind_width(self) result(width)
       class(upwind_advection_kernel), intent(in) :: self
@@ -76,6 +76,43 @@ module fv_kernels
       class(upwind_advection_kernel), intent(in) :: self
       integer(ccs_int) :: order
     end function get_upwind_order
+  end interface
+
+  !> Advection scheme kernels
+  type, extends(advection_kernel) :: cd_advection_kernel
+  contains
+    procedure :: eval_coeffs => advect_cd_eval_coeffs
+    procedure :: eval_explicit => advect_cd_eval_explicit
+    procedure :: get_width => get_cd_width
+    procedure :: get_order => get_cd_order
+  end type cd_advection_kernel
+
+  interface
+    !> Calculates advection coefficient for neighbouring cell using central difference discretisation
+    module pure function advect_cd_eval_coeffs(self, flux_coeff) result(coeffs)
+      class(cd_advection_kernel), intent(in) :: self
+      real(ccs_real), intent(in) :: flux_coeff
+      real(ccs_real), dimension(2) :: coeffs
+    end function advect_cd_eval_coeffs
+
+    module pure function advect_cd_eval_explicit(self, flux_coeff, lf, rvecs, grads) result(expl)
+      class(cd_advection_kernel), intent(in) :: self
+      real(ccs_real), intent(in) :: flux_coeff
+      real(ccs_real), intent(in) :: lf
+      real(ccs_real), dimension(3, 2), intent(in) :: rvecs
+      real(ccs_real), dimension(3, 2), intent(in) :: grads
+      real(ccs_real) :: expl
+    end function advect_cd_eval_explicit
+
+    module pure function get_cd_width(self) result(width)
+      class(cd_advection_kernel), intent(in) :: self
+      integer(ccs_int) :: width
+    end function get_cd_width
+
+    module pure function get_cd_order(self) result(order)
+      class(cd_advection_kernel), intent(in) :: self
+      integer(ccs_int) :: order
+    end function get_cd_order
   end interface
 
   !> Diffusion kernel
@@ -100,7 +137,7 @@ module fv_kernels
       real(ccs_real), intent(in) :: lf
       real(ccs_real), dimension(3, 2), intent(in) :: rvecs
       real(ccs_real), dimension(3, 2), intent(in) :: grads
-      real(ccs_real):: expl
+      real(ccs_real) :: expl
     end function diffusion_eval
 
     module pure function diffusion_width(self) result(width)
@@ -110,7 +147,7 @@ module fv_kernels
 
     module pure function diffusion_order(self) result(order)
       class(diffusion_kernel), intent(in) :: self
-      integer(ccs_int) :: order  
+      integer(ccs_int) :: order
     end function diffusion_order
   end interface
 

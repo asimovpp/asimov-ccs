@@ -128,9 +128,9 @@ contains
 
       adv_coeff_total = 0.0_ccs_real
       diff_coeff_total = 0.0_ccs_real
-      
-      SchmidtNo = phi%Schmidt
-      phiP = phi%values_ro(index_p)
+
+      SchmidtNo = phi % Schmidt
+      phiP = phi % values_ro(index_p)
 
       do j = 1, nnb
         call create_neighbour_locator(loc_p, j, loc_nb)
@@ -142,13 +142,13 @@ contains
 
         call get_face_area(loc_f, face_area)
         call get_local_index(loc_f, index_f)
-        
-        hoe = 0.0_ccs_real
-        
-        if (.not. is_boundary) then
-          phiF = phi%values_ro(index_nb)
 
-          if (phi%enable_cell_corrections) then
+        hoe = 0.0_ccs_real
+
+        if (.not. is_boundary) then
+          phiF = phi % values_ro(index_nb)
+
+          if (phi % enable_cell_corrections) then
             call get_centre(loc_p, x_p)
             call get_centre(loc_nb, x_nb)
             call get_centre(loc_f, x_f)
@@ -157,8 +157,8 @@ contains
             x_nb_prime = x_f + dx_orth * face_normal
             x_p_prime = x_f - dx_orth * face_normal
 
-            grad_phi_p = [ phi%x_gradients_ro(index_p), phi%y_gradients_ro(index_p), phi%z_gradients_ro(index_p) ]
-            grad_phi_nb = [ phi%x_gradients_ro(index_nb), phi%y_gradients_ro(index_nb), phi%z_gradients_ro(index_nb) ]
+            grad_phi_p = [phi % x_gradients_ro(index_p), phi % y_gradients_ro(index_p), phi % z_gradients_ro(index_p)]
+            grad_phi_nb = [phi % x_gradients_ro(index_nb), phi % y_gradients_ro(index_nb), phi % z_gradients_ro(index_nb)]
           end if
         else
           call compute_boundary_coeffs(phi, component, loc_p, loc_f, face_normal, aPb, bP)
@@ -171,12 +171,12 @@ contains
         if (.not. is_boundary) then
           call calc_diffusion_coeff(index_p, j, phi%enable_cell_corrections, visc(index_p), visc(index_nb), dens(index_p), dens(index_nb), SchmidtNo, diff_coeff)
 
-          if (phi%enable_cell_corrections) then
+          if (phi % enable_cell_corrections) then
             ! Non-orthogonality correction (diffusive flux) (Ferziger & Peric 4th ed, sec 9.7.2)
             hoe = hoe + diff_coeff * (dot_product(grad_phi_nb, x_nb_prime - x_nb) - dot_product(grad_phi_p, x_p_prime - x_p))
           end if
         else
-          call calc_diffusion_coeff(index_p, j, .false., visc(index_p), 0.0_ccs_real, dens(index_p), 0.0_ccs_real, SchmidtNo, diff_coeff)
+     call calc_diffusion_coeff(index_p, j, .false., visc(index_p), 0.0_ccs_real, dens(index_p), 0.0_ccs_real, SchmidtNo, diff_coeff)
           ! Correct boundary face distance to distance to immaginary boundary "node"
           diff_coeff = diff_coeff / 2.0_ccs_real
         end if
@@ -195,7 +195,7 @@ contains
           call interpolate_field_to_face(phi, loc_f, face_value, face_correction_only)
           hoe = hoe + face_correction_only * (sgn * mf(index_f) * face_area)
 
-          if (phi%enable_cell_corrections) then
+          if (phi % enable_cell_corrections) then
             ! call get_face_interpolation(loc_f, interpol_factor)
             ! x_f_prime = interpol_factor * x_p + (1.0_ccs_real - interpol_factor) * x_nb
             ! grad_phi_k_prime = interpol_factor * grad_phi_p + (1.0_ccs_real - interpol_factor) * grad_phi_nb
@@ -209,11 +209,11 @@ contains
         select type (phi)
         type is (central_field)
           call calc_advection_coeff(phi, loc_f, sgn * mf(index_f), index_bc, aP, aF)
-        type is (upwind_field)                                     
+        type is (upwind_field)
           call calc_advection_coeff(phi, loc_f, sgn * mf(index_f), index_bc, aP, aF)
-        type is (gamma_field)                                      
+        type is (gamma_field)
           call calc_advection_coeff(phi, loc_f, sgn * mf(index_f), index_bc, loc_p, loc_nb, aP, aF)
-        type is (linear_upwind_field)                              
+        type is (linear_upwind_field)
           call calc_advection_coeff(phi, loc_f, sgn * mf(index_f), index_bc, loc_p, loc_nb, aP, aF)
         class default
           call error_abort("Invalid velocity field discretisation.")
@@ -790,12 +790,12 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
     real(ccs_real), dimension(ndim) :: face_norm
 
     real(ccs_real) :: V
-    
+
     gradients(:) = 0.0_ccs_int
 
     call get_local_index(loc_p, index_p)
     call get_centre(loc_p, x_p)
-    
+
     call count_neighbours(loc_p, nnb)
     do j = 1, nnb
       call create_face_locator(index_p, j, loc_f)
@@ -807,21 +807,21 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
       call get_local_index(loc_nb, index_nb)
       if (.not. is_boundary) then
         interpol_factor = 0.5_ccs_real
-        phif = interpol_factor * phi%values_ro(index_p) + (1.0_ccs_real - interpol_factor) * phi%values_ro(index_nb)
+        phif = interpol_factor * phi % values_ro(index_p) + (1.0_ccs_real - interpol_factor) * phi % values_ro(index_nb)
 
-        if (phi%enable_cell_corrections) then
+        if (phi % enable_cell_corrections) then
           call get_face_normal(loc_f, n)
           call get_centre(loc_nb, x_nb)
           call get_centre(loc_f, x_f)
 
-          grad_phi_p = [ phi%x_gradients_ro(index_p), phi%y_gradients_ro(index_p), phi%z_gradients_ro(index_p) ]
-          grad_phi_nb = [ phi%x_gradients_ro(index_nb), phi%y_gradients_ro(index_nb), phi%z_gradients_ro(index_nb) ]
+          grad_phi_p = [phi % x_gradients_ro(index_p), phi % y_gradients_ro(index_p), phi % z_gradients_ro(index_p)]
+          grad_phi_nb = [phi % x_gradients_ro(index_nb), phi % y_gradients_ro(index_nb), phi % z_gradients_ro(index_nb)]
 
           dx_orth = min(dot_product(x_f - x_p, n), dot_product(x_nb - x_f, n))
-          rnb_k_prime = x_f + dx_orth*n
-          rp_prime = x_f - dx_orth*n
+          rnb_k_prime = x_f + dx_orth * n
+          rp_prime = x_f - dx_orth * n
 
-          phif = phif + 0.5_ccs_real*(dot_product(grad_phi_nb, rnb_k_prime - x_nb) + dot_product(grad_phi_p, rp_prime - x_p))
+          phif = phif + 0.5_ccs_real * (dot_product(grad_phi_nb, rnb_k_prime - x_nb) + dot_product(grad_phi_p, rp_prime - x_p))
         end if
 
       else

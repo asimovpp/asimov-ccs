@@ -1,33 +1,56 @@
-submodule(fv_kernels:advection_common) central_difference_advection
-  use types
-  use vec, only: get_vector_data, restore_vector_data
-  use meshing, only: get_face_interpolation, get_local_index, get_distance, get_centre
-
+submodule(fv_kernels) central_difference_advection
   implicit none
 
 contains
-  !> Calculates advection coefficient for neighbouring cell using CDS discretisation
-  module procedure advect_cds_coeffs
-  real(ccs_real) :: coeffaF
-  real(ccs_real) :: coeffaP
-  real(ccs_real) :: interpolation_factor
+!==========================================
+!  Second-order central‐difference advection
+!==========================================
 
-  ! Dummy usage to prevent unused argument.
-  associate (scalar => phi)
-  end associate
-  associate (mflux => mf)
-  end associate
+!> Implicit coefficients for the convective flux term
+!!     ṁ_f  φ_f  with  φ_f = ½(φ_P + φ_F)
+!!
+!!  Returns:
+!!    coeffs(1) – multiplies neighbour value  φ_F
+!!    coeffs(2) – multiplies owner-cell value φ_P
+!!
+  module pure function advect_cd_eval_coeffs(self, flux_coeff) result(coeffs)
+    class(central_advection_kernel), intent(in) :: self
+    real(ccs_real), intent(in) :: flux_coeff   ! ṁ_f = ρ u_f A_f
+    real(ccs_real), dimension(2) :: coeffs
 
-  if (bc == 0 .and. (.not. phi % enable_cell_corrections)) then
-    call get_face_interpolation(loc_f, interpolation_factor)
-    interpolation_factor = 1.0_ccs_real - interpolation_factor
-  else
-    interpolation_factor = 0.5_ccs_real !1.0_ccs_real
-  end if
-  coeffaF = interpolation_factor
-  coeffaP = 1.0_ccs_real - coeffaF
+    ! Silence unused-variable warnings (if you compile with -Werror)
+    associate (foo => self); end associate
 
-  coeffs = [coeffaP, coeffaF]
-  end procedure advect_cds_coeffs
+    ! Central interpolation : φ_f = ½(φ_P + φ_F)
+    coeffs(1) = 0.5_ccs_real * flux_coeff   ! ← neighbour-side contribution
+    coeffs(2) = 0.5_ccs_real * flux_coeff   ! ← owner-side contribution
+  end function advect_cd_eval_coeffs
+
+!> Explicit (deferred) part — zero for a pure CD scheme
+  module pure function advect_cd_eval_explicit(self, flux_coeff, lf, rvecs, grads) result(expl)
+    class(central_advection_kernel), intent(in) :: self
+    real(ccs_real), intent(in) :: flux_coeff
+    real(ccs_real), intent(in) :: lf
+    real(ccs_real), dimension(3, 2), intent(in) :: rvecs
+    real(ccs_real), dimension(3, 2), intent(in) :: grads
+    real(ccs_real) :: expl
+
+    associate (foo => self, bar => rvecs, baz => grads); end associate
+    expl = 0.0_ccs_real          ! nothing is deferred in a plain CD scheme
+  end function advect_cd_eval_explicit
+
+!> Stencil width (1 face on either side of the owner cell)
+  module pure function get_cd_width(self) result(width)
+    class(central_advection_kernel), intent(in) :: self
+    integer(ccs_int) :: width
+    width = 1
+  end function get_cd_width
+
+!> Formal order of accuracy
+  module pure function get_cd_order(self) result(order)
+    class(central_advection_kernel), intent(in) :: self
+    integer(ccs_int) :: order
+    order = 2                     ! second-order in space
+  end function get_cd_order
 
 end submodule advection_cds_impl
