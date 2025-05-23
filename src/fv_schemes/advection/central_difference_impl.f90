@@ -7,23 +7,27 @@ contains
 !==========================================
 
 !> Implicit coefficients for the convective flux term
-!!     ṁ_f  φ_f  with  φ_f = ½(φ_P + φ_F)
+!!     ṁ_f  φ_f  with  φ_f = (1 -a)*φ_P + a*φ_F
 !!
 !!  Returns:
 !!    coeffs(1) – multiplies neighbour value  φ_F
 !!    coeffs(2) – multiplies owner-cell value φ_P
 !!
-  module pure function advect_cd_eval_coeffs(self, flux_coeff) result(coeffs)
+  module pure function advect_cd_eval_coeffs(self, flux_coeff, interpol_fact) result(coeffs)
     class(central_advection_kernel), intent(in) :: self
     real(ccs_real), intent(in) :: flux_coeff   ! ṁ_f = ρ u_f A_f
+    real(ccs_real), intent(in) :: interpol_fact  ! interpolation factor (0.5 for CD)
     real(ccs_real), dimension(2) :: coeffs
+
+    ! Coefficients for the convective flux term
+    if (.not. present(interpol_fact)) interpol_fact = 0.5_ccs_real ! default value
 
     ! Silence unused-variable warnings (if you compile with -Werror)
     associate (foo => self); end associate
 
     ! Central interpolation : φ_f = ½(φ_P + φ_F)
-    coeffs(1) = 0.5_ccs_real * flux_coeff   ! ← neighbour-side contribution
-    coeffs(2) = 0.5_ccs_real * flux_coeff   ! ← owner-side contribution
+    coeffs(1) = interpol_fact * flux_coeff          ! ← neighbour-side contribution
+    coeffs(2) = (1 - interpol_fact) * flux_coeff    ! ← owner-side contribution
   end function advect_cd_eval_coeffs
 
 !> Explicit (deferred) part — zero for a pure CD scheme

@@ -89,9 +89,10 @@ module fv_kernels
 
   interface
     !> Calculates advection coefficient for neighbouring cell using central difference discretisation
-    module pure function advect_cd_eval_coeffs(self, flux_coeff) result(coeffs)
+    module pure function advect_cd_eval_coeffs(self, flux_coeff, interpol_fact) result(coeffs)
       class(cd_advection_kernel), intent(in) :: self
       real(ccs_real), intent(in) :: flux_coeff
+      real(ccs_real), intent(in), optional :: interpol_fact
       real(ccs_real), dimension(2) :: coeffs
     end function advect_cd_eval_coeffs
 
