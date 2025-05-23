@@ -12,60 +12,71 @@ contains
     coeffs(2) = max(flux_coeff, 0.0_ccs_real)    ! owner    P
   end function advect_gamma_eval_coeffs
 
-  module pure function advect_gamma_eval_explicit(self, flux_coeff, lf, rvecs, grads) result(expl)
+  module pure function advect_gamma_eval_explicit(self, flux_coeff, lf, rvecs, grads, phi_coeffs) result(expl)
     class(gamma_advection_kernel), intent(in) :: self
-    real(ccs_real), intent(in) :: flux_coeff                          ! ṁ_f
-    real(ccs_real), intent(in) :: lf                                  ! f_x interpolation factor
-    real(ccs_real), dimension(3, 2), intent(in) :: rvecs              ! vectors P→f and F→f
-    real(ccs_real), dimension(3, 2), intent(in) :: grads              ! ∇φ_P , ∇φ_F
-    real(ccs_real) :: expl                                            ! deferred flux
+    real(ccs_real), intent(in) :: flux_coeff        ! ρ u A
+    real(ccs_real), intent(in) :: lf                ! face-interp factor (0→P,1→F)
+    real(ccs_real), dimension(3, 2), intent(in) :: rvecs          ! x_Pf , x_Ff
+    real(ccs_real), dimension(3, 2), intent(in) :: grads          ! ∇φ_P , ∇φ_F
+    real(ccs_real), dimension(2), intent(in), optional :: phi_coeffs       ! [ φ_P , φ_F ]
+    real(ccs_real) :: expl                                         ! deferred flux
 
-    !--- local aliases ---------------------------------------------------------
-    real(ccs_real) :: phiP, phiF            ! scalar values in owner / neighbour
-    real(ccs_real) :: phiPt, gamma_m, coeffF, coeffP, phiGamma, phiUpwind
-    real(ccs_real), dimension(3) :: d
-    real(ccs_real) :: dphi, ddphi
-    real(ccs_real), parameter :: one = 1.0_ccs_real
-    real(ccs_real) :: bm
+    ! ---- local aliases ------------------------------------------------------
+    logical :: posFlux
+    real(ccs_real) :: phiP, phiF, phiUp, phiGamma
+    real(ccs_real), dimension(3) :: gradP, dPF, d_up
+    real(ccs_real) :: dphi, ddphi, phiPt, gamma_m
+    real(ccs_real) :: w, coeffF, coeffP, bm
+    real(ccs_real), parameter :: zero = 0.0_ccs_real, one = 1.0_ccs_real
+
     bm = self % beta_m
-    ! NOTE: the caller must guarantee that phi values live at the same indices
-    !       as the gradients just passed in, i.e.  grads(:,1) => P, grads(:,2) => F
-    phiP = lf             ! <-- convention: caller passes φ_P  in lf   (see below)
-    phiF = rvecs(1, 1)    ! <-- convention: caller packs φ_F in rvecs(1,1)
+    posFlux = flux_coeff >= zero
 
-    !--- build the NVD normalised variable  φ~ = φPt ---------------------------
-    d = rvecs(:, 1) - rvecs(:, 2)             ! d = xF - xP   (owner→neigh.)
+    ! ---- pick UP-wind quantities depending on flow direction ---------------
+    if (posFlux) then                           ! flow P → F
+      phiP = phi_coeffs(1)          ! up-wind value
+      phiF = phi_coeffs(2)
+      gradP = grads(:, 1)
+      dPF = rvecs(:, 2) - rvecs(:, 1)          ! x_F − x_P
+      d_up = -rvecs(:, 1)                      ! x_f − x_P
+      w = lf                               ! interpolation weight from P
+    else                                        ! flow F → P
+      phiP = phi_coeffs(2)
+      phiF = phi_coeffs(1)
+      gradP = grads(:, 2)
+      dPF = rvecs(:, 1) - rvecs(:, 2)          ! x_P − x_F
+      d_up = rvecs(:, 2)                      ! x_f − x_F
+      w = one - lf                         ! weight from up-wind cell
+    end if
+
+    ! ---- normalised variable φ̃ --------------------------------------------
     dphi = phiF - phiP
-    ddphi = 2.0_ccs_real * dot_product(grads(:, 1), d)   ! 2 ∇φ_P · d
-    phiPt = one - dphi / max(ddphi, 1.0e-30_ccs_real)   ! avoid /0
+    ddphi = 2.0_ccs_real * dot_product(gradP, dPF)
 
-    !--- choose weights for Gamma scheme --------------------------------------
-    if (phiPt <= 0.0_ccs_real .or. phiPt >= 1.0_ccs_real) then
-      ! Outside (0,1)  →  revert to first-order up-wind
-      coeffF = 0.0_ccs_real
-      coeffP = 1.0_ccs_real
-
-    else if (phiPt > self % beta_m) then
-      ! Inside (β_m , 1)  →  pure central difference
-      coeffF = 1.0_ccs_real - lf
-      coeffP = lf
-
+    if (abs(ddphi) < 1.0e-30_ccs_real) then
+      phiPt = zero
     else
-      ! 0 < φ̃ ≤ β_m  →  Gamma blend
-      gamma_m = phiPt / self % beta_m
-      coeffF = gamma_m * (1.0_ccs_real - lf)
-      coeffP = 1.0_ccs_real - coeffF
+      phiPt = one - dphi / ddphi
     end if
 
-    !--- high-order flux minus up-wind flux -----------------------------------
+    ! ---- choose interpolation weights according to Gamma NVD ---------------
+    if (phiPt <= zero .or. phiPt >= one) then          ! → revert to UD
+      coeffF = zero
+      coeffP = one
+    else if (phiPt > bm) then                          ! pure CDS
+      coeffF = one - w
+      coeffP = w
+    else                                               ! bounded Gamma blend
+      gamma_m = phiPt / bm
+      coeffF = gamma_m * (one - w)
+      coeffP = one - coeffF
+    end if
+
+    ! ---- face values and deferred correction -------------------------------
     phiGamma = coeffP * phiP + coeffF * phiF
-    if (flux_coeff >= 0.0_ccs_real) then
-      phiUpwind = phiP
-    else
-      phiUpwind = phiF
-    end if
+    phiUp = phiP                                  ! 1st-order up-wind value
 
-    expl = flux_coeff * (phiGamma - phiUpwind)   ! deferred correction
+    expl = flux_coeff * (phiGamma - phiUp)
   end function advect_gamma_eval_explicit
 
   module pure function get_gamma_width(self) result(width)

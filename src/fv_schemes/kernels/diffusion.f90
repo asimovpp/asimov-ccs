@@ -26,19 +26,19 @@ contains
 
   end function diffusion_coeffs
 
-  module pure function diffusion_eval(self, flux_coeff, lf, rvecs, grads) result(expl)
-
+  module pure function diffusion_eval(self, flux_coeff, lf, rvecs, grads, phi_coeffs) result(expl)
     class(diffusion_kernel), intent(in) :: self
     real(ccs_real), intent(in) :: flux_coeff
     real(ccs_real), intent(in) :: lf
     real(ccs_real), dimension(3, 2), intent(in) :: rvecs
     real(ccs_real), dimension(3, 2), intent(in) :: grads
+    real(ccs_real), dimension(2), intent(in), optional :: phi_coeffs
     real(ccs_real) :: expl
 
     ! Silence unused compiler warnings
     associate (foo => self)
     end associate
-    associate (foo => lf, bar => rvecs, baz => grads)
+    associate (foo => lf, bar => rvecs, baz => grads, qux => phi_coeffs)
     end associate
 
     expl = 0.0_ccs_real
