@@ -1,122 +1,81 @@
-submodule(fv_kernels:advection_common) linear_upwind_advection
-use types
-use vec, only: get_vector_data, restore_vector_data
-use meshing, only: get_face_interpolation, get_local_index, get_distance, get_centre
-
-implicit none
+submodule(fv_kernels) linear_upwind_advection
+  implicit none
 
 contains
 
-module procedure advect_luw_coeffs
-real(ccs_real) :: coeffaP        !< advection coefficient for current cell
-real(ccs_real) :: coeffaF        !< advection coefficient for neighbour cell
+  module pure function advect_luds_eval_coeffs(self, flux_coeff) result(coeffs)
+    class(luds_advection_kernel), intent(in) :: self
+    real(ccs_real), intent(in) :: flux_coeff   ! ρ u A with sign
+    real(ccs_real), dimension(2) :: coeffs       ! (F, P)
 
-real(ccs_real), dimension(:), pointer :: phi_data
-real(ccs_real), dimension(:), pointer :: dphidx, dphidy, dphidz
-real(ccs_real), dimension(3) :: dphiP, d
-real(ccs_real) :: phiF, phiP, dphi, ddphi, phiPt
+    coeffs(1) = max(-flux_coeff, 0.0_ccs_real)   ! neighbour
+    coeffs(2) = max(flux_coeff, 0.0_ccs_real)   ! owner
+  end function advect_luds_eval_coeffs
 
-integer(ccs_int) :: index_p, index_nb
+  module pure function advect_luds_eval_explicit(self, flux_coeff, lf, rvecs, grads, phi_coeffs) result(expl)
+    class(luds_advection_kernel), intent(in) :: self
+    real(ccs_real), intent(in) :: flux_coeff      ! ρ u A
+    real(ccs_real), intent(in) :: lf              ! unused here
+    real(ccs_real), dimension(3, 2), intent(in) :: rvecs        ! r_Pf , r_Ff
+    real(ccs_real), dimension(3, 2), intent(in) :: grads        ! ∇φ_P , ∇φ_F
+    real(ccs_real), dimension(2), intent(in), optional :: phi_coeffs     ! [ φ_P , φ_F ]
+    real(ccs_real) :: expl                                     ! high-order – UD
 
-! store values of phi filed in phi_data array
-call get_vector_data(phi % values, phi_data)
+  !! ---------- up-wind / down-wind bookkeeping ---------------------------
+    logical :: posFlux
+    real(ccs_real) :: phiP, phiF
+    real(ccs_real), dimension(3) :: gradP, d_pf, d_up
+    real(ccs_real) :: dphi, ddphi, phiPt, phiLUDS, phiUp
+    real(ccs_real), parameter :: one = 1.0_ccs_real
 
-! store x-gradients of phi in dphidx array
-call get_vector_data(phi % x_gradients, dphidx)
+    posFlux = flux_coeff >= 0.0_ccs_real
 
-! store y-gradients of phi in dphidx array
-call get_vector_data(phi % y_gradients, dphidy)
-
-! store z-gradients of phi in dphidx array
-call get_vector_data(phi % z_gradients, dphidz)
-
-! get the local index of current cell and neighbouring cell
-call get_local_index(loc_p, index_p)
-call get_local_index(loc_nb, index_nb)
-
-! Dummy usage to prevent unused argument.
-associate (scalar => phi, foo => bc, bar => loc_f)
-end associate
-
-if (bc == 0) then
-  ! Internal face
-  ! -------------
-  if (mf < 0.0) then
-    phiP = phi_data(index_nb)
-    phiF = phi_data(index_p)
-
-    ! Gradient of phi at cell center (current cell)
-    dphiP(1) = dphidx(index_nb)
-    dphiP(2) = dphidy(index_nb)
-    dphiP(3) = dphidz(index_nb)
-
-    ! Gradient phi at cell face
-    dphi = phiF - phiP
-
-    ! Get the distance between present and neighbouring cell centers and store it in d
-    call get_distance(loc_p, loc_nb, d)
-    d = -1.0_ccs_real * d
-
-    ! calculate the normalized phi
-    ddphi = 2.0_ccs_real * dot_product(dphiP, d)
-    phiPt = 1.0_ccs_real - (dphi / ddphi)
-
-    if (phiPt <= 0.0_ccs_real .or. phiPt >= 1.0_ccs_real) then ! UD
-      coeffaF = 1.0_ccs_real
-      coeffaP = 0.0_ccs_real
-    else !LUDS
-      call get_distance(loc_nb, loc_f, d)
-      coeffaF = 1.0_ccs_real
-      if (dabs(phiP) > 0.0_ccs_real) then
-        coeffaF = coeffaF + (dot_product(dphiP, d) / phiP)
-      end if
-      coeffaP = 0.0_ccs_real
+    if (posFlux) then
+      ! flux P → F  :  owner  is up-wind
+      phiP = phi_coeffs(1); gradP = grads(:, 1)
+      phiF = phi_coeffs(2)
+      d_pf = rvecs(:, 1) - rvecs(:, 2)    ! x_F − x_P
+      d_up = rvecs(:, 1)                 ! x_f − x_P
+    else
+      ! flux F → P  :  neighbour is up-wind
+      phiP = phi_coeffs(2); gradP = grads(:, 2)
+      phiF = phi_coeffs(1)
+      d_pf = -(rvecs(:, 1) - rvecs(:, 2)) ! x_P − x_F
+      d_up = -rvecs(:, 2)                ! x_f − x_F
     end if
-  else
-    phiP = phi_data(index_p)
-    phiF = phi_data(index_nb)
 
-    ! Gradient of phi at cell center (current cell)
-    dphiP(1) = dphidx(index_p)
-    dphiP(2) = dphidy(index_p)
-    dphiP(3) = dphidz(index_p)
-
-    ! Gradient phi at cell face
+  !! ---------- boundedness check (Ferziger & Perić, §5.5) ---------------
     dphi = phiF - phiP
+    ddphi = 2.0_ccs_real * dot_product(gradP, d_pf)
 
-    ! Get the distance between present and neighbouring cell centers and store it in d
-    call get_distance(loc_p, loc_nb, d)
-
-    ! calculate the normalized phi
-    ddphi = 2.0_ccs_real * dot_product(dphiP, d)
-    phiPt = 1.0_ccs_real - (dphi / ddphi)
-
-    if (phiPt <= 0.0_ccs_real .or. phiPt >= 1.0_ccs_real) then ! UD
-      coeffaF = 0.0_ccs_real
-      coeffaP = 1.0_ccs_real
-    else !LUDS
-      call get_distance(loc_p, loc_f, d)
-      coeffaP = 1.0_ccs_real
-      if (dabs(phiP) > 0.0_ccs_real) then
-        coeffaP = coeffaP + (dot_product(dphiP, d) / phiP)
-      end if
-      coeffaF = 0.0_ccs_real
+    if (ddphi == 0.0_ccs_real) then
+      phiPt = 0.0_ccs_real          ! degenerate → fall back to UD
+    else
+      phiPt = one - dphi / ddphi
     end if
-  end if
-else
-  ! Boundary face
-  ! -------------
-  coeffaF = 0.5_ccs_real
-  coeffaP = 0.5_ccs_real
-end if
 
-coeffs = [coeffaP, coeffaF]
+    if (phiPt <= 0.0_ccs_real .or. phiPt >= 1.0_ccs_real) then
+      ! ---------- out of bounds → pure up-wind ----------------------------
+      phiLUDS = phiP
+    else
+      ! ---------- genuine second-order linear up-wind ---------------------
+      phiLUDS = phiP + dot_product(gradP, d_up)
+    end if
 
-! Restore vectors
-call restore_vector_data(phi % values, phi_data)
-call restore_vector_data(phi % x_gradients, dphidx)
-call restore_vector_data(phi % y_gradients, dphidy)
-call restore_vector_data(phi % z_gradients, dphidz)
-end procedure advect_luw_coeffs
+    phiUp = phiP                    ! 1st-order up-wind value
+    expl = flux_coeff * (phiLUDS - phiUp)
+  end function advect_luds_eval_explicit
 
-end submodule advect_luw_impl
+  module pure function get_luds_width(self) result(width)
+    class(luds_advection_kernel), intent(in) :: self
+    integer(ccs_int) :: width
+    width = 1                      ! compact stencil
+  end function get_luds_width
+
+  module pure function get_luds_order(self) result(order)
+    class(luds_advection_kernel), intent(in) :: self
+    integer(ccs_int) :: order
+    order = 2                      ! formal second order
+  end function get_luds_order
+
+end submodule linear_upwind_advection

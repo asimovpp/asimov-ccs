@@ -40,6 +40,7 @@ bases:
       upwind_advection: upwind_impl
       central_difference_advection: central_difference_impl
       gamma_advection: gamma_impl
+      linear_upwind_advection: linear_upwind_impl
     options:
       timestepping: [timestepping_first_order, timestepping_second_order, timestepping_theta]
       reordering: [reordering_rcm, reordering_petsc, reordering_zcurve, reordering_none]
