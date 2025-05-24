@@ -447,6 +447,8 @@ contains
     
     call timer_register_start("Building coefficients", timer_coeffs)
     call compute_fluxes(u, mf, viscosity, density, M, vec)
+    call update(M)   ! Note that compute_fluxes now inserts so need to update
+    call update(vec) ! Note that compute_fluxes now inserts so need to update
     call timer_stop(timer_coeffs)
 
     call apply_timestep(u, workvec, M, vec)
