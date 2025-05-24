@@ -179,7 +179,7 @@ contains
     real(ccs_real), dimension(3) :: grad_phi_p, grad_phi_nb
     real(ccs_real), dimension(2) :: coeffs
     real(ccs_real) :: aP, aF ! Advection coefficients
-    real(ccs_real) :: adv_coeff_total, diff_coeff_total
+    real(ccs_real) :: adv_coeff_total, diff_coeff_total, expl_bc
     real(ccs_real) :: hoe ! High-order explicit flux
     real(ccs_real) :: loe ! Low-order explicit flux
     real(ccs_real) :: aPb ! Central coefficient from boundary condition
@@ -195,7 +195,6 @@ contains
     integer(ccs_int) :: index_f ! Face index
     type(neighbour_locator) :: loc_nb
     integer(ccs_int) :: index_nb        ! Neighbour cell index
-    integer(ccs_int) :: global_index_nb ! Neighbour cell index (global)
     integer(ccs_int) :: max_faces
     logical :: is_boundary
 
@@ -223,8 +222,12 @@ contains
     call set_row(global_index_p, mat_coeffs)
     call set_row(global_index_p, b_coeffs)
 
+    ! Initialise accumulators
     adv_coeff_total = 0.0_ccs_real
     diff_coeff_total = 0.0_ccs_real
+    expl_bc = 0.0_ccs_real
+    hoe = 0.0_ccs_real
+    loe = 0.0_ccs_real
 
     phiP = phi%values_ro(index_p)
 
@@ -240,11 +243,6 @@ contains
       call get_face_area(loc_f, face_area)
       call get_local_index(loc_f, index_f)
       call get_face_interpolation(loc_f, interpol_factor)
-
-      ! Initialise accumulators
-      coeffs(:) = 0.0_ccs_real
-      hoe = 0.0_ccs_real
-      loe = 0.0_ccs_real
 
       if (.not. is_boundary) then
         phiF = phi%values_ro(index_nb)
@@ -375,26 +373,29 @@ contains
           aF = sgn * mf%values_ro(index_f) * face_area
         end if
         aP = aP - sgn * mf%values_ro(index_f) * face_area
-        loe = aP * phiP + aF * phiF
+        loe = loe + aP * phiP + aF * phiF
       end block
 !!! <--- Advection coefficients ----
 
       adv_coeff_total = adv_coeff_total + aP
       diff_coeff_total = diff_coeff_total + coeffs(1)
       if (.not. is_boundary) then
-        call get_global_index(loc_nb, global_index_nb)
-        call set_col(global_index_nb, mat_coeffs)
-        call set_entry(aF + coeffs(2), mat_coeffs)
+        block
+          integer(ccs_int) :: global_index_nb
+          call get_global_index(loc_nb, global_index_nb)
+          call set_col(global_index_nb, mat_coeffs)
+          call set_entry(aF + coeffs(2), mat_coeffs)
+        end block
       else
         adv_coeff_total = adv_coeff_total + aPb * aF
         diff_coeff_total = diff_coeff_total + aPb * coeffs(2)
-        call set_entry(-(aF + coeffs(2)) * bP, b_coeffs)
+        expl_bc = expl_bc - (aF + coeffs(2)) * bP
       end if
-      call set_entry(loe - hoe, b_coeffs)
     end do
 
     call set_col(global_index_p, mat_coeffs)
     call set_entry((adv_coeff_total + diff_coeff_total), mat_coeffs)
+    call set_entry((loe - hoe) + expl_bc, b_coeffs)
   end subroutine assemble_fluxes
 
   !> Computes the matrix coefficient for cells in the interior of the mesh
