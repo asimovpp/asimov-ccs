@@ -93,21 +93,21 @@ module transient_kernels
 
   end subroutine
 
-  real(ccs_real) function get_dt(self)
+  real(ccs_real) pure function get_dt(self)
     !! Getter for  time step size
     class(transient_kernel), intent(in) :: self
 
     get_dt = self%dt
   end function
 
-  integer(ccs_int) function get_order(self)
+  integer(ccs_int) pure function get_order(self)
     !! Getter for the analytical order
     class(transient_kernel), intent(in) :: self
 
     get_order = self%order
   end function
 
-  integer(ccs_int) function get_width(self)
+  integer(ccs_int) pure function get_width(self)
     !! Getter for the stencil width
     class(transient_kernel), intent(in) :: self
 

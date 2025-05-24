@@ -6,7 +6,7 @@ module core
 
   use constants, only: ccs_string_len
   use kinds, only: ccs_int, ccs_real
-  use types, only: fluid
+  use types, only: fluid, field
 
   use parallel_types, only: parallel_environment
   use constants, only: ccs_string_len
@@ -22,6 +22,7 @@ module core
   public :: initialise_fields
   public :: run_solver
   public :: ccs_options
+  public :: get_underrelaxation
 
   integer(ccs_int), parameter :: mesh_null = 0
   integer(ccs_int), parameter, public :: read_input_mesh = 1
@@ -198,6 +199,12 @@ module core
       end interface
       type(fluid), intent(inout) :: flow_fields !< The flow field structure, contains the solution
     end subroutine run_solver
+
+    module subroutine get_underrelaxation(run_options, phi, alpha)
+      type(ccs_options), intent(in) :: run_options
+      class(field), intent(in) :: phi
+      real(ccs_real), intent(out) :: alpha
+    end subroutine get_underrelaxation
 
   end interface
     

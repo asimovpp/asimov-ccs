@@ -4,10 +4,12 @@
 
 module fv
 
+  use core, only: ccs_options
   use kinds, only: ccs_real, ccs_int
   use types, only: ccs_matrix, ccs_vector, ccs_mesh, field, upwind_field, central_field, &
                    gamma_field, linear_upwind_field, bc_config, face_locator, cell_locator, &
                    neighbour_locator, bc_profile, fluid
+  use transient_kernels, only: transient_kernel
   use constants, only: ndim
 
   implicit none
@@ -15,6 +17,7 @@ module fv
   private
 
   public :: compute_fluxes
+  public :: assemble_transport_equation
   public :: calc_advection_coeff
   public :: calc_diffusion_coeff
   public :: calc_mass_flux
@@ -99,15 +102,24 @@ module fv
     end subroutine calc_diffusion_coeff
 
     !> Computes fluxes and assign to matrix and RHS
-    module subroutine compute_fluxes(phi, mf, viscosity, density, component, M, vec)
+    module subroutine compute_fluxes(phi, mf, viscosity, density, M, vec)
       class(field), intent(inout) :: phi             !< scalar field structure
       class(field), intent(inout) :: mf              !< mass flux field structure (defined at faces)
       class(field), intent(inout) :: viscosity       !< viscosity
       class(field), intent(inout) :: density         !< density
-      integer(ccs_int), intent(in) :: component   !< integer indicating direction of velocity field component
       class(ccs_matrix), intent(inout) :: M       !< Data structure containing matrix to be filled
       class(ccs_vector), intent(inout) :: vec     !< Data structure containing RHS vector to be filled
     end subroutine
+
+    !> Assembles a transport equation, if u,v,w adds the pressure gradient
+    module subroutine assemble_transport_equation(run_options, phi, flow, transient, M, rhs)
+      class(ccs_options), intent(in) :: run_options
+      class(field), intent(inout) :: phi
+      class(fluid), intent(in) :: flow
+      class(transient_kernel), intent(in) :: transient
+      class(ccs_matrix), intent(inout) :: M
+      class(ccs_vector), intent(inout) :: rhs
+    end subroutine assemble_transport_equation
 
     !> Calculates mass flux across given face. Note: assumes rho = 1 and uniform grid
     module function calc_mass_flux_uvw(u_field, v_field, w_field, p, dpdx, dpdy, dpdz, invA, loc_f, enable_cell_corrections) result(flux)

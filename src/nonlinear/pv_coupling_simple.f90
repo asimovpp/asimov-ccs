@@ -446,7 +446,7 @@ contains
     call get_field(flow, "density", density)
     
     call timer_register_start("Building coefficients", timer_coeffs)
-    call compute_fluxes(u, mf, viscosity, density, component, M, vec)
+    call compute_fluxes(u, mf, viscosity, density, M, vec)
     call timer_stop(timer_coeffs)
 
     call apply_timestep(u, workvec, M, vec)

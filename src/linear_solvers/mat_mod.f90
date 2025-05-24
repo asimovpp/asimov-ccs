@@ -16,7 +16,7 @@ module mat
   public :: get_info_matrix
   public :: set_matrix_values
   public :: clear_matrix_values_entries
-  public :: set_matrix_values_entry
+  public :: set_matrix_values_entry, get_matrix_values_entry
   public :: create_matrix_values
   public :: set_matrix_values_mode
   public :: set_matrix_values_row
@@ -81,6 +81,12 @@ module mat
       type(matrix_values), intent(inout) :: val_dat !< The object storing the working set
 
     end subroutine set_matrix_values_entry
+
+    !> Extract a coefficient from the current working set a the current row,col coordinate.
+    pure module subroutine get_matrix_values_entry(val_dat, val)
+      type(matrix_values), intent(in) :: val_dat !< The object storing the working set
+      real(ccs_real), intent(out) :: val             !< The coefficient value
+    end subroutine get_matrix_values_entry
 
     !> Set the storage mode.
     pure module subroutine set_matrix_values_mode(mode, val_dat)

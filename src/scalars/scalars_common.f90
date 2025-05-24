@@ -160,7 +160,7 @@ contains
     call get_field(flow, "mf", mf)
     call get_field(flow, "viscosity", viscosity) 
     call get_field(flow, "density", density)
-    call compute_fluxes(phi, mf, viscosity, density, 0, M, rhs)
+    call compute_fluxes(phi, mf, viscosity, density, M, rhs)
     call apply_timestep(phi, D, M, rhs)
 
     call apply_sources(flow, phi, eval_sources, D, S, M, rhs)

@@ -307,5 +307,19 @@ contains
 
   end subroutine write_step
 
+  module subroutine get_underrelaxation(run_options, phi, alpha)
+
+    type(ccs_options), intent(in) :: run_options
+    class(field), intent(in) :: phi
+    real(ccs_real), intent(out) :: alpha
+
+    if (phi%name == "pressure") then
+      alpha = run_options%solve%pressure_relax
+    else
+      alpha = run_options%solve%velocity_relax
+    end if
+
+  end subroutine get_underrelaxation
+
 end submodule core_solver
 

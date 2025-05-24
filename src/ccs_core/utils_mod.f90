@@ -10,13 +10,15 @@ module utils
 
   use vec, only: set_vector_values, update_vector, begin_update_vector, end_update_vector, &
                  initialise_vector, set_vector_size, &
-                 set_vector_values_mode, set_vector_values_row, set_vector_values_entry, &
+                 set_vector_values_mode, set_vector_values_row, &
+                 set_vector_values_entry, get_vector_values_entry, &
                  clear_vector_values_entries, &
                  mult_vec_vec, scale_vec, zero_vector, &
                  get_natural_data_vec, reorder_data_vec
   use mat, only: set_matrix_values, update_matrix, begin_update_matrix, end_update_matrix, &
                  initialise_matrix, finalise_matrix, set_matrix_size, &
-                 set_matrix_values_mode, set_matrix_values_row, set_matrix_values_col, set_matrix_values_entry, &
+                 set_matrix_values_mode, set_matrix_values_row, set_matrix_values_col, &
+                 set_matrix_values_entry, get_matrix_values_entry, &
                  clear_matrix_values_entries, zero_matrix
   use solver, only: initialise_equation_system
   use kinds, only: ccs_int, ccs_real
@@ -30,7 +32,7 @@ module utils
   private
 
   public :: set_values
-  public :: set_entry
+  public :: set_entry, get_entry
   public :: clear_entries
   public :: begin_update
   public :: end_update
@@ -71,6 +73,12 @@ module utils
     module procedure set_vector_values_entry
     module procedure set_matrix_values_entry
   end interface set_entry
+
+  !> Generic interface to retrieve a previously stored value.
+  interface get_entry
+    module procedure get_vector_values_entry
+    module procedure get_matrix_values_entry
+  end interface get_entry
 
   !> Generic interface to set the storage mode (ADD/INSERT) of an object.
   interface set_mode

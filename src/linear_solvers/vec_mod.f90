@@ -15,7 +15,7 @@ module vec
   public :: create_vector
   public :: set_vector_values
   public :: clear_vector_values_entries
-  public :: set_vector_values_entry
+  public :: set_vector_values_entry, get_vector_values_entry
   public :: create_vector_values
   public :: set_vector_values_mode
   public :: set_vector_values_row
@@ -64,6 +64,10 @@ module vec
       real(ccs_real), intent(in) :: val
       type(vector_values), intent(inout) :: val_dat
     end subroutine set_vector_values_entry
+    pure module subroutine get_vector_values_entry(val_dat, val)
+      type(vector_values), intent(in) :: val_dat
+      real(ccs_real), intent(out) :: val
+    end subroutine get_vector_values_entry
 
     !> Interface to create a vector values object.
     pure module subroutine create_vector_values(nrows, val_dat)

@@ -10,7 +10,7 @@ submodule(fv) fv_common
                  create_vector_values
 
   use mat, only: create_matrix_values, set_matrix_values_spec_nrows, set_matrix_values_spec_ncols
-  use utils, only: clear_entries, set_entry, set_row, set_col, set_values, set_mode, update
+  use utils, only: clear_entries, set_entry, get_entry, set_row, set_col, set_values, set_mode, update
   use utils, only: debug_print, exit_print, str
   use meshing, only: count_neighbours, get_boundary_status, create_neighbour_locator, &
                      get_local_index, get_global_index, get_volume, get_distance, &
@@ -27,173 +27,280 @@ submodule(fv) fv_common
 contains
 
   !> Computes fluxes and assign to matrix and RHS
-  module subroutine compute_fluxes(phi, mf, viscosity, density, component, M, vec)
+  module subroutine compute_fluxes(phi, mf, viscosity, density, M, vec)
     class(field), intent(inout) :: phi
     class(field), intent(inout) :: mf
     class(field), intent(inout) :: viscosity
     class(field), intent(inout) :: density
-    integer(ccs_int), intent(in) :: component
     class(ccs_matrix), intent(inout) :: M
     class(ccs_vector), intent(inout) :: vec
 
-    integer(ccs_int) :: max_faces
-    integer(ccs_int) :: n_int_cells
-    real(ccs_real), dimension(:), pointer :: mf_data, viscosity_data, density_data
-
-    associate (mf_values => mf%values)
-      call dprint("CF: get mf")
-      call get_vector_data(mf_values, mf_data)
-      call get_vector_data(viscosity%values, viscosity_data)
-      call get_vector_data(density%values, density_data)
-
-      ! Loop over cells computing advection and diffusion fluxes
-      call get_max_faces(max_faces)
-      n_int_cells = max_faces + 1 ! 1 neighbour per face + central cell
-      call dprint("CF: compute coeffs")
-      call compute_coeffs(phi, mf_data, viscosity_data, density_data, component, n_int_cells, M, vec)
-
-      call dprint("CF: restore mf")
-      call restore_vector_data(mf_values, mf_data)
-      call restore_vector_data(viscosity%values, viscosity_data)
-      call restore_vector_data(density%values, density_data)
-    end associate
-
+    call dprint("CF: compute coeffs")
+    call compute_coeffs(phi, density, mf, viscosity, M, vec)
 
   end subroutine compute_fluxes
 
-  !> Computes the matrix coefficient for cells in the interior of the mesh
-  subroutine compute_coeffs(phi, mf, visc, dens, component, n_int_cells, M, b)
+  module subroutine assemble_transport_equation(run_options, phi, flow, transient, M, rhs)
 
-    use fv_kernels, only: diffusion_kernel
+    use core, only: get_underrelaxation
+    use utils, only: get_field
     
-    class(field), intent(inout) :: phi                !< scalar field structure
-    real(ccs_real), dimension(:), intent(in) :: mf !< mass flux array defined at faces
-    real(ccs_real), dimension(:), intent(in) :: visc !< viscosity
-    real(ccs_real), dimension(:), intent(in) :: dens !< density
-    integer(ccs_int), intent(in) :: component      !< integer indicating direction of velocity field component
-    integer(ccs_int), intent(in) :: n_int_cells    !< number of cells in the interior of the mesh
-    class(ccs_matrix), intent(inout) :: M          !< equation system matrix
-    class(ccs_vector), intent(inout) :: b          !< RHS vector
+    class(ccs_options), intent(in) :: run_options
+    class(field), intent(inout) :: phi
+    class(fluid), intent(in) :: flow
+    class(transient_kernel), intent(in) :: transient
+    class(ccs_matrix), intent(inout) :: M
+    class(ccs_vector), intent(inout) :: rhs
 
-    type(matrix_values_spec) :: mat_val_spec
+    class(field), pointer :: pressure => null()
+    class(field), pointer :: rho => null()
+    class(field), pointer :: mf => null()
+    class(field), pointer :: mu => null()
+    real(ccs_real), dimension(:), pointer :: phi_old1_data => null()
+    real(ccs_real), dimension(:), pointer :: phi_old2_data => null()
+    real(ccs_real) :: alpha
+
     type(matrix_values) :: mat_coeffs
     type(vector_values) :: b_coeffs
+
+    integer(ccs_int) :: index_p        ! Local index
+    integer(ccs_int) :: global_index_p ! Global index
     type(cell_locator) :: loc_p
-    type(neighbour_locator) :: loc_nb
-    type(face_locator) :: loc_f
-    integer(ccs_int) :: local_num_cells
-    integer(ccs_int) :: global_index_p, global_index_nb, index_p, index_nb
-    integer(ccs_int) :: index_bc ! The boundary index (0 for interior)
-    integer(ccs_int) :: j
-    integer(ccs_int) :: nnb
-    real(ccs_real) :: face_area
-    real(ccs_real) :: diff_coeff, diff_coeff_total
-    real(ccs_real) :: adv_coeff_total
-    real(ccs_real), dimension(ndim) :: face_normal
-    real(ccs_real), dimension(ndim) :: grad_phi_p 
-    real(ccs_real), dimension(ndim) :: grad_phi_nb
-    real(ccs_real), dimension(ndim) :: x_nb, x_p, x_f, x_nb_prime, x_p_prime
-    real(ccs_real) :: face_value, face_correction_only
 
-    logical :: is_boundary
+    real(ccs_real) :: vol
 
-    integer(ccs_int) :: index_f
+    integer(ccs_int) :: local_n_cells
+    
+    call get_underrelaxation(run_options, phi, alpha)
+    
+    call get_field(flow, "density", rho)
+    call get_field(flow, "mf", mf)
+    call get_field(flow, "viscosity", mu)
+    
+    !! If this is u,v,w get the pressure gradient for source term contribution
+    call get_field(flow, "pressure", pressure)
+    
+    call get_vector_data_readonly(phi%old_values(1)%vec, phi_old1_data)
+    if (transient%get_width() == 2) then
+      call get_vector_data_readonly(phi%old_values(2)%vec, phi_old2_data)
+    end if
+    
+    call get_local_num_cells(local_n_cells)
+    do index_p = 1, local_n_cells
+      call create_cell_locator(index_p, loc_p)
+      call get_volume(loc_p, vol)
+      call get_global_index(loc_p, global_index_p)
 
-    real(ccs_real) :: sgn ! Sign indicating face orientation
-    real(ccs_real) :: aP, aF, bP, aPb
-    real(ccs_real), dimension(2) :: coeffs
-    real(ccs_real) :: hoe ! High-order explicit flux
-    real(ccs_real) :: loe ! Low-order explicit flux
-    real(ccs_real) :: dx_orth ! distance between cell centers projected to the face othogonal (used for corrections)
-    real(ccs_real) :: SchmidtNo
+      !! Assemble flux contributions
+      call assemble_fluxes(phi, loc_p, rho, mf, mu, mat_coeffs, b_coeffs)
+      
+      !! Assemble cell-centred contributions
+      block
+        real(ccs_real) :: diag ! The diagonal coefficient
+        real(ccs_real) :: b    ! The RHS 
+        ! Obtain diagonal coefficient and RHS
+        call set_col(global_index_p, mat_coeffs)
+        call get_entry(mat_coeffs, diag)
+        call get_entry(b_coeffs, b)
+      
+        ! Source terms
+        select case(phi%name)
+        case("u")
+          b = b - vol * pressure%x_gradients_ro(index_p)
+        case("v")
+          b = b - vol * pressure%y_gradients_ro(index_p)
+        case("w")
+          b = b - vol * pressure%z_gradients_ro(index_p)
+        end select
+      
+        ! Transient terms
+        block
+          real(ccs_real) :: trans = 0 ! Transient contribution
+          call transient%eval_coeffs(rho%values_ro(index_p), vol, trans)
+          diag = diag + trans
+        end block
+        block
+          real(ccs_real) :: trans = 0 ! Transient contribution
+          real(ccs_real), dimension(transient%get_width()) :: old
+          if (transient%get_width() == 1) then
+            old = [ phi_old1_data(index_p) ]
+          else
+            old = [ phi_old1_data(index_p), phi_old2_data(index_p) ]
+          end if
+          call transient%eval_explicit(rho%values_ro(index_p), vol, old, trans)
+          b = b + trans
+        end block
 
-    real(ccs_real) :: phiP, phiF ! current field at central/neighbour cells
+        ! Perform underrelaxation
+        b = b + ((1 - alpha) / alpha) * diag * phi%values_ro(index_p)
+        diag = diag / alpha
 
-    real(ccs_real), dimension(3, 2) :: grads, rvecs ! Cell gradients and relative vectors
+        ! Restore diagonal coefficient and B
+        call set_col(global_index_p, mat_coeffs)
+        call set_entry(b, b_coeffs)
+        call set_entry(diag, mat_coeffs)
+      end block
+      
+      !! Push equation to equation system
+      call set_values(b_coeffs, rhs)
+      call set_values(mat_coeffs, M)
+    end do
+
+    nullify(rho, mf, mu)
+    !! If this is u,v,w restore the pressure gradient
+    if (associated(pressure)) then
+      nullify(pressure)
+    end if
+
+    call restore_vector_data_readonly(phi%old_values(1)%vec, phi_old1_data)
+    if (transient%get_width() == 2) then
+      call restore_vector_data_readonly(phi%old_values(2)%vec, phi_old2_data)
+    end if
+    
+  end subroutine assemble_transport_equation
+
+  subroutine assemble_fluxes(phi, loc_p, rho, mf, mu, mat_coeffs, b_coeffs)
+
+    use fv_kernels, only: diffusion_kernel
+
+    class(field), intent(in) :: phi
+    type(cell_locator), intent(in) :: loc_p
+    class(field), intent(in) :: rho
+    class(field), intent(in) :: mf
+    class(field), intent(in) :: mu
+    type(matrix_values), intent(out) :: mat_coeffs
+    type(vector_values), intent(out) :: b_coeffs
+
+    type(matrix_values_spec) :: mat_val_spec
 
     type(diffusion_kernel) :: diff_kernel
+
+    real(ccs_real), dimension(3, 2) :: grads, rvecs ! Cell gradients and relative vectors
+    real(ccs_real), dimension(3) :: grad_phi_p, grad_phi_nb
+    real(ccs_real), dimension(2) :: coeffs
+    real(ccs_real) :: aP, aF ! Advection coefficients
+    real(ccs_real) :: adv_coeff_total, diff_coeff_total
+    real(ccs_real) :: hoe ! High-order explicit flux
+    real(ccs_real) :: loe ! Low-order explicit flux
+    real(ccs_real) :: aPb ! Central coefficient from boundary condition
+    real(ccs_real) :: bp  ! Explicit contribution from boundary condition
+    real(ccs_real) :: phiP, phiF
+
+    ! Indexing
+    integer(ccs_int) :: index_p        ! Central cell index
+    integer(ccs_int) :: global_index_p ! Central cell index (global)
+    integer(ccs_int) :: j ! cell-face counter
+    integer(ccs_int) :: nnb ! Face/neighbour count
+    type(face_locator) :: loc_f
+    integer(ccs_int) :: index_f ! Face index
+    type(neighbour_locator) :: loc_nb
+    integer(ccs_int) :: index_nb        ! Neighbour cell index
+    integer(ccs_int) :: global_index_nb ! Neighbour cell index (global)
+    integer(ccs_int) :: max_faces
+    logical :: is_boundary
+
+    ! Geometry
+    real(ccs_real) :: face_area
+    real(ccs_real), dimension(3) :: face_normal
+    real(ccs_real), dimension(3) :: x_p, x_nb
+    real(ccs_real), dimension(3) :: x_f
+    real(ccs_real), dimension(3) :: x_p_prime, x_nb_prime
     real(ccs_real) :: interpol_factor
-    
+
+    call get_max_faces(max_faces)
+
     call set_matrix_values_spec_nrows(1_ccs_int, mat_val_spec)
-    call set_matrix_values_spec_ncols(n_int_cells, mat_val_spec)
+    call set_matrix_values_spec_ncols(max_faces + 1, mat_val_spec)
     call create_matrix_values(mat_val_spec, mat_coeffs)
-    call set_mode(add_mode, mat_coeffs)
+    call set_mode(insert_mode, mat_coeffs)
 
-    call create_vector_values(n_int_cells, b_coeffs)
-    call set_mode(add_mode, b_coeffs)
+    call create_vector_values(max_faces + 1, b_coeffs)
+    call set_mode(insert_mode, b_coeffs)
 
-    call get_local_num_cells(local_num_cells) 
-    do index_p = 1, local_num_cells
-      call clear_entries(mat_coeffs)
-      call clear_entries(b_coeffs)
-      call create_cell_locator(index_p, loc_p)
+    ! Get/set global location in equation
+    call get_local_index(loc_p, index_p)
+    call get_global_index(loc_p, global_index_p)
+    call set_row(global_index_p, mat_coeffs)
+    call set_row(global_index_p, b_coeffs)
 
-!!! ==== Transport equation ===>
-      ! Calculate contribution from neighbours
-      call get_global_index(loc_p, global_index_p)
-      call count_neighbours(loc_p, nnb)
+    adv_coeff_total = 0.0_ccs_real
+    diff_coeff_total = 0.0_ccs_real
 
-      call set_row(global_index_p, mat_coeffs)
-      call set_row(global_index_p, b_coeffs)
+    phiP = phi%values_ro(index_p)
 
-      adv_coeff_total = 0.0_ccs_real
-      diff_coeff_total = 0.0_ccs_real
-      
-      SchmidtNo = phi%Schmidt
-      phiP = phi%values_ro(index_p)
+    call count_neighbours(loc_p, nnb)
+    do j = 1, nnb
+      call create_neighbour_locator(loc_p, j, loc_nb)
+      call get_boundary_status(loc_nb, is_boundary)
+      call create_face_locator(index_p, j, loc_f)
+      call get_face_normal(loc_f, face_normal)
 
-      do j = 1, nnb
-        call create_neighbour_locator(loc_p, j, loc_nb)
-        call get_boundary_status(loc_nb, is_boundary)
-        call create_face_locator(index_p, j, loc_f)
-        call get_face_normal(loc_f, face_normal)
+      call get_local_index(loc_nb, index_nb)
 
-        call get_local_index(loc_nb, index_nb)
+      call get_face_area(loc_f, face_area)
+      call get_local_index(loc_f, index_f)
+      call get_face_interpolation(loc_f, interpol_factor)
 
-        call get_face_area(loc_f, face_area)
-        call get_local_index(loc_f, index_f)
-        call get_face_interpolation(loc_f, interpol_factor)
-        
-        ! Initialise accumulators
-        coeffs(:) = 0.0_ccs_real
-        hoe = 0.0_ccs_real
-        loe = 0.0_ccs_real
-        
-        if (.not. is_boundary) then
-          phiF = phi%values_ro(index_nb)
+      ! Initialise accumulators
+      coeffs(:) = 0.0_ccs_real
+      hoe = 0.0_ccs_real
+      loe = 0.0_ccs_real
 
-          if (phi%enable_cell_corrections) then
+      if (.not. is_boundary) then
+        phiF = phi%values_ro(index_nb)
+
+        if (phi%enable_cell_corrections) then
+          block
+            real(ccs_real) :: dx_orth
             call get_centre(loc_p, x_p)
             call get_centre(loc_nb, x_nb)
             call get_centre(loc_f, x_f)
 
             dx_orth = min(dot_product(x_f - x_p, face_normal), &
-                          dot_product(x_nb - x_f, face_normal))
+                 dot_product(x_nb - x_f, face_normal))
             x_nb_prime = x_f + dx_orth * face_normal
             x_p_prime = x_f - dx_orth * face_normal
-
+            
             grad_phi_p = [ phi%x_gradients_ro(index_p), &
-                           phi%y_gradients_ro(index_p), &
-                           phi%z_gradients_ro(index_p) ]
+                 phi%y_gradients_ro(index_p), &
+                 phi%z_gradients_ro(index_p) ]
             grad_phi_nb = [ phi%x_gradients_ro(index_nb), &
-                            phi%y_gradients_ro(index_nb), &
-                            phi%z_gradients_ro(index_nb) ]
+                 phi%y_gradients_ro(index_nb), &
+                 phi%z_gradients_ro(index_nb) ]
+          end block
+        end if
+      else
+        block
+          integer(ccs_int) :: component
+
+          if (phi%name == "u") then
+            component = 1
+          else if (phi%name == "v") then
+            component = 2
+          else if (phi%name == "w") then
+            component = 3
+          else
+            component = 0
           end if
-        else
           call compute_boundary_coeffs(phi, component, loc_p, loc_f, face_normal, aPb, bP)
 
           ! Use boundary condition to compute ghost neighbour value
           phiF = aPb * phiP + bP
-        end if
+        end block
+      end if
 
 !!! ---- Diffusion coefficients --->
-        rvecs = 0.0_ccs_real
-        grads = 0.0_ccs_real
+      rvecs = 0.0_ccs_real
+      grads = 0.0_ccs_real
+      block
+        real(ccs_real) :: diff_coeff ! The coefficient of diffusion
+        real(ccs_real) :: SchmidtNo
+        SchmidtNo = phi%Schmidt
         if (.not. is_boundary) then
           call calc_diffusion_coeff(index_p, j, phi%enable_cell_corrections, &
-                                    visc(index_p), visc(index_nb), &
-                                    dens(index_p), dens(index_nb), &
-                                    SchmidtNo, diff_coeff)
+               mu%values_ro(index_p), mu%values_ro(index_nb), &
+               rho%values_ro(index_p), rho%values_ro(index_nb), &
+               SchmidtNo, diff_coeff)
 
           if (phi%enable_cell_corrections) then
             grads(:, 1) = grad_phi_p(:)
@@ -203,17 +310,22 @@ contains
           end if
         else
           call calc_diffusion_coeff(index_p, j, .false., &
-                                    visc(index_p), 0.0_ccs_real, &
-                                    dens(index_p), 0.0_ccs_real, &
-                                    SchmidtNo, diff_coeff)
+               mu%values_ro(index_p), 0.0_ccs_real, &
+               rho%values_ro(index_p), 0.0_ccs_real, &
+               SchmidtNo, diff_coeff)
           ! Correct boundary face distance to distance to immaginary boundary "node"
           diff_coeff = diff_coeff / 2.0_ccs_real
         end if
         coeffs = diff_kernel%eval_coeffs(diff_coeff)
         hoe = hoe + diff_kernel%eval_explicit(diff_coeff, interpol_factor, rvecs, grads)
+      end block
 !!! <--- Diffusion coefficients ----
 
 !!! ---- Advection coefficients --->
+      block
+        real(ccs_real) :: sgn ! Sign of face orientation relative to central cell
+        integer(ccs_int) :: index_bc
+        real(ccs_real) :: face_value, face_correction_only
         if (.not. is_boundary) then
           if (index_nb < index_p) then
             sgn = -1.0_ccs_real
@@ -224,7 +336,7 @@ contains
 
           ! Excentricity correction (convective term) (Ferziger & Peric 4th ed, sec 9.7.1)
           call interpolate_field_to_face(phi, loc_f, face_value, face_correction_only)
-          hoe = hoe + face_correction_only * (sgn * mf(index_f) * face_area)
+          hoe = hoe + face_correction_only * (sgn * mf%values_ro(index_f) * face_area)
 
           if (phi%enable_cell_corrections) then
             ! call get_face_interpolation(loc_f, interpol_factor)
@@ -239,61 +351,75 @@ contains
         end if
         select type (phi)
         type is (central_field)
-          call calc_advection_coeff(phi, loc_f, sgn * mf(index_f), index_bc, aP, aF)
+          call calc_advection_coeff(phi, loc_f, sgn * mf%values_ro(index_f), index_bc, aP, aF)
         type is (upwind_field)                                     
-          call calc_advection_coeff(phi, loc_f, sgn * mf(index_f), index_bc, aP, aF)
-        type is (gamma_field)                                      
-          call calc_advection_coeff(phi, loc_f, sgn * mf(index_f), index_bc, loc_p, loc_nb, aP, aF)
-        type is (linear_upwind_field)                              
-          call calc_advection_coeff(phi, loc_f, sgn * mf(index_f), index_bc, loc_p, loc_nb, aP, aF)
+          call calc_advection_coeff(phi, loc_f, sgn * mf%values_ro(index_f), index_bc, aP, aF)
+        ! type is (gamma_field)                                      
+        !   call calc_advection_coeff(phi, loc_f, sgn * mf%values_ro(index_f), index_bc, loc_p, loc_nb, aP, aF)
+        ! type is (linear_upwind_field)                              
+        !   call calc_advection_coeff(phi, loc_f, sgn * mf%values_ro(index_f), index_bc, loc_p, loc_nb, aP, aF)
         class default
           call error_abort("Invalid velocity field discretisation.")
         end select
-        aP = (sgn * mf(index_f) * face_area) * aP
-        aF = (sgn * mf(index_f) * face_area) * aF
-        aP = aP - sgn * mf(index_f) * face_area
+        aP = (sgn * mf%values_ro(index_f) * face_area) * aP
+        aF = (sgn * mf%values_ro(index_f) * face_area) * aF
+        aP = aP - sgn * mf%values_ro(index_f) * face_area
         hoe = hoe + aP * phiP + aF * phiF
 
         !! Low-order advection contribution
-        if ((sgn * mf(index_f)) > 0.0_ccs_real) then
-          aP = sgn * mf(index_f) * face_area
+        if ((sgn * mf%values_ro(index_f)) > 0.0_ccs_real) then
+          aP = sgn * mf%values_ro(index_f) * face_area
           aF = 0.0_ccs_real
         else
           aP = 0.0_ccs_real
-          aF = sgn * mf(index_f) * face_area
+          aF = sgn * mf%values_ro(index_f) * face_area
         end if
-        aP = aP - sgn * mf(index_f) * face_area
+        aP = aP - sgn * mf%values_ro(index_f) * face_area
         loe = aP * phiP + aF * phiF
+      end block
 !!! <--- Advection coefficients ----
 
-        adv_coeff_total = adv_coeff_total + aP
-        diff_coeff_total = diff_coeff_total + coeffs(1)
-        if (.not. is_boundary) then
-          call get_global_index(loc_nb, global_index_nb)
-          call set_col(global_index_nb, mat_coeffs)
-          call set_entry(aF + coeffs(2), mat_coeffs)
-        else
-          adv_coeff_total = adv_coeff_total + aPb * aF
-          diff_coeff_total = diff_coeff_total + aPb * coeffs(2)
-          call set_entry(-(aF + coeffs(2)) * bP, b_coeffs)
-        end if
-        call set_entry(loe - hoe, b_coeffs)
-      end do
+      adv_coeff_total = adv_coeff_total + aP
+      diff_coeff_total = diff_coeff_total + coeffs(1)
+      if (.not. is_boundary) then
+        call get_global_index(loc_nb, global_index_nb)
+        call set_col(global_index_nb, mat_coeffs)
+        call set_entry(aF + coeffs(2), mat_coeffs)
+      else
+        adv_coeff_total = adv_coeff_total + aPb * aF
+        diff_coeff_total = diff_coeff_total + aPb * coeffs(2)
+        call set_entry(-(aF + coeffs(2)) * bP, b_coeffs)
+      end if
+      call set_entry(loe - hoe, b_coeffs)
+    end do
 
-!!! ---- Transient coefficients --->
-!!! <--- Transient coefficients ----
+    call set_col(global_index_p, mat_coeffs)
+    call set_entry((adv_coeff_total + diff_coeff_total), mat_coeffs)
+  end subroutine assemble_fluxes
 
-!!! ---- Source terms --->
-!!! <--- Source terms ----
+  !> Computes the matrix coefficient for cells in the interior of the mesh
+  subroutine compute_coeffs(phi, rho, mf, mu, M, b)
+    
+    class(field), intent(inout) :: phi                !< scalar field structure
+    class(field), intent(in) :: rho ! Density field
+    class(field), intent(in) :: mf  ! Advecting velocity field (face-centred)
+    class(field), intent(in) :: mu  ! Viscosity field
+    class(ccs_matrix), intent(inout) :: M          !< equation system matrix
+    class(ccs_vector), intent(inout) :: b          !< RHS vector
 
-!!! ---- Underrelaxation --->
-!!! <--- Underrelaxation ----
+    type(matrix_values) :: mat_coeffs
+    type(vector_values) :: b_coeffs
 
-!!! <=== Transport equation ====
+    integer(ccs_int) :: local_num_cells
+    
+    integer(ccs_int) :: index_p
+    type(cell_locator) :: loc_p
 
+    call get_local_num_cells(local_num_cells) 
+    do index_p = 1, local_num_cells
+      call create_cell_locator(index_p, loc_p)
+      call assemble_fluxes(phi, loc_p, rho, mf, mu, mat_coeffs, b_coeffs)
       call set_values(b_coeffs, b)
-      call set_col(global_index_p, mat_coeffs)
-      call set_entry((adv_coeff_total + diff_coeff_total), mat_coeffs)
       call set_values(mat_coeffs, M)
     end do
 
@@ -521,7 +647,7 @@ contains
   ! spec) using Ferziger & Peric 4th ed, sec 9.7.1
   pure subroutine interpolate_field_to_face(phi, loc_f, face_value, face_correction_only)
 
-    class(field), intent(inout) :: phi
+    class(field), intent(in) :: phi
     type(face_locator), intent(in) :: loc_f                         !< face locator
     real(ccs_real), intent(out) :: face_value
     real(ccs_real), optional, intent(out) :: face_correction_only

@@ -99,13 +99,7 @@ contains
     integer(ccs_int) :: current_entry ! Logically 2D index of current row,col coordinate.
     ! XXX: This may be PETSc-specific, but seems sensible for now
 
-    ! Locate row,col coordinate in logically-2D array
-    associate (row => val_dat%current_row, &
-               col => val_dat%current_col, &
-               nrows => size(val_dat%global_row_indices), &
-               ncols => size(val_dat%global_col_indices))
-      current_entry = (row - 1) * ncols + col
-    end associate
+    current_entry = get_1d_idx(val_dat)
 
     ! Store value according to working set mode.
     associate (x => val_dat%values(current_entry), &
@@ -121,5 +115,34 @@ contains
     end associate
 
   end subroutine set_matrix_values_entry
+
+  pure module subroutine get_matrix_values_entry(val_dat, val)
+
+    type(matrix_values), intent(in) :: val_dat
+    real(ccs_real), intent(out) :: val
+
+    integer(ccs_int) :: current_entry
+
+    current_entry = get_1d_idx(val_dat)
+    val = val_dat%values(current_entry)
+    
+  end subroutine get_matrix_values_entry
+
+  !> Helper function to compute 1-D index from row,col coordinate.
+  integer(ccs_int) pure function get_1d_idx(val_dat)
+    type(matrix_values), intent(in) :: val_dat
+
+    integer(ccs_int) :: row
+    integer(ccs_int) :: col
+    integer(ccs_int) :: nrows
+    integer(ccs_int) :: ncols
+
+    row = val_dat%current_row
+    col = val_dat%current_col
+    nrows = size(val_dat%global_row_indices)
+    ncols = size(val_dat%global_col_indices)
+
+    get_1d_idx = (row - 1) * ncols + col
+  end function get_1d_idx
 
 end submodule

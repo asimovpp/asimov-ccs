@@ -75,6 +75,15 @@ contains
 
   end subroutine set_vector_values_entry
 
+  pure module subroutine get_vector_values_entry(val_dat, val)
+
+    type(vector_values), intent(in) :: val_dat
+    real(ccs_real), intent(out) :: val
+
+    val = val_dat%values(val_dat%current_entry)
+
+  end subroutine get_vector_values_entry
+
   !> Generic implementation to get vector data in natural ordering
   module subroutine get_natural_data_vec(par_env, mesh, v, data)
 

@@ -208,6 +208,4 @@ contains
     call set_matrix_diagonal(diag, M)
   end subroutine apply_timestep_kernel
 
- 
-
 end submodule timestepping_common
