@@ -40,15 +40,16 @@ contains
 
   end subroutine compute_fluxes
 
-  module subroutine assemble_transport_equation(run_options, phi, flow, transient, M, rhs)
+  module subroutine assemble_transport_equation(run_options, phi, flow, M, rhs)
 
     use core, only: get_underrelaxation
     use utils, only: get_field
-    
+
+    use timestepping, only: timestepping_is_active, create_transient_kernel
+
     class(ccs_options), intent(in) :: run_options
     class(field), intent(inout) :: phi
     class(fluid), intent(in) :: flow
-    class(transient_kernel), intent(in) :: transient
     class(ccs_matrix), intent(inout) :: M
     class(ccs_vector), intent(inout) :: rhs
 
@@ -56,6 +57,7 @@ contains
     class(field), pointer :: rho => null()
     class(field), pointer :: mf => null()
     class(field), pointer :: mu => null()
+    class(transient_kernel), allocatable :: transient
     real(ccs_real), dimension(:), pointer :: phi_old1_data => null()
     real(ccs_real), dimension(:), pointer :: phi_old2_data => null()
     real(ccs_real) :: alpha
@@ -80,12 +82,13 @@ contains
     !! If this is u,v,w get the pressure gradient for source term contribution
     call get_field(flow, "p", pressure)
     
-    ! call get_vector_data_readonly(phi%old_values(1)%vec, phi_old1_data)
-    ! if (transient%get_width() == 2) then
-    !   call get_vector_data_readonly(phi%old_values(2)%vec, phi_old2_data)
-    ! end if
-    associate(foo => transient, bar => phi_old1_data, baz => phi_old2_data)
-    end associate
+    if (timestepping_is_active()) then
+      transient = create_transient_kernel()
+      call get_vector_data_readonly(phi%old_values(1)%vec, phi_old1_data)
+      if (transient%get_width() == 2) then
+        call get_vector_data_readonly(phi%old_values(2)%vec, phi_old2_data)
+      end if
+    end if
     
     call get_local_num_cells(local_n_cells)
     do index_p = 1, local_n_cells
@@ -117,23 +120,25 @@ contains
           b = b - vol * pressure%z_gradients_ro(index_p)
         end select
       
-        !!! ! Transient terms
-        !!! block
-        !!!   real(ccs_real) :: trans = 0 ! Transient contribution
-        !!!   call transient%eval_coeffs(rho%values_ro(index_p), vol, trans)
-        !!!   diag = diag + trans
-        !!! end block
-        !!! block
-        !!!   real(ccs_real) :: trans = 0 ! Transient contribution
-        !!!   real(ccs_real), dimension(transient%get_width()) :: old
-        !!!   if (transient%get_width() == 1) then
-        !!!     old = [ phi_old1_data(index_p) ]
-        !!!   else
-        !!!     old = [ phi_old1_data(index_p), phi_old2_data(index_p) ]
-        !!!   end if
-        !!!   call transient%eval_explicit(rho%values_ro(index_p), vol, old, trans)
-        !!!   b = b + trans
-        !!! end block
+        ! Transient terms
+        if (timestepping_is_active()) then
+          block
+            real(ccs_real) :: trans = 0 ! Transient contribution
+            call transient%eval_coeffs(rho%values_ro(index_p), vol, trans)
+            diag = diag + trans
+          end block
+          block
+            real(ccs_real) :: trans = 0 ! Transient contribution
+            real(ccs_real), dimension(transient%get_width()) :: old
+            if (transient%get_width() == 1) then
+              old = [ phi_old1_data(index_p) ]
+            else
+              old = [ phi_old1_data(index_p), phi_old2_data(index_p) ]
+            end if
+            call transient%eval_explicit(rho%values_ro(index_p), vol, old, trans)
+            b = b + trans
+          end block
+        end if
 
         ! Perform underrelaxation
         b = b + ((1 - alpha) / alpha) * diag * phi%values_ro(index_p)
@@ -158,10 +163,12 @@ contains
       nullify(pressure)
     end if
 
-    ! call restore_vector_data_readonly(phi%old_values(1)%vec, phi_old1_data)
-    ! if (transient%get_width() == 2) then
-    !   call restore_vector_data_readonly(phi%old_values(2)%vec, phi_old2_data)
-    ! end if
+    if (timestepping_is_active()) then
+      call restore_vector_data_readonly(phi%old_values(1)%vec, phi_old1_data)
+      if (transient%get_width() == 2) then
+        call restore_vector_data_readonly(phi%old_values(2)%vec, phi_old2_data)
+      end if
+    end if
     
   end subroutine assemble_transport_equation
 

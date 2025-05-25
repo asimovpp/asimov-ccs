@@ -30,7 +30,7 @@ submodule(pv_coupling) pv_coupling_simple
                      get_global_num_cells, &
                      get_max_faces, is_mesh_set
   use scalars, only: update_scalars
-  use timestepping, only: update_old_values, get_current_step, get_current_time
+  use timestepping, only: update_old_values, get_current_step, get_current_time, get_timestep, timestepping_is_active
   use bc_constants, only: bc_type_dirichlet
 
   implicit none
@@ -376,7 +376,6 @@ contains
 
     use timestepping, only: apply_timestep
     use timers, only: timer_register_start, timer_stop
-    use transient_kernels, only: transient_kernel
     use fv, only: assemble_transport_equation
 
     ! Arguments
@@ -414,8 +413,6 @@ contains
     integer(ccs_int) :: global_num_cells
     ! integer(ccs_int) :: timer_coeffs
 
-    class(transient_kernel), allocatable :: transient
-
     ! Silence unused dummys
     associate(bar => p)
     end associate
@@ -434,7 +431,7 @@ contains
     ! Zero residual vector
     call zero(res)
 
-    call assemble_transport_equation(run_options, u, flow, transient, M, vec)
+    call assemble_transport_equation(run_options, u, flow, M, vec)
 
     ! Add source terms
     if (.false.) then

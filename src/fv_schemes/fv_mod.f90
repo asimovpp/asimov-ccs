@@ -112,11 +112,10 @@ module fv
     end subroutine
 
     !> Assembles a transport equation, if u,v,w adds the pressure gradient
-    module subroutine assemble_transport_equation(run_options, phi, flow, transient, M, rhs)
+    module subroutine assemble_transport_equation(run_options, phi, flow, M, rhs)
       class(ccs_options), intent(in) :: run_options
       class(field), intent(inout) :: phi
       class(fluid), intent(in) :: flow
-      class(transient_kernel), intent(in) :: transient
       class(ccs_matrix), intent(inout) :: M
       class(ccs_vector), intent(inout) :: rhs
     end subroutine assemble_transport_equation
