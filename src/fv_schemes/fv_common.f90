@@ -78,7 +78,7 @@ contains
     call get_field(flow, "viscosity", mu)
     
     !! If this is u,v,w get the pressure gradient for source term contribution
-    call get_field(flow, "pressure", pressure)
+    call get_field(flow, "p", pressure)
     
     call get_vector_data_readonly(phi%old_values(1)%vec, phi_old1_data)
     if (transient%get_width() == 2) then
