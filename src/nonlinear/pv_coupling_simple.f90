@@ -335,7 +335,7 @@ contains
     ! ----------
     if (u_sol) then
       call zero_vector(invAu)
-      call calculate_velocity_component(flow, par_env, run_options, eval_sources, varu, p, 1, M, vec, lin_sys, u, invAu, &
+      call calculate_velocity_component(flow, par_env, run_options, eval_sources, varu, p, M, vec, lin_sys, u, invAu, &
            workvec, sourcevec, res, residuals)
       call axpy(1.0_ccs_real, invAu, invA)
       call vec_reciprocal(invAu)
@@ -346,7 +346,7 @@ contains
     ! ----------
     if (v_sol) then
       call zero_vector(invAv)
-      call calculate_velocity_component(flow, par_env, run_options, eval_sources, varv, p, 2, M, vec, lin_sys, v, invAv, &
+      call calculate_velocity_component(flow, par_env, run_options, eval_sources, varv, p, M, vec, lin_sys, v, invAv, &
            workvec, sourcevec, res, residuals)
       call axpy(1.0_ccs_real, invAv, invA)
       call vec_reciprocal(invAv)
@@ -357,7 +357,7 @@ contains
     ! ----------
     if (w_sol) then
       call zero_vector(invAw)
-      call calculate_velocity_component(flow, par_env, run_options, eval_sources, varw, p, 3, M, vec, lin_sys, w, invAw, &
+      call calculate_velocity_component(flow, par_env, run_options, eval_sources, varw, p, M, vec, lin_sys, w, invAw, &
            workvec, sourcevec, res, residuals)
       call axpy(1.0_ccs_real, invAw, invA)
       call vec_reciprocal(invAw)
@@ -371,11 +371,13 @@ contains
 
   end subroutine calculate_velocity
 
-  subroutine calculate_velocity_component(flow, par_env, run_options, eval_sources, ivar, p, component, M, vec, &
+  subroutine calculate_velocity_component(flow, par_env, run_options, eval_sources, ivar, p, M, vec, &
                                           lin_sys, u, invA, workvec, sourcevec, input_res, residuals)
 
     use timestepping, only: apply_timestep
     use timers, only: timer_register_start, timer_stop
+    use transient_kernels, only: transient_kernel
+    use fv, only: assemble_transport_equation
 
     ! Arguments
     type(fluid), intent(inout) :: flow                   !< Container for flow fields
@@ -394,11 +396,7 @@ contains
       end subroutine eval_sources
     end interface
     integer(ccs_int), intent(in) :: ivar
-    class(field), pointer :: mf
-    class(field), pointer :: viscosity
-    class(field), pointer :: density
     class(field), intent(inout) :: p
-    integer(ccs_int), intent(in) :: component
     class(ccs_matrix), allocatable, intent(inout) :: M
     class(ccs_vector), allocatable, intent(inout) :: vec
     type(equation_system), intent(inout) :: lin_sys
@@ -414,7 +412,13 @@ contains
     class(linear_solver), allocatable :: lin_solver
     integer(ccs_int) :: nvar ! Number of flow variables to solve
     integer(ccs_int) :: global_num_cells
-    integer(ccs_int) :: timer_coeffs
+    ! integer(ccs_int) :: timer_coeffs
+
+    class(transient_kernel), allocatable :: transient
+
+    ! Silence unused dummys
+    associate(bar => p)
+    end associate
 
     ! First zero matrix/RHS
     call zero(vec)
@@ -430,60 +434,24 @@ contains
     ! Zero residual vector
     call zero(res)
 
-    ! Calculate fluxes and populate coefficient matrix
-    if (component == 1) then
-      call dprint("GV: compute u flux")
-    else if (component == 2) then
-      call dprint("GV: compute v flux")
-    else if (component == 3) then
-      call dprint("GV: compute w flux")
-    else
-      call error_abort("Unsupported vector component: " // str(component))
-    end if
-
-    call get_field(flow, "mf", mf)
-    call get_field(flow, "viscosity", viscosity)
-    call get_field(flow, "density", density)
-    
-    call timer_register_start("Building coefficients", timer_coeffs)
-    call compute_fluxes(u, mf, viscosity, density, M, vec)
-    call update(M)   ! Note that compute_fluxes now inserts so need to update
-    call update(vec) ! Note that compute_fluxes now inserts so need to update
-    call timer_stop(timer_coeffs)
-
-    call apply_timestep(u, workvec, M, vec)
-
-    ! Calculate pressure source term and populate RHS vector
-    call dprint("GV: compute u gradp")
-    if (component == 1) then
-      call calculate_momentum_pressure_source(p%x_gradients, vec)
-    else if (component == 2) then
-      call calculate_momentum_pressure_source(p%y_gradients, vec)
-    else if (component == 3) then
-      call calculate_momentum_pressure_source(p%z_gradients, vec)
-    end if
-
-    !calculate viscous source term and populate RHS vector 
-    call dprint("compute viscous souce term")
-    ! call calculate_momentum_viscous_source(flow, component, vec)
+    call assemble_transport_equation(run_options, u, flow, transient, M, vec)
 
     ! Add source terms
-    call get_momentum_sources(flow, u, eval_sources, workvec, sourcevec, M, vec)
-
-    ! Underrelax the equations
-    call dprint("GV: underrelax u")
-    call underrelax(run_options%solve%velocity_relax, u, workvec, M, vec)
-
-    ! Store contribution to central coefficient
-    call dprint("GV: get u diag")
-    call get_matrix_diagonal(M, workvec)
-    call vec_aypx(workvec, 1.0_ccs_real, invA) ! Add this equation's contribution
+    if (.false.) then
+      ! ! call calculate_momentum_viscous_source(flow, component, vec)
+      call get_momentum_sources(flow, u, eval_sources, workvec, sourcevec, M, vec)
+    end if
 
     ! Assembly of coefficient matrix and source vector
     call dprint("GV: build u lin sys")
     call update(M)
     call update(vec)
     call finalise(M)
+    
+    ! Store contribution to central coefficient
+    call dprint("GV: get u diag")
+    call get_matrix_diagonal(M, workvec)
+    call vec_aypx(workvec, 1.0_ccs_real, invA) ! Add this equation's contribution
 
     ! Compute residual
     call mat_vec_product(M, u%values, res)

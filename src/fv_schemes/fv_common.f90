@@ -80,10 +80,12 @@ contains
     !! If this is u,v,w get the pressure gradient for source term contribution
     call get_field(flow, "p", pressure)
     
-    call get_vector_data_readonly(phi%old_values(1)%vec, phi_old1_data)
-    if (transient%get_width() == 2) then
-      call get_vector_data_readonly(phi%old_values(2)%vec, phi_old2_data)
-    end if
+    ! call get_vector_data_readonly(phi%old_values(1)%vec, phi_old1_data)
+    ! if (transient%get_width() == 2) then
+    !   call get_vector_data_readonly(phi%old_values(2)%vec, phi_old2_data)
+    ! end if
+    associate(foo => transient, bar => phi_old1_data, baz => phi_old2_data)
+    end associate
     
     call get_local_num_cells(local_n_cells)
     do index_p = 1, local_n_cells
@@ -115,23 +117,23 @@ contains
           b = b - vol * pressure%z_gradients_ro(index_p)
         end select
       
-        ! Transient terms
-        block
-          real(ccs_real) :: trans = 0 ! Transient contribution
-          call transient%eval_coeffs(rho%values_ro(index_p), vol, trans)
-          diag = diag + trans
-        end block
-        block
-          real(ccs_real) :: trans = 0 ! Transient contribution
-          real(ccs_real), dimension(transient%get_width()) :: old
-          if (transient%get_width() == 1) then
-            old = [ phi_old1_data(index_p) ]
-          else
-            old = [ phi_old1_data(index_p), phi_old2_data(index_p) ]
-          end if
-          call transient%eval_explicit(rho%values_ro(index_p), vol, old, trans)
-          b = b + trans
-        end block
+        !!! ! Transient terms
+        !!! block
+        !!!   real(ccs_real) :: trans = 0 ! Transient contribution
+        !!!   call transient%eval_coeffs(rho%values_ro(index_p), vol, trans)
+        !!!   diag = diag + trans
+        !!! end block
+        !!! block
+        !!!   real(ccs_real) :: trans = 0 ! Transient contribution
+        !!!   real(ccs_real), dimension(transient%get_width()) :: old
+        !!!   if (transient%get_width() == 1) then
+        !!!     old = [ phi_old1_data(index_p) ]
+        !!!   else
+        !!!     old = [ phi_old1_data(index_p), phi_old2_data(index_p) ]
+        !!!   end if
+        !!!   call transient%eval_explicit(rho%values_ro(index_p), vol, old, trans)
+        !!!   b = b + trans
+        !!! end block
 
         ! Perform underrelaxation
         b = b + ((1 - alpha) / alpha) * diag * phi%values_ro(index_p)
@@ -156,10 +158,10 @@ contains
       nullify(pressure)
     end if
 
-    call restore_vector_data_readonly(phi%old_values(1)%vec, phi_old1_data)
-    if (transient%get_width() == 2) then
-      call restore_vector_data_readonly(phi%old_values(2)%vec, phi_old2_data)
-    end if
+    ! call restore_vector_data_readonly(phi%old_values(1)%vec, phi_old1_data)
+    ! if (transient%get_width() == 2) then
+    !   call restore_vector_data_readonly(phi%old_values(2)%vec, phi_old2_data)
+    ! end if
     
   end subroutine assemble_transport_equation
 
@@ -392,8 +394,10 @@ contains
         end block
       else
         adv_coeff_total = adv_coeff_total + aPb * aF
+        expl_bc = expl_bc - aF * bP
+        
         diff_coeff_total = diff_coeff_total + aPb * coeffs(2)
-        expl_bc = expl_bc - (aF + coeffs(2)) * bP
+        expl_bc = expl_bc - coeffs(2) * bP
       end if
     end do
 
