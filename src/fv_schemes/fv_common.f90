@@ -99,8 +99,10 @@ contains
         real(ccs_real) :: diag ! The diagonal coefficient
         real(ccs_real) :: b    ! The RHS 
         ! Obtain diagonal coefficient and RHS
+        call set_row(global_index_p, mat_coeffs)
         call set_col(global_index_p, mat_coeffs)
         call get_entry(mat_coeffs, diag)
+        call set_row(global_index_p, b_coeffs)
         call get_entry(b_coeffs, b)
       
         ! Source terms
@@ -136,9 +138,11 @@ contains
         diag = diag / alpha
 
         ! Restore diagonal coefficient and B
+        call set_row(global_index_p, mat_coeffs)
         call set_col(global_index_p, mat_coeffs)
-        call set_entry(b, b_coeffs)
         call set_entry(diag, mat_coeffs)
+        call set_row(global_index_p, b_coeffs)
+        call set_entry(b, b_coeffs)
       end block
       
       !! Push equation to equation system
