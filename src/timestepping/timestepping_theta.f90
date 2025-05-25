@@ -72,5 +72,22 @@ contains
 
   end subroutine
 
+  module function create_transient_kernel() result(kernel)
+    class(transient_kernel), allocatable :: kernel
+
+    integer(ccs_int) :: current_step
+    
+    allocate(transient_theta_kernel :: kernel)
+
+    ! Perform initialisation
+    call kernel%init()
+    if (timestepping_is_active()) then
+      call get_current_step(current_step)
+      call kernel%set_step(current_step + 1)
+      call kernel%set_dt(get_timestep())
+    end if
+
+  end function create_transient_kernel
+
 end submodule
 

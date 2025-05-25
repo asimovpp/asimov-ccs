@@ -13,17 +13,17 @@ module transient_kernel_def
   type, extends(transient_kernel) :: transient_first_order_kernel
     contains
     procedure :: init => init_first_order
-  end type
+  end type transient_first_order_kernel
 
   type, extends(transient_kernel) :: transient_second_order_kernel
     contains
     procedure :: init => init_second_order
-  end type
+  end type transient_second_order_kernel
 
   type, extends(transient_kernel) :: transient_theta_kernel
     contains
     procedure :: init => init_theta
-  end type
+  end type transient_theta_kernel
 
   private :: init_first_order
   private :: init_second_order

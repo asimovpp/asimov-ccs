@@ -24,6 +24,7 @@ module timestepping
   public :: reset_timestepping
   public :: get_theoretical_order
   public :: timestepping_is_active
+  public :: create_transient_kernel
 
   interface
     !> Apply one timestep correction
@@ -119,6 +120,11 @@ module timestepping
       class(ccs_matrix), intent(inout) :: M !< equation system
       class(ccs_vector), intent(inout) :: b !< rhs vector
     end subroutine
+
+    !> Transient kernel constructor
+    module function create_transient_kernel() result(kernel)
+      class(transient_kernel), allocatable :: kernel
+    end function create_transient_kernel
 
   end interface
 

@@ -27,7 +27,7 @@ module transient_kernels
     procedure :: eval_coeffs
     procedure :: eval_explicit
     procedure :: cleanup_kernel
-  end type
+  end type transient_kernel
 
   abstract interface
     subroutine init(self)
@@ -36,8 +36,7 @@ module transient_kernels
     end subroutine
   end interface
 
-
-  contains
+contains
 
   subroutine set_step(self, step, restart)
     !! To be run at the begining of every timestep, it sets the right coefficients self%width, explicit_coeffs and implicit_coeff
