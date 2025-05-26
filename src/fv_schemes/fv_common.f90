@@ -219,6 +219,9 @@ contains
     real(ccs_real), dimension(3) :: x_p_prime, x_nb_prime
     real(ccs_real) :: interpol_factor
 
+    ! IMEX control: include advection implicitly (.false.), explicit advection only (.true.)
+    logical, parameter :: imex = .false.
+
     call get_max_faces(max_faces)
 
     call set_matrix_values_spec_nrows(1_ccs_int, mat_val_spec)
@@ -377,16 +380,22 @@ contains
         aP = aP - sgn * mf%values_ro(index_f) * face_area
         hoe = hoe + aP * phiP + aF * phiF
 
-        !! Low-order advection contribution
-        if ((sgn * mf%values_ro(index_f)) > 0.0_ccs_real) then
-          aP = sgn * mf%values_ro(index_f) * face_area
+        if (imex) then
+          !! Set implicit contribution to zero
+          aP = 0.0_ccs_real
           aF = 0.0_ccs_real
         else
-          aP = 0.0_ccs_real
-          aF = sgn * mf%values_ro(index_f) * face_area
+          !! Low-order advection contribution (implicit)
+          if ((sgn * mf%values_ro(index_f)) > 0.0_ccs_real) then
+            aP = sgn * mf%values_ro(index_f) * face_area
+            aF = 0.0_ccs_real
+          else
+            aP = 0.0_ccs_real
+            aF = sgn * mf%values_ro(index_f) * face_area
+          end if
+          aP = aP - sgn * mf%values_ro(index_f) * face_area
+          loe = loe + aP * phiP + aF * phiF
         end if
-        aP = aP - sgn * mf%values_ro(index_f) * face_area
-        loe = loe + aP * phiP + aF * phiF
       end block
 !!! <--- Advection coefficients ----
 
