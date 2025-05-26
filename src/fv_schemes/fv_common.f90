@@ -74,6 +74,8 @@ contains
     real(ccs_real) :: vol
 
     integer(ccs_int) :: local_n_cells
+
+    real(ccs_real) :: visc_avg
     
     call get_underrelaxation(run_options, phi, alpha)
     
@@ -102,6 +104,12 @@ contains
       call assemble_fluxes(phi, loc_p, rho, mf, mu, mat_coeffs, b_coeffs)
       
       !! Assemble cell-centred contributions
+      if (deferred_visc) then
+        visc_avg = average_field_over_faces(mu, loc_p)
+        visc_avg = visc_avg / (phi%Schmidt * rho%values_ro(index_p))
+      else
+        visc_avg = 1.0_ccs_real
+      end if
       block
         real(ccs_real) :: diag ! The diagonal coefficient
         real(ccs_real) :: b    ! The RHS 
@@ -115,11 +123,11 @@ contains
         ! Source terms
         select case(phi%name)
         case("u")
-          b = b - vol * pressure%x_gradients_ro(index_p)
-        case("v")
-          b = b - vol * pressure%y_gradients_ro(index_p)
-        case("w")
-          b = b - vol * pressure%z_gradients_ro(index_p)
+          b = b - vol * pressure%x_gradients_ro(index_p) / visc_avg
+        case("v")                                        
+          b = b - vol * pressure%y_gradients_ro(index_p) / visc_avg
+        case("w")                                       
+          b = b - vol * pressure%z_gradients_ro(index_p) / visc_avg
         end select
       
         ! Transient terms
@@ -127,7 +135,7 @@ contains
           block
             real(ccs_real) :: trans = 0 ! Transient contribution
             call transient%eval_coeffs(rho%values_ro(index_p), vol, trans)
-            diag = diag + trans
+            diag = diag + trans / visc_avg
           end block
           block
             real(ccs_real) :: trans = 0 ! Transient contribution
@@ -138,7 +146,7 @@ contains
               old = [ phi_old1_data(index_p), phi_old2_data(index_p) ]
             end if
             call transient%eval_explicit(rho%values_ro(index_p), vol, old, trans)
-            b = b + trans
+            b = b + trans / visc_avg
           end block
         end if
 
@@ -226,6 +234,8 @@ contains
 
     ! Locally-averaged viscosity
     real(ccs_real) :: visc_avg
+    real(ccs_real) :: visc_face
+    real(ccs_real) :: dens_face
 
     call get_max_faces(max_faces)
     call count_neighbours(loc_p, nnb)
@@ -252,8 +262,12 @@ contains
     loe = 0.0_ccs_real
 
     ! Compute locally-averaged viscosity
-    visc_avg = average_field_over_faces(mu, loc_p)
-    visc_avg = visc_avg / (phi%Schmidt * rho%values_ro(index_p))
+    if (deferred_visc) then
+      visc_avg = average_field_over_faces(mu, loc_p)
+      visc_avg = visc_avg / (phi%Schmidt * rho%values_ro(index_p))
+    else
+      visc_avg = 1.0_ccs_real
+    end if
 
     phiP = phi%values_ro(index_p)
 
@@ -319,12 +333,16 @@ contains
         real(ccs_real) :: diff_coeff ! The coefficient of diffusion
         real(ccs_real) :: SchmidtNo
         SchmidtNo = phi%Schmidt
+        call interpolate_field_to_face(mu, loc_f, visc_face)
+        call interpolate_field_to_face(rho, loc_f, dens_face)
+        visc_face = visc_face / (SchmidtNo * dens_face)
+        ! print *, visc_face, visc_avg, visc_face / visc_avg, 1 / visc_avg
+        
+        call calc_diffusion_coeff(index_p, j, phi%enable_cell_corrections, &
+             1.0_ccs_real, 1.0_ccs_real, &
+             1.0_ccs_real, 1.0_ccs_real, &
+             1.0_ccs_real, diff_coeff)
         if (.not. is_boundary) then
-          call calc_diffusion_coeff(index_p, j, phi%enable_cell_corrections, &
-               mu%values_ro(index_p), mu%values_ro(index_nb), &
-               rho%values_ro(index_p), rho%values_ro(index_nb), &
-               SchmidtNo, diff_coeff)
-
           if (phi%enable_cell_corrections) then
             grads(:, 1) = grad_phi_p(:)
             grads(:, 2) = grad_phi_nb(:)
@@ -332,15 +350,11 @@ contains
             rvecs(:, 2) = x_nb_prime(:) - x_nb(:)
           end if
         else
-          call calc_diffusion_coeff(index_p, j, .false., &
-               mu%values_ro(index_p), 0.0_ccs_real, &
-               rho%values_ro(index_p), 0.0_ccs_real, &
-               SchmidtNo, diff_coeff)
           ! Correct boundary face distance to distance to immaginary boundary "node"
           diff_coeff = diff_coeff / 2.0_ccs_real
         end if
         coeffs = diff_kernel%eval_coeffs(diff_coeff)
-        hoe = hoe + diff_kernel%eval_explicit(diff_coeff, interpol_factor, rvecs, grads)
+        hoe = hoe + (visc_face / visc_avg) * diff_kernel%eval_explicit(diff_coeff, interpol_factor, rvecs, grads)
       end block
 !!! <--- Diffusion coefficients ----
 
@@ -387,7 +401,7 @@ contains
         aP = (sgn * mf%values_ro(index_f) * face_area) * aP
         aF = (sgn * mf%values_ro(index_f) * face_area) * aF
         aP = aP - sgn * mf%values_ro(index_f) * face_area
-        hoe = hoe + aP * phiP + aF * phiF
+        hoe = hoe + (aP * phiP + aF * phiF) / visc_avg
 
         if (imex) then
           !! Set implicit contribution to zero
@@ -408,6 +422,10 @@ contains
       end block
 !!! <--- Advection coefficients ----
 
+      if (.not. deferred_visc) then
+        coeffs(:) = visc_face * coeffs(:)
+      end if
+
       adv_coeff_total = adv_coeff_total + aP
       diff_coeff_total = diff_coeff_total + coeffs(1)
       if (.not. is_boundary) then
@@ -423,6 +441,10 @@ contains
         
         diff_coeff_total = diff_coeff_total + aPb * coeffs(2)
         expl_bc = expl_bc - coeffs(2) * bP
+      end if
+
+      if (deferred_visc) then
+        hoe = hoe + (1.0_ccs_real - visc_face / visc_avg) * (coeffs(1) * phiP + coeffs(2) * phiF)
       end if
     end do
 
@@ -729,43 +751,55 @@ contains
     real(ccs_real), dimension(ndim) :: x_nb, x_p, x_f, x_nb_prime, x_p_prime
     real(ccs_real) :: interpol_factor, dx_orth
 
+    logical :: is_boundary
 
     associate (index_p => loc_f%index_p, &
-               j => loc_f%cell_face_ctr)
+         j => loc_f%cell_face_ctr)
 
       call create_cell_locator(index_p, loc_p)
-      call create_neighbour_locator(loc_p, j, loc_nb)
-      call get_local_index(loc_nb, index_nb)
+      call get_boundary_status(loc_f, is_boundary)
+      if (.not. is_boundary) then
+        call create_neighbour_locator(loc_p, j, loc_nb)
+        call get_local_index(loc_nb, index_nb)
 
-      if (phi%enable_cell_corrections) then
-        call get_face_normal(loc_f, n)
-        call get_centre(loc_p, x_p)
-        call get_centre(loc_nb, x_nb)
-        call get_centre(loc_f, x_f)
+        if (phi%enable_cell_corrections) then
+          call get_face_normal(loc_f, n)
+          call get_centre(loc_p, x_p)
+          call get_centre(loc_nb, x_nb)
+          call get_centre(loc_f, x_f)
 
-        dx_orth = min(dot_product(x_f - x_p, n), dot_product(x_nb - x_f, n))
-        x_nb_prime = x_f + dx_orth*n
-        x_p_prime = x_f - dx_orth*n
+          dx_orth = min(dot_product(x_f - x_p, n), dot_product(x_nb - x_f, n))
+          x_nb_prime = x_f + dx_orth*n
+          x_p_prime = x_f - dx_orth*n
 
-        grad_phi_p = [ phi%x_gradients_ro(index_p), phi%y_gradients_ro(index_p), phi%z_gradients_ro(index_p) ]
-        grad_phi_nb = [ phi%x_gradients_ro(index_nb), phi%y_gradients_ro(index_nb), phi%z_gradients_ro(index_nb) ]
+          grad_phi_p = [ phi%x_gradients_ro(index_p), phi%y_gradients_ro(index_p), phi%z_gradients_ro(index_p) ]
+          grad_phi_nb = [ phi%x_gradients_ro(index_nb), phi%y_gradients_ro(index_nb), phi%z_gradients_ro(index_nb) ]
 
-        face_correction = 0.5_ccs_real * (dot_product(grad_phi_p, x_p_prime - x_p) + dot_product(grad_phi_nb, x_nb_prime - x_nb)) 
-        face_value = 0.5_ccs_real * (phi%values_ro(index_p) + phi%values_ro(index_nb)) + face_correction
+          face_correction = 0.5_ccs_real * (dot_product(grad_phi_p, x_p_prime - x_p) + dot_product(grad_phi_nb, x_nb_prime - x_nb)) 
+          face_value = 0.5_ccs_real * (phi%values_ro(index_p) + phi%values_ro(index_nb)) + face_correction
+        else
+          call get_face_interpolation(loc_f, interpol_factor)
+          face_correction = 0.0_ccs_real
+          face_value = (interpol_factor * phi%values_ro(index_p) + (1.0_ccs_real - interpol_factor) * phi%values_ro(index_nb))
+        end if
+
+        if (present(face_correction_only)) then
+          face_correction_only = face_correction
+        end if
       else
-        call get_face_interpolation(loc_f, interpol_factor)
-        face_correction = 0.0_ccs_real
-        face_value = (interpol_factor * phi%values_ro(index_p) + (1.0_ccs_real - interpol_factor) * phi%values_ro(index_nb))
+        call get_centre(loc_p, x_p)
+        call get_centre(loc_f, x_f)
+        grad_phi_p = [ phi%x_gradients_ro(index_p), phi%y_gradients_ro(index_p), phi%z_gradients_ro(index_p) ]
+
+        face_value = phi%values_ro(index_p) + dot_product(grad_phi_p, x_f - x_p)
+
+        if (present(face_correction_only)) then
+          face_correction_only = 0.0_ccs_real
+        end if
       end if
-
-
-      if (present(face_correction_only)) then
-        face_correction_only = face_correction
-      end if
-
     end associate
 
-  end subroutine
+  end subroutine interpolate_field_to_face
 
   !> Calculates mass flux across given face. Note: assumes rho = 1
   module function calc_mass_flux_uvw(u_field, v_field, w_field, p, dpdx, dpdy, dpdz, invA, &

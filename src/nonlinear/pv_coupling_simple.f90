@@ -365,7 +365,7 @@ contains
     end if
 
     ! Compute the inverse diagonal coefficient
-    call scale_vec(1.0_ccs_real / dim, invA)
+    call scale_vec(1.0_ccs_real / dim / 100, invA) ! XXX: / 100 is a hack for deferred visc (mu=1.0e-2)
     call vec_reciprocal(invA)
     call update(invA)
 
