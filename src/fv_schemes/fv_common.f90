@@ -24,6 +24,8 @@ submodule(fv) fv_common
 
   implicit none
 
+  logical, parameter :: deferred_visc = .true.
+
 contains
 
   !> Computes fluxes and assign to matrix and RHS
@@ -220,9 +222,13 @@ contains
     real(ccs_real) :: interpol_factor
 
     ! IMEX control: include advection implicitly (.false.), explicit advection only (.true.)
-    logical, parameter :: imex = .false.
+    logical, parameter :: imex = .false. .or. deferred_visc
+
+    ! Locally-averaged viscosity
+    real(ccs_real) :: visc_avg
 
     call get_max_faces(max_faces)
+    call count_neighbours(loc_p, nnb)
 
     call set_matrix_values_spec_nrows(1_ccs_int, mat_val_spec)
     call set_matrix_values_spec_ncols(max_faces + 1, mat_val_spec)
@@ -245,9 +251,12 @@ contains
     hoe = 0.0_ccs_real
     loe = 0.0_ccs_real
 
+    ! Compute locally-averaged viscosity
+    visc_avg = average_field_over_faces(mu, loc_p)
+    visc_avg = visc_avg / (phi%Schmidt * rho%values_ro(index_p))
+
     phiP = phi%values_ro(index_p)
 
-    call count_neighbours(loc_p, nnb)
     do j = 1, nnb
       call create_neighbour_locator(loc_p, j, loc_nb)
       call get_boundary_status(loc_nb, is_boundary)
@@ -421,6 +430,40 @@ contains
     call set_entry((adv_coeff_total + diff_coeff_total), mat_coeffs)
     call set_entry((loe - hoe) + expl_bc, b_coeffs)
   end subroutine assemble_fluxes
+
+  real(ccs_real) function average_field_over_faces(phi, loc_p) result(phi_avg)
+
+    class(field), intent(in) :: phi
+    type(cell_locator), intent(in) :: loc_p
+
+    real(ccs_real) :: phi_face
+    
+    real(ccs_real) :: face_area
+    real(ccs_real) :: area_sum
+    
+    integer(ccs_int) :: index_p
+    integer(ccs_int) :: j
+    integer(ccs_int) :: nnb
+
+    type(face_locator) :: loc_f
+    
+    phi_avg = 0.0_ccs_real
+    area_sum = 0.0_ccs_real
+
+    call get_local_index(loc_p, index_p)
+
+    call count_neighbours(loc_p, nnb)
+    do j = 1, nnb
+      call create_face_locator(index_p, j, loc_f)
+      call get_face_area(loc_f, face_area)
+
+      call interpolate_field_to_face(phi, loc_f, phi_face)
+      phi_avg = phi_avg + phi_face * face_area
+      area_sum = area_sum + face_area
+    end do
+    phi_avg = phi_avg / area_sum
+    
+  end function average_field_over_faces
 
   !> Computes the matrix coefficient for cells in the interior of the mesh
   subroutine compute_coeffs(phi, rho, mf, mu, M, b)
