@@ -71,7 +71,6 @@ contains
     real(ccs_real) :: alpha
 
     integer(ccs_int) :: index_p        ! Local index
-    integer(ccs_int) :: global_index_p ! Global index
     type(cell_locator) :: loc_p
 
     real(ccs_real) :: vol
@@ -116,7 +115,6 @@ contains
     do index_p = 1, local_n_cells
       call create_cell_locator(index_p, loc_p)
       call get_volume(loc_p, vol)
-      call get_global_index(loc_p, global_index_p)
 
       !! Assemble flux contributions
       call assemble_fluxes(phi, loc_p, rho, mf, mu, a_p, b_p)
@@ -170,8 +168,8 @@ contains
         diag = diag / alpha
 
         ! Restore diagonal coefficient and B
-        diag_vec(index_p) = a_p
-        rhs_vec(index_p) = b_p
+        diag_vec(index_p) = diag
+        rhs_vec(index_p) = b
       end block
     end do
     
