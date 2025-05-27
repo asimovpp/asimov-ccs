@@ -234,6 +234,7 @@ contains
     call get_local_num_cells(local_num_cells)
 
     do index_p=1, local_num_cells
+      call clear_entries(mat_coeffs)
       call create_cell_locator(index_p, loc_p)
 
       call count_neighbours(loc_p, nnb)
