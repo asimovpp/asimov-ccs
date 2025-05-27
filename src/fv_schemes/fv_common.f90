@@ -45,7 +45,7 @@ contains
   module subroutine assemble_transport_equation(par_env, run_options, mesh, phi, flow, M, rhs)
 
     use core, only: get_underrelaxation
-    use utils, only: get_field, initialise, set_size
+    use utils, only: get_field, initialise, set_size, finalise
     use vec, only: create_vector
     use mat, only: get_matrix_diagonal, set_matrix_diagonal
 
@@ -267,11 +267,15 @@ contains
             call get_global_index(loc_nb, global_index_nb)
             call set_col(global_index_nb, mat_coeffs)
             call set_entry(coeffs(2), mat_coeffs)
-
-            call set_values(mat_coeffs, M)
           end block
         end if
       end do
+
+      call get_global_index(loc_p, global_index_p)
+      call set_col(global_index_p, mat_coeffs)
+      call set_entry(0.0_ccs_real, mat_coeffs)
+
+      call set_values(mat_coeffs, M)
     end do
 
   end subroutine build_init_assembly
@@ -330,6 +334,8 @@ contains
 
     call get_max_faces(max_faces)
     call count_neighbours(loc_p, nnb)
+
+    call get_local_index(loc_p, index_p)
 
     ! Initialise accumulators
     adv_coeff_total = 0.0_ccs_real

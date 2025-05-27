@@ -333,6 +333,8 @@ contains
     end if
 
     call build_init_assembly(M)
+    call update(M)
+    call finalise(M)
 
     ! u-velocity
     ! ----------
