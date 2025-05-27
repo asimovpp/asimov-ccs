@@ -42,14 +42,20 @@ contains
 
   end subroutine compute_fluxes
 
-  module subroutine assemble_transport_equation(run_options, phi, flow, M, rhs)
+  module subroutine assemble_transport_equation(par_env, run_options, mesh, phi, flow, M, rhs)
 
     use core, only: get_underrelaxation
-    use utils, only: get_field
+    use utils, only: get_field, initialise, set_size
+    use vec, only: create_vector
+    use mat, only: get_matrix_diagonal, set_matrix_diagonal
+
+    use types, only: vector_spec
 
     use timestepping, only: timestepping_is_active, create_transient_kernel
 
+    class(parallel_environment), allocatable, intent(in) :: par_env
     class(ccs_options), intent(in) :: run_options
+    type(ccs_mesh), intent(in) :: mesh
     class(field), intent(inout) :: phi
     class(fluid), intent(in) :: flow
     class(ccs_matrix), intent(inout) :: M
@@ -64,9 +70,6 @@ contains
     real(ccs_real), dimension(:), pointer :: phi_old2_data => null()
     real(ccs_real) :: alpha
 
-    type(matrix_values) :: mat_coeffs
-    type(vector_values) :: b_coeffs
-
     integer(ccs_int) :: index_p        ! Local index
     integer(ccs_int) :: global_index_p ! Global index
     type(cell_locator) :: loc_p
@@ -76,6 +79,13 @@ contains
     integer(ccs_int) :: local_n_cells
 
     real(ccs_real) :: visc_avg
+
+    real(ccs_real) :: a_p
+    real(ccs_real) :: b_p
+    real(ccs_real), dimension(:), pointer :: rhs_vec
+    class(ccs_vector), allocatable :: M_diag
+    real(ccs_real), dimension(:), pointer :: diag_vec
+    type(vector_spec) :: vec_properties
     
     call get_underrelaxation(run_options, phi, alpha)
     
@@ -93,6 +103,14 @@ contains
         call get_vector_data_readonly(phi%old_values(2)%vec, phi_old2_data)
       end if
     end if
+
+    ! Get diagonal and RHS vectors
+    call get_vector_data(rhs, rhs_vec)
+    call initialise(vec_properties)
+    call set_size(par_env, mesh, vec_properties)
+    call create_vector(vec_properties, M_diag)
+    call get_matrix_diagonal(M, M_diag)
+    call get_vector_data(M_diag, diag_vec)
     
     call get_local_num_cells(local_n_cells)
     do index_p = 1, local_n_cells
@@ -101,7 +119,7 @@ contains
       call get_global_index(loc_p, global_index_p)
 
       !! Assemble flux contributions
-      call assemble_fluxes(phi, loc_p, rho, mf, mu, mat_coeffs, b_coeffs)
+      call assemble_fluxes(phi, loc_p, rho, mf, mu, a_p, b_p)
       
       !! Assemble cell-centred contributions
       if (deferred_visc) then
@@ -113,13 +131,10 @@ contains
       block
         real(ccs_real) :: diag ! The diagonal coefficient
         real(ccs_real) :: b    ! The RHS 
-        ! Obtain diagonal coefficient and RHS
-        call set_row(global_index_p, mat_coeffs)
-        call set_col(global_index_p, mat_coeffs)
-        call get_entry(mat_coeffs, diag)
-        call set_row(global_index_p, b_coeffs)
-        call get_entry(b_coeffs, b)
       
+        diag = a_p
+        b = b_p
+
         ! Source terms
         select case(phi%name)
         case("u")
@@ -155,17 +170,19 @@ contains
         diag = diag / alpha
 
         ! Restore diagonal coefficient and B
-        call set_row(global_index_p, mat_coeffs)
-        call set_col(global_index_p, mat_coeffs)
-        call set_entry(diag, mat_coeffs)
-        call set_row(global_index_p, b_coeffs)
-        call set_entry(b, b_coeffs)
+        diag_vec(index_p) = a_p
+        rhs_vec(index_p) = b_p
       end block
-      
-      !! Push equation to equation system
-      call set_values(b_coeffs, rhs)
-      call set_values(mat_coeffs, M)
     end do
+    
+    ! Restore diagonal and RHS vectors
+    call restore_vector_data(rhs, rhs_vec)
+    call restore_vector_data(M_diag, diag_vec)
+    call set_matrix_diagonal(M_diag, M)
+
+    ! XXX: Is this necessary?
+    call update(rhs)
+    call update(M)
 
     nullify(rho, mf, mu)
     !! If this is u,v,w restore the pressure gradient
@@ -558,7 +575,7 @@ contains
     call get_local_num_cells(local_num_cells) 
     do index_p = 1, local_num_cells
       call create_cell_locator(index_p, loc_p)
-      call assemble_fluxes(phi, loc_p, rho, mf, mu, mat_coeffs, b_coeffs)
+      ! call assemble_fluxes(phi, loc_p, rho, mf, mu, mat_coeffs, b_coeffs)
       call set_values(b_coeffs, b)
       call set_values(mat_coeffs, M)
     end do
