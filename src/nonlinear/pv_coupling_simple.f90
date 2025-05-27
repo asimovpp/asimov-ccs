@@ -260,6 +260,7 @@ contains
   subroutine calculate_velocity(par_env, run_options, flow, eval_sources, ivar, M, vec, &
                                 lin_sys, invA, workvec, sourcevec, res, residuals)
 
+    use fv, only: build_init_assembly
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< the parallel environment
     type(ccs_options), intent(in) :: run_options
@@ -330,6 +331,8 @@ contains
       end if
       first_time = .false.
     end if
+
+    call build_init_assembly(M)
 
     ! u-velocity
     ! ----------
@@ -419,7 +422,7 @@ contains
 
     ! First zero matrix/RHS
     call zero(vec)
-    call zero(M)
+    ! call zero(M)
     
     ! Select either field residuals or reuse 'input_res'
     if (allocated(u%residuals)) then

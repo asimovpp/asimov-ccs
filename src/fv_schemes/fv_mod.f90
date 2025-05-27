@@ -29,6 +29,7 @@ module fv
   public :: add_fixed_source
   public :: add_linear_source
   public :: zero_sources
+  public :: build_init_assembly
   
   interface calc_advection_coeff
     module procedure calc_advection_coeff_cds
@@ -209,6 +210,10 @@ module fv
       class(ccs_vector), intent(inout) :: S !< The source field
       class(ccs_matrix), intent(inout) :: M !< The system
     end subroutine add_linear_source
+
+    module subroutine build_init_assembly(M)
+      class(ccs_matrix), intent(inout) :: M   !< matrix object
+    end subroutine
     
   end interface
 
