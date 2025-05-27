@@ -556,8 +556,7 @@ contains
   end function average_field_over_faces
 
   !> Computes the matrix coefficient for cells in the interior of the mesh
-  subroutine compute_coeffs(phi, rho, mf, mu, M, b)
-    
+  subroutine compute_coeffs(phi, rho, mf, mu, M, b)    
     class(field), intent(inout) :: phi                !< scalar field structure
     class(field), intent(in) :: rho ! Density field
     class(field), intent(in) :: mf  ! Advecting velocity field (face-centred)
@@ -572,6 +571,9 @@ contains
     
     integer(ccs_int) :: index_p
     type(cell_locator) :: loc_p
+
+            ! Silence unused compiler warnings
+    associate(foo => rho, bar => mf, baz => mu, duck => phi); end associate
 
     call get_local_num_cells(local_num_cells) 
     do index_p = 1, local_num_cells
