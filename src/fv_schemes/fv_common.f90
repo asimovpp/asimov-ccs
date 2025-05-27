@@ -182,6 +182,79 @@ contains
     
   end subroutine assemble_transport_equation
 
+  subroutine build_init_assembly(phi, loc_p, mat_coeffs)
+
+    use fv_kernels, only: diffusion_kernel
+
+    class(field), intent(in) :: phi
+    type(cell_locator), intent(in) :: loc_p
+    type(matrix_values), intent(out) :: mat_coeffs
+
+    type(matrix_values_spec) :: mat_val_spec
+
+    type(diffusion_kernel) :: diff_kernel
+
+    real(ccs_real), dimension(2) :: coeffs
+
+    ! Indexing
+    integer(ccs_int) :: index_p        ! Central cell index
+    integer(ccs_int) :: global_index_p ! Central cell index (global)
+    integer(ccs_int) :: j ! cell-face counter
+    integer(ccs_int) :: nnb ! Face/neighbour count
+    type(neighbour_locator) :: loc_nb
+    integer(ccs_int) :: max_faces
+    logical :: is_boundary
+
+    ! IMEX control: include advection implicitly (.false.), explicit advection only (.true.)
+    logical, parameter :: imex = .false. .or. deferred_visc
+
+    call get_max_faces(max_faces)
+    call count_neighbours(loc_p, nnb)
+
+    call set_matrix_values_spec_nrows(1_ccs_int, mat_val_spec)
+    call set_matrix_values_spec_ncols(max_faces + 1, mat_val_spec)
+    call create_matrix_values(mat_val_spec, mat_coeffs)
+    call set_mode(insert_mode, mat_coeffs)
+
+    ! Get/set global location in equation
+    call get_local_index(loc_p, index_p)
+    call get_global_index(loc_p, global_index_p)
+    call set_row(global_index_p, mat_coeffs)
+
+    ! Initialise accumulators
+
+    do j = 1, nnb
+      call create_neighbour_locator(loc_p, j, loc_nb)
+      call get_boundary_status(loc_nb, is_boundary)
+
+!!! ---- Diffusion coefficients --->
+      block
+        real(ccs_real) :: diff_coeff ! The coefficient of diffusion
+        
+        call calc_diffusion_coeff(index_p, j, phi%enable_cell_corrections, &
+             1.0_ccs_real, 1.0_ccs_real, &
+             1.0_ccs_real, 1.0_ccs_real, &
+             1.0_ccs_real, diff_coeff)
+        if (is_boundary) then
+          ! Correct boundary face distance to distance to immaginary boundary "node"
+          diff_coeff = diff_coeff / 2.0_ccs_real
+        end if
+        coeffs = diff_kernel%eval_coeffs(diff_coeff)
+      end block
+!!! <--- Diffusion coefficients ----
+
+      if (.not. is_boundary) then
+        block
+          integer(ccs_int) :: global_index_nb
+          call get_global_index(loc_nb, global_index_nb)
+          call set_col(global_index_nb, mat_coeffs)
+          call set_entry(coeffs(2), mat_coeffs)
+        end block
+      end if
+    end do
+
+  end subroutine build_init_assembly
+
   subroutine assemble_fluxes(phi, loc_p, rho, mf, mu, mat_coeffs, b_coeffs)
 
     use fv_kernels, only: diffusion_kernel
