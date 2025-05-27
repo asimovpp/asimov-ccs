@@ -182,6 +182,82 @@ contains
     
   end subroutine assemble_transport_equation
 
+  subroutine build_init_assembly(M)
+
+    use fv_kernels, only: diffusion_kernel
+
+    class(ccs_matrix), intent(inout) :: M   !< matrix object
+
+    type(matrix_values) :: mat_coeffs
+    type(cell_locator) :: loc_p
+    type(matrix_values_spec) :: mat_val_spec
+
+    type(diffusion_kernel) :: diff_kernel
+
+    real(ccs_real), dimension(2) :: coeffs
+
+    ! Indexing
+    integer(ccs_int) :: index_p        ! Central cell index
+    integer(ccs_int) :: global_index_p ! Central cell index (global)
+    integer(ccs_int) :: j ! cell-face counter
+    integer(ccs_int) :: nnb ! Face/neighbour count
+    type(neighbour_locator) :: loc_nb
+    integer(ccs_int) :: max_faces
+    integer(ccs_int) :: local_num_cells
+    logical :: is_boundary
+
+
+    call get_max_faces(max_faces)
+
+    call set_matrix_values_spec_nrows(1_ccs_int, mat_val_spec)
+    call set_matrix_values_spec_ncols(max_faces + 1, mat_val_spec)
+    call create_matrix_values(mat_val_spec, mat_coeffs)
+    call set_mode(insert_mode, mat_coeffs)
+
+    call get_local_num_cells(local_num_cells)
+
+    do index_p=1, local_num_cells
+      call create_cell_locator(index_p, loc_p)
+
+      call count_neighbours(loc_p, nnb)
+
+      ! Get/set global location in equation
+      call get_global_index(loc_p, global_index_p)
+      call set_row(global_index_p, mat_coeffs)
+
+      ! Initialise accumulators
+
+      do j = 1, nnb
+        call create_neighbour_locator(loc_p, j, loc_nb)
+        call get_boundary_status(loc_nb, is_boundary)
+        if (.not. is_boundary) then
+
+  !!! ---- Diffusion coefficients --->
+          block
+            real(ccs_real) :: diff_coeff ! The coefficient of diffusion
+            
+            call calc_diffusion_coeff(index_p, j, .false., &
+                1.0_ccs_real, 1.0_ccs_real, &
+                1.0_ccs_real, 1.0_ccs_real, &
+                1.0_ccs_real, diff_coeff)
+            coeffs = diff_kernel%eval_coeffs(diff_coeff)
+          end block
+  !!! <--- Diffusion coefficients ----
+
+          block
+            integer(ccs_int) :: global_index_nb
+            call get_global_index(loc_nb, global_index_nb)
+            call set_col(global_index_nb, mat_coeffs)
+            call set_entry(coeffs(2), mat_coeffs)
+
+            call set_values(mat_coeffs, M)
+          end block
+        end if
+      end do
+    end do
+
+  end subroutine build_init_assembly
+
   subroutine assemble_fluxes(phi, loc_p, rho, mf, mu, mat_coeffs, b_coeffs)
 
     use fv_kernels, only: diffusion_kernel
