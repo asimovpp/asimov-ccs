@@ -30,7 +30,7 @@ ifeq ($(GFORTRAN_VER_GTE10),0)
   FFLAGS += -fno-range-check -Wno-conversion # allow compilation of zcurve mortif library using GCC 9
 endif
 
-FFLAGS += -fopenmp
+FFLAGS += -fopenmp -fopenmp-force-usm
 FFLAGS += -J$(OBJ_DIR)
 MPIRUN = mpirun --oversubscribe
 

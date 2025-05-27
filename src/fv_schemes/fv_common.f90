@@ -85,7 +85,14 @@ contains
     class(ccs_vector), allocatable :: M_diag
     real(ccs_real), dimension(:), pointer :: diag_vec
     type(vector_spec) :: vec_properties
+
+    !! Horrible, horrible pointers
+    real(ccs_real), dimension(:), pointer :: pgrad => null()
+    real(ccs_real), dimension(:), pointer :: rho_values => null()
+    real(ccs_real), dimension(:), pointer :: phi_values => null()
     
+    real(ccs_real) :: SchmidtNo
+
     call get_underrelaxation(run_options, phi, alpha)
     
     call get_field(flow, "density", rho)
@@ -94,6 +101,18 @@ contains
     
     !! If this is u,v,w get the pressure gradient for source term contribution
     call get_field(flow, "p", pressure)
+
+    select case(phi%name)
+    case("u")
+      pgrad => pressure%x_gradients_ro
+    case("v")                                        
+      pgrad => pressure%y_gradients_ro
+    case("w")                                       
+      pgrad => pressure%z_gradients_ro
+    end select
+    rho_values => rho%values_ro
+    phi_values => phi%values_ro
+    SchmidtNo = phi%Schmidt
     
     if (timestepping_is_active()) then
       transient = create_transient_kernel()
@@ -112,6 +131,7 @@ contains
     call get_vector_data(M_diag, diag_vec)
     
     call get_local_num_cells(local_n_cells)
+!$omp target teams distribute parallel do
     do index_p = 1, local_n_cells
       call create_cell_locator(index_p, loc_p)
       call get_volume(loc_p, vol)
@@ -122,7 +142,7 @@ contains
       !! Assemble cell-centred contributions
       if (deferred_visc) then
         visc_avg = average_field_over_faces(mu, loc_p)
-        visc_avg = visc_avg / (phi%Schmidt * rho%values_ro(index_p))
+        visc_avg = visc_avg / (SchmidtNo * rho_values(index_p))
       else
         visc_avg = 1.0_ccs_real
       end if
@@ -134,37 +154,36 @@ contains
         b = b_p
 
         ! Source terms
-        select case(phi%name)
-        case("u")
-          b = b - vol * pressure%x_gradients_ro(index_p) / visc_avg
-        case("v")                                        
-          b = b - vol * pressure%y_gradients_ro(index_p) / visc_avg
-        case("w")                                       
-          b = b - vol * pressure%z_gradients_ro(index_p) / visc_avg
-        end select
+        b = b - vol * pgrad(index_p) / visc_avg
       
         ! Transient terms
         if (timestepping_is_active()) then
           block
-            real(ccs_real) :: trans = 0 ! Transient contribution
-            call transient%eval_coeffs(rho%values_ro(index_p), vol, trans)
-            diag = diag + trans / visc_avg
-          end block
-          block
-            real(ccs_real) :: trans = 0 ! Transient contribution
-            real(ccs_real), dimension(transient%get_width()) :: old
-            if (transient%get_width() == 1) then
-              old = [ phi_old1_data(index_p) ]
-            else
-              old = [ phi_old1_data(index_p), phi_old2_data(index_p) ]
-            end if
-            call transient%eval_explicit(rho%values_ro(index_p), vol, old, trans)
-            b = b + trans / visc_avg
+            real(ccs_real), parameter :: dt = 1.0e-3_ccs_real
+            integer, parameter :: trans_width = 1
+            block
+              real(ccs_real) :: trans = 0 ! Transient contribution
+              !call transient%eval_coeffs(rho_values(index_p), vol, trans)
+              trans = vol * rho_values(index_p) / dt
+              diag = diag + trans / visc_avg
+            end block
+            block
+              real(ccs_real) :: trans = 0 ! Transient contribution
+              real(ccs_real), dimension(trans_width) :: old
+              !if (trans_width == 1) then
+                old = [ phi_old1_data(index_p) ]
+              !else
+              !  old = [ phi_old1_data(index_p), phi_old2_data(index_p) ]
+              !end if
+              ! call transient%eval_explicit(rho_values(index_p), vol, old, trans)
+              trans = vol * rho_values(index_p) * old(1) / dt
+              b = b + trans / visc_avg
+            end block
           end block
         end if
 
         ! Perform underrelaxation
-        b = b + ((1 - alpha) / alpha) * diag * phi%values_ro(index_p)
+        b = b + ((1 - alpha) / alpha) * diag * phi_values(index_p)
         diag = diag / alpha
 
         ! Restore diagonal coefficient and B
@@ -172,6 +191,7 @@ contains
         rhs_vec(index_p) = b
       end block
     end do
+
     
     ! Restore diagonal and RHS vectors
     call restore_vector_data(rhs, rhs_vec)
@@ -187,6 +207,10 @@ contains
     if (associated(pressure)) then
       nullify(pressure)
     end if
+    nullify(pgrad)
+
+    nullify(rho_values)
+    nullify(phi_values)
 
     if (timestepping_is_active()) then
       call restore_vector_data_readonly(phi%old_values(1)%vec, phi_old1_data)
