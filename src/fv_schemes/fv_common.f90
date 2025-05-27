@@ -182,7 +182,7 @@ contains
     
   end subroutine assemble_transport_equation
 
-  subroutine build_init_assembly(M)
+  module subroutine build_init_assembly(M)
 
     use fv_kernels, only: diffusion_kernel
 
