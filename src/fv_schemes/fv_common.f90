@@ -95,6 +95,8 @@ contains
     end if
     
     call get_local_num_cells(local_n_cells)
+
+!$omp target teams distribute parallel do
     do index_p = 1, local_n_cells
       call create_cell_locator(index_p, loc_p)
       call get_volume(loc_p, vol)
@@ -166,6 +168,7 @@ contains
       call set_values(b_coeffs, rhs)
       call set_values(mat_coeffs, M)
     end do
+!!! !$omp end target teams distribute parallel do
 
     nullify(rho, mf, mu)
     !! If this is u,v,w restore the pressure gradient
