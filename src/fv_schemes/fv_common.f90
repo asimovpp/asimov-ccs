@@ -677,6 +677,7 @@ contains
 
   !> Compute the coefficients of the boundary condition
   pure subroutine compute_boundary_coeffs_ll(phi, component, loc_p, loc_f, normal, a, b)
+    !$omp declare target
 
     type(static_field), intent(in) :: phi                       !< the field for which boundary values are being computed
     integer(ccs_int), intent(in) :: component             !< integer indicating direction of velocity field component
@@ -868,6 +869,7 @@ contains
 
   !> Linear interpolate of BC profile 
   pure module subroutine get_value_from_bc_profile(x, profile, bc_value)
+    !$omp declare target
     real(ccs_real), dimension(:), intent(in) :: x
     type(bc_profile), intent(in) :: profile
     real(ccs_real), intent(out) :: bc_value
