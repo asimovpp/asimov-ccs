@@ -26,6 +26,15 @@ submodule(fv) fv_common
 
   logical, parameter :: deferred_visc = .true.
 
+  type static_field
+     real(ccs_real), dimension(:), pointer :: values
+     real(ccs_real), dimension(:), pointer :: x_gradients, y_gradients, z_gradients
+     type(bc_config) :: bcs ! Ideally this would be a pointer, but this would have wide-ranging changes in field class
+     real(ccs_real) :: Schmidt
+   contains
+     final :: finalise_static_field
+  end type static_field
+
 contains
 
   !> Computes fluxes and assign to matrix and RHS
@@ -95,6 +104,7 @@ contains
     
     real(ccs_real) :: SchmidtNo
     character(len=:), allocatable :: phi_name
+    type(static_field) :: phi_static
 
     call get_underrelaxation(run_options, phi, alpha)
     
@@ -136,6 +146,7 @@ contains
     call get_matrix_diagonal(M, M_diag)
     call get_vector_data(M_diag, diag_vec)
     
+    phi_static = create_static_field(phi)
     call get_local_num_cells(local_n_cells)
 !$omp target teams distribute parallel do
     do index_p = 1, local_n_cells
@@ -143,7 +154,7 @@ contains
       call get_volume(loc_p, vol)
 
       !! Assemble flux contributions
-      call assemble_fluxes_ll(phi_values, phi_name, SchmidtNo, loc_p, rho_values, mf_values, mu_values, &
+      call assemble_fluxes_ll(phi_static, phi_values, phi_name, SchmidtNo, loc_p, rho_values, mf_values, mu_values, &
                               a_p, b_p)
       
       !! Assemble cell-centred contributions
@@ -322,10 +333,11 @@ contains
 
   end subroutine assemble_fluxes
 
-  subroutine assemble_fluxes_ll(phi, phi_name, SchmidtNo, loc_p, rho, mf, mu, a_val, b_val)
+  subroutine assemble_fluxes_ll(phi_static, phi, phi_name, SchmidtNo, loc_p, rho, mf, mu, a_val, b_val)
 
     use fv_kernels, only: diffusion_kernel
 
+    type(static_field), intent(in) :: phi_static
     real(ccs_real), dimension(:), intent(in) :: phi
     character(len=*), intent(in) :: phi_name
     real(ccs_real), intent(in) :: SchmidtNo
@@ -447,7 +459,7 @@ contains
           else
             component = 0
           end if
-          call compute_boundary_coeffs(phi, component, loc_p, loc_f, face_normal, aPb, bP)
+          call compute_boundary_coeffs_ll(phi_static, component, loc_p, loc_f, face_normal, aPb, bP)
 
           ! Use boundary condition to compute ghost neighbour value
           phiF = aPb * phiP + bP
@@ -662,17 +674,11 @@ contains
     bc_value = 0.5_ccs_real * (phi%values_ro(index_p) + (b + a * phi%values_ro(index_p)))
 
   end subroutine compute_boundary_values
-  
 
-  pure module subroutine compute_boundary_coeffs_ll(bc_types, bc_values, bc_ids, index_p, x_gradients, y_gradients, z_gradients, component, loc_p, loc_f, normal, a, b)
+  !> Compute the coefficients of the boundary condition
+  pure subroutine compute_boundary_coeffs_ll(phi, component, loc_p, loc_f, normal, a, b)
 
-    integer(ccs_int), dimension(:), pointer, intent(in) :: bc_types
-    real(ccs_real), dimension(:), pointer, intent(in) :: bc_values
-    integer(ccs_int), dimension(:), pointer, intent(in) :: bc_ids
-    integer(ccs_int), intent(in) :: index_p
-    real(ccs_real), dimension(:), pointer, intent(in) :: x_gradients  !< pointer to array containing x_gradients
-    real(ccs_real), dimension(:), pointer, intent(in) :: y_gradients  !< pointer to array containing y_gradients
-    real(ccs_real), dimension(:), pointer, intent(in) :: z_gradients  !< pointer to array containing z_gradients
+    type(static_field), intent(in) :: phi                       !< the field for which boundary values are being computed
     integer(ccs_int), intent(in) :: component             !< integer indicating direction of velocity field component
     type(cell_locator), intent(in) :: loc_p               !< location of cell
     type(face_locator), intent(in) :: loc_f               !< location of face
@@ -699,17 +705,17 @@ contains
     call get_local_index(loc_p, index_p)
     call create_neighbour_locator(loc_p, loc_f%cell_face_ctr, loc_nb)
     call get_local_index(loc_nb, index_nb)
-    call get_bc_index_ll(bc_ids, index_nb, index_bc)
+    call get_bc_index_ll(phi%bcs%ids, index_nb, index_bc)
 
-    select case (bc_types(index_bc))
+    select case (phi%bcs%bc_types(index_bc))
     case (bc_type_dirichlet)
       a = -1.0_ccs_real
-      b = 2.0_ccs_real * bc_values(index_bc)
+      b = 2.0_ccs_real * phi%bcs%values(index_bc)
     case (bc_type_extrapolate)
       call get_distance(loc_p, loc_f, dx)
 
       a = 1.0_ccs_real
-      b = 2.0_ccs_real * (x_gradients(index_p) * dx(1) + y_gradients(index_p) * dx(2) + z_gradients(index_p) * dx(3))
+      b = 2.0_ccs_real * (phi%x_gradients(index_p) * dx(1) + phi%y_gradients(index_p) * dx(2) + phi%z_gradients(index_p) * dx(3))
     case (bc_type_sym)  ! XXX: Make sure this works as intended for symmetric BC.
       select case (component)
       case (0)
@@ -742,17 +748,17 @@ contains
       dxmag = norm2(dx)
 
       a = 1.0_ccs_real
-      b = (2.0_ccs_real * dxmag) * bc_values(index_bc)
-    ! case (bc_type_profile)
-    !   call get_centre(loc_f, x)
-    !   if (allocated(phi%bcs%profiles(index_bc)%centre)) then
-    !     call get_value_from_bc_profile(x, phi%bcs%profiles(index_bc), bc_value)
-    !   else
-    !     bc_value = 0.0_ccs_real
-    !   end if
+      b = (2.0_ccs_real * dxmag) * phi%bcs%values(index_bc)
+    case (bc_type_profile)
+      call get_centre(loc_f, x)
+      if (allocated(phi%bcs%profiles(index_bc)%centre)) then
+        call get_value_from_bc_profile(x, phi%bcs%profiles(index_bc), bc_value)
+      else
+        bc_value = 0.0_ccs_real
+      end if
 
-    !   a = -1.0_ccs_real
-    !   b = 2.0_ccs_real * bc_value
+      a = -1.0_ccs_real
+      b = 2.0_ccs_real * bc_value
     case default
       ! Set coefficients to cause divergence
       ! Prevents "unused variable" compiler errors
@@ -762,8 +768,8 @@ contains
       error stop unknown_bc_type ! Unknown BC type
     end select
 
-  end subroutine
-
+  end subroutine compute_boundary_coeffs_ll
+  
 
   !> Compute the coefficients of the boundary condition
   pure module subroutine compute_boundary_coeffs(phi, component, loc_p, loc_f, normal, a, b)
@@ -1401,4 +1407,30 @@ contains
     
   end subroutine add_linear_source
 
+  ! Create a static field wrapper, this gives a concrete type that points to the contents of a
+  ! polymorphic field.
+  type(static_field) function create_static_field(phi) result(wrapper)
+
+    class(field), intent(in) :: phi
+
+    wrapper%values => phi%values_ro
+    wrapper%x_gradients => phi%x_gradients_ro
+    wrapper%y_gradients => phi%y_gradients_ro
+    wrapper%z_gradients => phi%z_gradients_ro
+    wrapper%bcs = phi%bcs
+    wrapper%Schmidt = phi%Schmidt
+    
+  end function create_static_field
+
+  ! Ensure wrapper is nullified
+  subroutine finalise_static_field(wrapper)
+
+    type(static_field), intent(inout) :: wrapper
+
+    nullify(wrapper%values)
+    nullify(wrapper%x_gradients, wrapper%y_gradients, wrapper%z_gradients)
+    ! nullify(wrapper%bcs)
+
+  end subroutine
+  
 end submodule fv_common

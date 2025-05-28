@@ -122,7 +122,7 @@ contains
 
   !> Gets the index of the given boundary condition within the bc struct arrays
   pure subroutine get_bc_index_ll(bc_ids, index_nb, index_bc)
-    integer(ccs_int), dimension(:), pointer, intent(in) :: bc_ids
+    integer(ccs_int), dimension(:), intent(in) :: bc_ids
     integer(ccs_int), intent(in) :: index_nb  !< The index of the neighbouring boundary cell
     integer(ccs_int), intent(out) :: index_bc !< The index of the appropriate boundary in the bc struct
 
