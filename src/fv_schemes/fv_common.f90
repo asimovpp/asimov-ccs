@@ -90,8 +90,11 @@ contains
     real(ccs_real), dimension(:), pointer :: pgrad => null()
     real(ccs_real), dimension(:), pointer :: rho_values => null()
     real(ccs_real), dimension(:), pointer :: phi_values => null()
+    real(ccs_real), dimension(:), pointer :: mf_values => null()
+    real(ccs_real), dimension(:), pointer :: mu_values => null()
     
     real(ccs_real) :: SchmidtNo
+    character(len=:), allocatable :: phi_name
 
     call get_underrelaxation(run_options, phi, alpha)
     
@@ -112,7 +115,10 @@ contains
     end select
     rho_values => rho%values_ro
     phi_values => phi%values_ro
+    mf_values => mf%values_ro
+    mu_values => mu%values_ro
     SchmidtNo = phi%Schmidt
+    phi_name = trim(phi%name)
     
     if (timestepping_is_active()) then
       transient = create_transient_kernel()
@@ -137,7 +143,8 @@ contains
       call get_volume(loc_p, vol)
 
       !! Assemble flux contributions
-      call assemble_fluxes(phi, loc_p, rho, mf, mu, a_p, b_p)
+      call assemble_fluxes_ll(phi_values, phi_name, SchmidtNo, loc_p, rho_values, mf_values, mu_values, &
+                              a_p, b_p)
       
       !! Assemble cell-centred contributions
       if (deferred_visc) then
@@ -191,7 +198,6 @@ contains
         rhs_vec(index_p) = b
       end block
     end do
-
     
     ! Restore diagonal and RHS vectors
     call restore_vector_data(rhs, rhs_vec)
@@ -211,6 +217,8 @@ contains
 
     nullify(rho_values)
     nullify(phi_values)
+    nullify(mf_values)
+    nullify(mu_values)
 
     if (timestepping_is_active()) then
       call restore_vector_data_readonly(phi%old_values(1)%vec, phi_old1_data)
@@ -304,13 +312,27 @@ contains
 
   subroutine assemble_fluxes(phi, loc_p, rho, mf, mu, a_val, b_val)
 
-    use fv_kernels, only: diffusion_kernel
-
     class(field), intent(in) :: phi
     type(cell_locator), intent(in) :: loc_p
     class(field), intent(in) :: rho
     class(field), intent(in) :: mf
     class(field), intent(in) :: mu
+    real(ccs_real), intent(out) :: a_val
+    real(ccs_real), intent(out) :: b_val
+
+  end subroutine assemble_fluxes
+
+  subroutine assemble_fluxes_ll(phi, phi_name, SchmidtNo, loc_p, rho, mf, mu, a_val, b_val)
+
+    use fv_kernels, only: diffusion_kernel
+
+    real(ccs_real), dimension(:), intent(in) :: phi
+    character(len=*), intent(in) :: phi_name
+    real(ccs_real), intent(in) :: SchmidtNo
+    type(cell_locator), intent(in) :: loc_p
+    real(ccs_real), dimension(:), intent(in) :: rho
+    real(ccs_real), dimension(:), intent(in) :: mf
+    real(ccs_real), dimension(:), intent(in) :: mu
     real(ccs_real), intent(out) :: a_val
     real(ccs_real), intent(out) :: b_val
 
@@ -368,13 +390,14 @@ contains
 
     ! Compute locally-averaged viscosity
     if (deferred_visc) then
-      visc_avg = average_field_over_faces(mu, loc_p)
-      visc_avg = visc_avg / (phi%Schmidt * rho%values_ro(index_p))
+      !visc_avg = average_field_over_faces(mu, loc_p)
+      visc_avg = mu(index_p) ! XXX: Only works for constant viscosity!
+      visc_avg = visc_avg / (SchmidtNo * rho(index_p))
     else
       visc_avg = 1.0_ccs_real
     end if
 
-    phiP = phi%values_ro(index_p)
+    phiP = phi(index_p)
 
     do j = 1, nnb
       call create_neighbour_locator(loc_p, j, loc_nb)
@@ -389,37 +412,37 @@ contains
       call get_face_interpolation(loc_f, interpol_factor)
 
       if (.not. is_boundary) then
-        phiF = phi%values_ro(index_nb)
+        phiF = phi(index_nb)
 
-        if (phi%enable_cell_corrections) then
-          block
-            real(ccs_real) :: dx_orth
-            call get_centre(loc_p, x_p)
-            call get_centre(loc_nb, x_nb)
-            call get_centre(loc_f, x_f)
+        !!! if (phi%enable_cell_corrections) then
+        !!!   block
+        !!!     real(ccs_real) :: dx_orth
+        !!!     call get_centre(loc_p, x_p)
+        !!!     call get_centre(loc_nb, x_nb)
+        !!!     call get_centre(loc_f, x_f)
 
-            dx_orth = min(dot_product(x_f - x_p, face_normal), &
-                 dot_product(x_nb - x_f, face_normal))
-            x_nb_prime = x_f + dx_orth * face_normal
-            x_p_prime = x_f - dx_orth * face_normal
-            
-            grad_phi_p = [ phi%x_gradients_ro(index_p), &
-                 phi%y_gradients_ro(index_p), &
-                 phi%z_gradients_ro(index_p) ]
-            grad_phi_nb = [ phi%x_gradients_ro(index_nb), &
-                 phi%y_gradients_ro(index_nb), &
-                 phi%z_gradients_ro(index_nb) ]
-          end block
-        end if
+        !!!     dx_orth = min(dot_product(x_f - x_p, face_normal), &
+        !!!          dot_product(x_nb - x_f, face_normal))
+        !!!     x_nb_prime = x_f + dx_orth * face_normal
+        !!!     x_p_prime = x_f - dx_orth * face_normal
+        !!!     
+        !!!     grad_phi_p = [ phi%x_gradients_ro(index_p), &
+        !!!          phi%y_gradients_ro(index_p), &
+        !!!          phi%z_gradients_ro(index_p) ]
+        !!!     grad_phi_nb = [ phi%x_gradients_ro(index_nb), &
+        !!!          phi%y_gradients_ro(index_nb), &
+        !!!          phi%z_gradients_ro(index_nb) ]
+        !!!   end block
+        !!! end if
       else
         block
           integer(ccs_int) :: component
 
-          if (phi%name == "u") then
+          if (phi_name == "u") then
             component = 1
-          else if (phi%name == "v") then
+          else if (phi_name == "v") then
             component = 2
-          else if (phi%name == "w") then
+          else if (phi_name == "w") then
             component = 3
           else
             component = 0
@@ -547,7 +570,7 @@ contains
 
     a_val = adv_coeff_total + diff_coeff_total
     b_val = (loe - hoe) + expl_bc
-  end subroutine assemble_fluxes
+  end subroutine assemble_fluxes_ll
 
   real(ccs_real) function average_field_over_faces(phi, loc_p) result(phi_avg)
 
