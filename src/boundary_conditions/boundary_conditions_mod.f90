@@ -128,14 +128,14 @@ contains
     integer(ccs_int), intent(out) :: index_bc !< The index of the appropriate boundary in the bc struct
 
     ! Local variable
-    integer(ccs_int), dimension(1) :: index_tmp ! The intrinsic returns a rank-1 array ...
+    integer(ccs_int) :: index_tmp ! The intrinsic returns a rank-1 array ...
 
-    index_tmp = findloc(bc_ids, -index_nb)
-    if (index_tmp(1) == 0) then
+    index_tmp = findloc(bc_ids, -index_nb, dim=1, kind=ccs_int)
+    if (index_tmp == 0) then
       error stop bc_index_not_found ! BC index not found
     end if
     
-    index_bc = index_tmp(1)
+    index_bc = index_tmp
   end subroutine get_bc_index_ll
 
  

@@ -12,7 +12,7 @@ contains
   ! Note that the flux_coeff is expected of the form
   !   d_f = Gamma_f A_f / |dx|
   module pure function diffusion_coeffs(self, flux_coeff) result(coeffs)
-
+!$omp declare target
     class(diffusion_kernel), intent(in) :: self
     real(ccs_real), intent(in) :: flux_coeff
     real(ccs_real), dimension(2) :: coeffs
@@ -27,6 +27,7 @@ contains
   end function diffusion_coeffs
 
   module pure function diffusion_eval(self, flux_coeff, lf, rvecs, grads) result(expl)
+!$omp declare target
 
     class(diffusion_kernel), intent(in) :: self
     real(ccs_real), intent(in) :: flux_coeff
@@ -47,6 +48,7 @@ contains
 
 
   module pure function diffusion_width(self) result(width)
+!$omp declare target
     class(diffusion_kernel), intent(in) :: self
     integer(ccs_int) :: width
 
@@ -59,6 +61,7 @@ contains
   end function diffusion_width
 
   module pure function diffusion_order(self) result(order)
+!$omp declare target
     class(diffusion_kernel), intent(in) :: self
     integer(ccs_int) :: order  
 
