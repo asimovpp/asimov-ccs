@@ -334,6 +334,7 @@ contains
   end subroutine assemble_fluxes
 
   subroutine assemble_fluxes_ll(phi_static, phi, phi_name, SchmidtNo, loc_p, rho, mf, mu, a_val, b_val)
+!$omp declare target
 
     use fv_kernels, only: diffusion_kernel
 
