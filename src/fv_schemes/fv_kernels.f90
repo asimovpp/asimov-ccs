@@ -77,4 +77,69 @@ module fv_kernels
     end function diffusion_order
   end interface
 
+!--------------------------------------------------------------------
+!
+!     Fortran 2018 lets you assign a procedure pointer to an *internal*
+!     function (§15.5.2.10).  The internal procedure can “see” all the
+!     host variables (here: the polymorphic object `kern`) by **host  
+!     association**.
+!
+!--------------------------------------------------------------------
+
+
+  abstract interface
+   pure function coeff_iface(flux_coeff) result(coeffs)
+      import ccs_real
+      real(ccs_real), intent(in) :: flux_coeff
+      real(ccs_real), dimension(2) :: coeffs
+   end function coeff_iface
+  end interface
+
+  abstract interface
+   pure function explicit_iface(flux_coeff, lf, rvecs, grads) result(expl)
+    import ccs_real
+    real(ccs_real), intent(in) :: flux_coeff
+    real(ccs_real), intent(in) :: lf
+    real(ccs_real), dimension(3, 2), intent(in) :: rvecs
+    real(ccs_real), dimension(3, 2), intent(in) :: grads
+    real(ccs_real):: expl
+   end function explicit_iface
+  end interface
+
+  contains 
+
+function bind_coeffs(kern) result(ptr)
+   use kinds, only   : ccs_real
+   class(abstract_kernel), intent(in), target :: kern
+   procedure(coeff_iface), pointer            :: ptr 
+
+   ptr => coeff_wrapper  
+
+contains                           
+   pure function coeff_wrapper(flux_coeff) result(c)
+      real(ccs_real), intent(in)   :: flux_coeff
+      real(ccs_real), dimension(2) :: c
+      c = kern%eval_coeffs(flux_coeff)      
+   end function coeff_wrapper
+end function bind_coeffs
+
+function bind_explicit(kern) result(ptr)
+   use kinds, only   : ccs_real
+   class(abstract_kernel), intent(in), target :: kern
+   procedure(explicit_iface), pointer          :: ptr 
+
+   ptr => explicit_wrapper  
+
+contains                           
+   pure function explicit_wrapper(flux_coeff, lf, rvecs, grads) result(expl)
+    real(ccs_real), intent(in) :: flux_coeff
+    real(ccs_real), intent(in) :: lf
+    real(ccs_real), dimension(3, 2), intent(in) :: rvecs
+    real(ccs_real), dimension(3, 2), intent(in) :: grads
+    real(ccs_real):: expl
+    expl = kern%eval_explicit(flux_coeff, lf, rvecs, grads)      
+   end function explicit_wrapper
+end function bind_explicit
+
+
 end module fv_kernels
