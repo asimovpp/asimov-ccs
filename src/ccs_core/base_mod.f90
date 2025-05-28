@@ -11,6 +11,7 @@ module ccs_base
   private
 
   type(ccs_mesh), public :: mesh
+  !$omp declare target(mesh)
 
   character(len=128), parameter :: left = "left"
   character(len=128), parameter :: right = "right"

@@ -14,7 +14,7 @@ contains
   !> Sets mesh object to the module
   ! needs to be run before any call to an accessor
   module subroutine set_mesh_object(input_mesh)
-    !$omp declare target
+    !!$omp declare target
     type(ccs_mesh), target, intent(inout) :: input_mesh           !< The mesh
 
     if (associated(mesh) .or. associated(topo)) then
@@ -28,7 +28,7 @@ contains
 
   !> Unsets module mesh object
   module subroutine nullify_mesh_object()
-    !$omp declare target
+    !!$omp declare target
 
     nullify(mesh)
     nullify(topo)
@@ -46,7 +46,7 @@ contains
   !> Sets topo object to the module
   ! needs to be run before any call to an accessor
   module subroutine set_topo_object(input_topo)
-    !$omp declare target
+    !!$omp declare target
     type(topology), target, intent(inout) :: input_topo           !< The mesh topology object
 
     if (associated(topo)) then
@@ -59,7 +59,7 @@ contains
 
   !> Unsets module topo object
   module subroutine nullify_topo_object()
-    !$omp declare target
+    !!$omp declare target
 
     nullify(topo)
 
@@ -77,7 +77,7 @@ contains
 
   !> Sets the mesh topology local cell count.
   module subroutine set_local_num_cells(local_num_cells)
-    !$omp declare target
+    !!$omp declare target
 
     integer(ccs_int), intent(in) :: local_num_cells !< The local cell count
 
@@ -87,7 +87,7 @@ contains
 
   !> Gets the mesh topology local cell count.
   pure module subroutine get_local_num_cells_int(local_num_cells)
-    !$omp declare target
+    !!$omp declare target
 
     integer(ccs_int), intent(out) :: local_num_cells !< The local cell count
 
@@ -99,7 +99,7 @@ contains
   !
   !  Handles case when using a long integer to access the internal topology data.
   pure module subroutine get_local_num_cells_long(local_num_cells)
-    !$omp declare target
+    !!$omp declare target
 
     integer(ccs_long), intent(out) :: local_num_cells !< The local cell count
 
@@ -109,7 +109,7 @@ contains
 
   !> Sets the mesh topology total cell count.
   module subroutine set_total_num_cells(total_num_cells)
-    !$omp declare target
+    !!$omp declare target
 
     integer(ccs_int), intent(in) :: total_num_cells !< The total cell count
 
@@ -119,7 +119,7 @@ contains
 
   !> Gets the mesh total cell count.
   pure module subroutine get_total_num_cells(total_num_cells)
-    !$omp declare target
+    !!$omp declare target
 
     integer(ccs_int), intent(out) :: total_num_cells !< The total cell count
 
@@ -129,7 +129,7 @@ contains
 
   !> Sets the mesh global cell count.
   module subroutine set_global_num_cells(global_num_cells)
-    !$omp declare target
+    !!$omp declare target
 
     integer(ccs_int), intent(in) :: global_num_cells !< The global cell count
 
@@ -139,7 +139,7 @@ contains
 
   !> Gets the mesh topology global cell count.
   pure module subroutine get_global_num_cells(global_num_cells)
-    !$omp declare target
+    !!$omp declare target
 
     integer(ccs_int), intent(out) :: global_num_cells !< The global cell count
 
@@ -149,7 +149,7 @@ contains
 
   !> Sets the mesh halo cell count.
   module subroutine set_halo_num_cells(halo_num_cells)
-    !$omp declare target
+    !!$omp declare target
 
     integer(ccs_int), intent(in) :: halo_num_cells !< The halo cell count
 
@@ -159,7 +159,7 @@ contains
 
   !> Gets the mesh halo cell count.
   pure module subroutine get_halo_num_cells(halo_num_cells)
-    !$omp declare target
+    !!$omp declare target
 
     integer(ccs_int), intent(out) :: halo_num_cells !< The halo cell count
 
@@ -169,7 +169,7 @@ contains
 
   !> Sets the mesh global face count.
   module subroutine set_global_num_faces(global_num_faces)
-    !$omp declare target
+    !!$omp declare target
 
     integer(ccs_int), intent(in) :: global_num_faces !< The global face count
 
@@ -179,7 +179,7 @@ contains
 
   !> Gets the mesh topology global face count.
   pure module subroutine get_global_num_faces(global_num_faces)
-    !$omp declare target
+    !!$omp declare target
 
     integer(ccs_int), intent(out) :: global_num_faces !< The global face count
 
@@ -189,7 +189,7 @@ contains
 
   !> Sets the mesh face count.
   module subroutine set_num_faces(num_faces)
-    !$omp declare target
+    !!$omp declare target
 
     integer(ccs_int), intent(in) :: num_faces !< The face count
 
@@ -199,7 +199,7 @@ contains
 
   !> Gets the mesh face count.
   pure module subroutine get_num_faces(num_faces)
-    !$omp declare target
+    !!$omp declare target
 
     integer(ccs_int), intent(out) :: num_faces !< The face count
 
@@ -209,7 +209,7 @@ contains
 
   !> Sets the mesh face count.
   module subroutine set_max_faces(max_faces)
-    !$omp declare target
+    !!$omp declare target
 
     integer(ccs_int), intent(in) :: max_faces !< The face count
 
@@ -219,7 +219,7 @@ contains
 
   !> Gets the mesh topology face count.
   pure module subroutine get_max_faces(max_faces)
-    !$omp declare target
+    !!$omp declare target
 
     integer(ccs_int), intent(out) :: max_faces ! The face count
 
@@ -229,7 +229,7 @@ contains
   
   !> Sets the global number of vertices.
   module subroutine set_global_num_vertices(global_num_vertices)
-    !$omp declare target
+    !!$omp declare target
     integer(ccs_int), intent(in) :: global_num_vertices !< The global number of vertices
 
     topo%global_num_vertices = global_num_vertices
@@ -238,7 +238,7 @@ contains
 
   !> Gets the global number of vertices.
   pure module subroutine get_global_num_vertices(global_num_vertices)
-    !$omp declare target
+    !!$omp declare target
     integer(ccs_int), intent(out) :: global_num_vertices !< The global number of vertices
 
     global_num_vertices = topo%global_num_vertices
@@ -247,7 +247,7 @@ contains
 
   !> Sets the number of vertices per cell.
   module subroutine set_vert_per_cell(vert_per_cell)
-    !$omp declare target
+    !!$omp declare target
     integer(ccs_int), intent(in) :: vert_per_cell !< The number of vertices per cell
 
     topo%vert_per_cell = vert_per_cell
@@ -256,7 +256,7 @@ contains
 
   !> Gets the number of vertices per cell.
   pure module subroutine get_vert_per_cell(vert_per_cell)
-    !$omp declare target
+    !!$omp declare target
     integer(ccs_int), intent(out) :: vert_per_cell !< The number of vertices per cell
 
     vert_per_cell = topo%vert_per_cell
@@ -268,7 +268,7 @@ contains
   !  Creates the association between a face relative to a cell, i.e. to access the
   !  nth face of cell i.
   pure module subroutine create_face_locator(index_p, cell_face_ctr, loc_f)
-    !$omp declare target
+    !!$omp declare target
     integer(ccs_int), intent(in) :: index_p         !< the index of the cell whose face is being accessed.
     integer(ccs_int), intent(in) :: cell_face_ctr   !< the cell-local index of the face.
     type(face_locator), intent(out) :: loc_f        !< the face locator object linking a cell-relative
@@ -279,7 +279,7 @@ contains
 
   !v Sets face interpolation from a face locator
   module subroutine set_face_interpolation(interpol_factor, loc_f)
-    !$omp declare target
+    !!$omp declare target
     real(ccs_real), intent(in) :: interpol_factor  !< the interpolation factor to be used for loc_p
     type(face_locator), intent(inout) :: loc_f        !< the face locator object linking a cell-relative
     type(cell_locator) :: loc_p   !< the cell locator object linking a cell index with the mesh.
@@ -306,7 +306,7 @@ contains
 
   !v Retrieves face interpolation from a face locator
   pure module subroutine get_face_interpolation(loc_f, interpol_factor)
-    !$omp declare target
+    !!$omp declare target
     type(face_locator), intent(in) :: loc_f        !< the face locator object
     real(ccs_real), intent(out) :: interpol_factor  !< the interpolation factor to be used for loc_f
 
@@ -336,7 +336,7 @@ contains
   !  Creates the association between a mesh and cell index, storing it in the
   !  returned cell locator object.
   pure module subroutine create_cell_locator(index_p, loc_p)
-    !$omp declare target
+    !!$omp declare target
     integer(ccs_int), intent(in) :: index_p    !< the cell index.
     type(cell_locator), intent(out) :: loc_p   !< the cell locator object linking a cell index with the mesh.
 
@@ -356,7 +356,7 @@ contains
   !  Creates the association between a neighbour cell F relative to cell P, i.e. to
   !  access the nth neighbour of cell i.
   pure module subroutine create_face_neighbour_locator(loc_p, nb_counter, loc_nb)
-    !$omp declare target
+    !!$omp declare target
     type(cell_locator), intent(in) :: loc_p        !< the cell locator object of the cell
     !< whose neighbour is being accessed.
     integer(ccs_int), intent(in) :: nb_counter     !< the cell-local index of the neighbour.
@@ -391,7 +391,7 @@ contains
   !  Creates the association between a vertex relative to a cell, i.e. to access the
   !  nth vertex of cell i.
   pure module subroutine create_vert_locator(index_p, cell_vert_ctr, loc_v)
-    !$omp declare target
+    !!$omp declare target
     integer(ccs_int), intent(in) :: index_p       !< the index of the cell whose vertex is being accessed.
     integer(ccs_int), intent(in) :: cell_vert_ctr !< the cell-local index of the vertex.
     type(vert_locator), intent(out) :: loc_v      !< the vertex locator object linking a cell-relative index with the mesh.
@@ -402,7 +402,7 @@ contains
 
   !> Set face index
   module subroutine set_face_index(index_p, cell_face_ctr, index_f)
-    !$omp declare target
+    !!$omp declare target
     integer(ccs_int), intent(in) :: index_p
     integer(ccs_int), intent(in) :: cell_face_ctr
     integer(ccs_int), intent(in) :: index_f
@@ -412,7 +412,7 @@ contains
 
   !> Returns the normal vector of a face
   pure module subroutine get_face_normal(loc_f, normal)
-    !$omp declare target
+    !!$omp declare target
     type(face_locator), intent(in) :: loc_f                !< the face locator object.
     real(ccs_real), dimension(ndim), intent(out) :: normal !< an ndimensional array representing the face normal vector.
 
@@ -425,7 +425,7 @@ contains
 
   !> Returns the area of a face
   pure module subroutine get_face_area(loc_f, area)
-    !$omp declare target
+    !!$omp declare target
     type(face_locator), intent(in) :: loc_f !< the face locator object.
     real(ccs_real), intent(out) :: area     !< the face area.
 
@@ -438,7 +438,7 @@ contains
 
   !> Set the area of specified face
   module subroutine set_area(area, loc_f)
-    !$omp declare target
+    !!$omp declare target
     real(ccs_real), intent(in) :: area      !< The face area
     type(face_locator), intent(in) :: loc_f !< The face locator object
 
@@ -451,7 +451,7 @@ contains
 
   !> Set the volume of specified cell
   module subroutine set_volume(volume, loc_p)
-    !$omp declare target
+    !!$omp declare target
     real(ccs_real), intent(in) :: volume      !< The cell volume
     type(cell_locator), intent(in) :: loc_p   !< The cell locator object
 
@@ -463,7 +463,7 @@ contains
 
   !> Returns the centre of a cell
   pure module subroutine get_cell_centre(loc_p, x)
-    !$omp declare target
+    !!$omp declare target
     type(cell_locator), intent(in) :: loc_p           !< the cell locator object.
     real(ccs_real), dimension(:), intent(out) :: x !< an ndimensional array representing the cell centre.
 
@@ -478,7 +478,7 @@ contains
 
   !> Returns the centre of a neighbour cell
   pure module subroutine get_neighbour_centre(loc_nb, x)
-    !$omp declare target
+    !!$omp declare target
     type(neighbour_locator), intent(in) :: loc_nb     !< the neighbour locator object.
     real(ccs_real), dimension(ndim), intent(out) :: x !< an ndimensional array representing the neighbour cell centre.
 
@@ -490,7 +490,7 @@ contains
 
   !> Returns the centre of a face
   pure module subroutine get_face_centre(loc_f, x)
-    !$omp declare target
+    !!$omp declare target
     type(face_locator), intent(in) :: loc_f           !< the face locator object.
     real(ccs_real), dimension(ndim), intent(out) :: x !< an ndimensional array representing the face centre.
 
@@ -503,7 +503,7 @@ contains
 
   !> Returns the centre of a vertex
   pure module subroutine get_vert_centre(loc_v, x)
-    !$omp declare target
+    !!$omp declare target
     type(vert_locator), intent(in) :: loc_v           !< the vertex locator object.
     real(ccs_real), dimension(:), intent(out) :: x !< an ndimensional array representing the vertex centre.
 
@@ -520,7 +520,7 @@ contains
 
   !> Returns the volume of a cell
   pure module subroutine get_cell_volume(loc_p, V)
-    !$omp declare target
+    !!$omp declare target
     type(cell_locator), intent(in) :: loc_p !< the cell locator object.
     real(ccs_real), intent(out) :: V        !< the cell volume.
 
@@ -532,7 +532,7 @@ contains
 
   !> Returns the volume of a neighbour cell
   pure module subroutine get_neighbour_volume(loc_nb, V)
-    !$omp declare target
+    !!$omp declare target
     type(neighbour_locator), intent(in) :: loc_nb !< the neighbour locator object.
     real(ccs_real), intent(out) :: V              !< the neighbour cell volume.
 
@@ -544,7 +544,7 @@ contains
 
   !> Returns the global index of a cell
   pure module subroutine get_cell_global_index(loc_p, global_index_p)
-    !$omp declare target
+    !!$omp declare target
     type(cell_locator), intent(in) :: loc_p         !< the cell locator object.
     integer(ccs_int), intent(out) :: global_index_p !< the global index of the cell.
 
@@ -558,7 +558,7 @@ contains
 
   !> Sets the global index of a cell
   module subroutine set_cell_global_index(global_index_p, loc_p)
-    !$omp declare target
+    !!$omp declare target
     integer(ccs_int), intent(in) :: global_index_p !< the global index of the cell.
     type(cell_locator), intent(inout) :: loc_p     !< the cell locator object.
 
@@ -572,7 +572,7 @@ contains
   ! @note@ The natural index is the original global index, whereas the global index indicates the
   !        indexing in the current ordering.
   pure module subroutine get_cell_natural_index(loc_p, natural_index_p)
-    !$omp declare target
+    !!$omp declare target
     type(cell_locator), intent(in) :: loc_p         !< the cell locator object.
     integer(ccs_int), intent(out) :: natural_index_p !< the natural index of the cell.
 
@@ -589,7 +589,7 @@ contains
   ! @note@ The natural index is the original global index, whereas the global index indicates the
   !        indexing in the current ordering.
   module subroutine set_cell_natural_index(natural_index_p, loc_p)
-    !$omp declare target
+    !!$omp declare target
     integer(ccs_int), intent(in) :: natural_index_p !< the natural index of the cell.
     type(cell_locator), intent(inout) :: loc_p      !< the cell locator object.
 
@@ -600,7 +600,7 @@ contains
 
   !> Returns the global index of a neighbouring cell
   pure module subroutine get_neighbour_global_index(loc_nb, global_index_nb)
-    !$omp declare target
+    !!$omp declare target
     type(neighbour_locator), intent(in) :: loc_nb    !< the neighbour locator object.
     integer(ccs_int), intent(out) :: global_index_nb !< the global index of the neighbour cell.
 
@@ -611,7 +611,7 @@ contains
 
   !> Returns the natural index of a neighbouring cell
   pure module subroutine get_neighbour_natural_index(loc_nb, natural_index_nb)
-    !$omp declare target
+    !!$omp declare target
     type(neighbour_locator), intent(in) :: loc_nb     !< the neighbour locator object.
     integer(ccs_int), intent(out) :: natural_index_nb !< the natural index of the neighbour cell.
 
@@ -622,7 +622,7 @@ contains
 
   !> Sets the global index of a face
   module subroutine set_face_global_index(global_index_f, loc_f)
-    !$omp declare target
+    !!$omp declare target
     integer(ccs_int), intent(in) :: global_index_f !< The global index of the face.
     type(face_locator), intent(inout) :: loc_f     !< The face locator object.
 
@@ -634,7 +634,7 @@ contains
 
   !> Returns the neighbour count of a cell (including boundary neighbours)
   pure module subroutine get_cell_count_neighbours(loc_p, nnb)
-    !$omp declare target
+    !!$omp declare target
     type(cell_locator), intent(in) :: loc_p !< the cell locator object.
     integer(ccs_int), intent(out) :: nnb    !< the neighbour count of the cell.
 
@@ -645,7 +645,7 @@ contains
 
   !> Returns the boundary status of a neighbouring cell
   pure module subroutine get_neighbour_boundary_status(loc_nb, is_boundary)
-    !$omp declare target
+    !!$omp declare target
     type(neighbour_locator), intent(in) :: loc_nb !< the neighbour locator object.
     logical, intent(out) :: is_boundary           !< the boundary status of the neighbour.
 
@@ -664,7 +664,7 @@ contains
 
   !> Returns the boundary status of a face
   pure module subroutine get_face_boundary_status(loc_f, is_boundary)
-    !$omp declare target
+    !!$omp declare target
     type(face_locator), intent(in) :: loc_f !< the face locator object.
     logical, intent(out) :: is_boundary     !< the boundary status of the neighbour.
 
@@ -685,7 +685,7 @@ contains
   !  and cells from the surrounding halo - this subroutine get_indicates whether a
   !  cell's neighbour is within the local partition or the halo.
   pure module subroutine get_neighbour_local_status(loc_nb, is_local)
-    !$omp declare target
+    !!$omp declare target
     type(neighbour_locator), intent(in) :: loc_nb !< the neighbour locator object.
     logical, intent(out) :: is_local !< the local status of the neighbour.
 
@@ -707,7 +707,7 @@ contains
   !  the local cell vector - this particular subroutine get_is therefore expected of
   !  limited use and is mostly present for uniformity.
   pure module subroutine get_cell_local_index(loc_p, index_p)
-    !$omp declare target
+    !!$omp declare target
     type(cell_locator), intent(in) :: loc_p  !< the cell locator object.
     integer(ccs_int), intent(out) :: index_p !< the local index of the cell.
 
@@ -716,7 +716,7 @@ contains
 
   !> Returns the local index of a neighbouring cell
   pure module subroutine get_neighbour_local_index(loc_nb, index_nb)
-    !$omp declare target
+    !!$omp declare target
     type(neighbour_locator), intent(in) :: loc_nb !< the neighbour locator object.
     integer(ccs_int), intent(out) :: index_nb     !< the local index of the neighbour cell.
 
@@ -728,7 +728,7 @@ contains
 
   !> Sets the local index of a neighbouring cell
   module subroutine set_neighbour_local_index(index_nb, loc_nb)
-    !$omp declare target
+    !!$omp declare target
     integer(ccs_int), intent(in) :: index_nb         !< the local index of the neighbour cell.
     type(neighbour_locator), intent(inout) :: loc_nb !< the neighbour locator object.
 
@@ -740,7 +740,7 @@ contains
 
   !> Returns the local index of a face
   pure module subroutine get_face_local_index(loc_f, index_f)
-    !$omp declare target
+    !!$omp declare target
     type(face_locator), intent(in) :: loc_f  !< the face locator object.
     integer(ccs_int), intent(out) :: index_f !< the local index of the face.
 
@@ -751,7 +751,7 @@ contains
   end subroutine get_face_local_index
 
   pure subroutine get_neighbour_cell_locator(loc_nb, loc_p)
-    !$omp declare target
+    !!$omp declare target
     type(neighbour_locator), intent(in) :: loc_nb
     type(cell_locator), intent(out) :: loc_p
 
@@ -763,7 +763,7 @@ contains
 
   !> Set the cell centre of specified cell
   module subroutine set_cell_centre(loc_p, x_p)
-    !$omp declare target
+    !!$omp declare target
     type(cell_locator), intent(in) :: loc_p         !< The cell locator object.
     real(ccs_real), dimension(:), intent(in) :: x_p !< The cell centre array.
 
@@ -778,7 +778,7 @@ contains
 
   !> Set the face centre of specified face
   module subroutine set_face_centre(loc_f, x_f)
-    !$omp declare target
+    !!$omp declare target
     type(face_locator), intent(in) :: loc_f         !< The face locator object.
     real(ccs_real), dimension(:), intent(in) :: x_f !< The face centre array.
 
@@ -795,7 +795,7 @@ contains
 
   !> Set the centre of specified vertex
   module subroutine set_vert_centre(loc_v, x_v)
-    !$omp declare target
+    !!$omp declare target
     type(vert_locator), intent(in) :: loc_v         !< The vertex locator object.
     real(ccs_real), dimension(:), intent(in) :: x_v !< The vertex centre array.
 
@@ -814,7 +814,7 @@ contains
   !
   !  Normalises the stored normal.
   module subroutine set_normal(loc_f, normal)
-    !$omp declare target
+    !!$omp declare target
     type(face_locator), intent(in) :: loc_f            !< The face locator object
     real(ccs_real), dimension(:), intent(in) :: normal !< Array holding the face normal
 
@@ -833,7 +833,7 @@ contains
 
   !> Query whether mesh was generated or read
   pure module subroutine get_mesh_generated(is_generated)
-    !$omp declare target
+    !!$omp declare target
     logical, intent(out) :: is_generated !< The generated/read (true/false) status
 
     is_generated = mesh%is_generated
@@ -841,7 +841,7 @@ contains
 
   !> Set whether a mesh was generated or read
   module subroutine set_mesh_generated(is_generated)
-    !$omp declare target
+    !!$omp declare target
     logical, intent(in) :: is_generated   !< Flag indicating generated/read (true/false) status
 
     mesh%is_generated = is_generated
@@ -849,7 +849,7 @@ contains
 
   !> Get the numerical ID of a boundary from its name
   pure module subroutine get_bc_id(mesh, name, bc_id)
-    !$omp declare target
+    !!$omp declare target
     type(ccs_mesh), intent(in) :: mesh     !< The mesh
     character(len=*), intent(in) :: name   !< The boundary name
     integer(ccs_int), intent(out) :: bc_id !< The boundary ID
@@ -876,7 +876,7 @@ contains
 
   !> Find a list of (boundary) faces based on their boundary name
   module subroutine find_face_entities(mesh, name, faces)
-    !$omp declare target
+    !!$omp declare target
     type(ccs_mesh), intent(in) :: mesh                                  !< The mesh
     character(len=*), intent(in) :: name                                !< The boundary name
     type(face_locator), dimension(:), allocatable, intent(out) :: faces !< The list of boundary faces

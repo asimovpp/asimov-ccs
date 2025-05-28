@@ -20,7 +20,7 @@ contains
   end subroutine
 
   pure module function timestepping_is_active() result(active)
-!$omp declare target
+!!$omp declare target
     logical :: active
     active = timestepping_active
   end function

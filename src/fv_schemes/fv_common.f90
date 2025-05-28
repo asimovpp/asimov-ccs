@@ -106,6 +106,12 @@ contains
     character(len=:), allocatable :: phi_name
     type(static_field) :: phi_static
 
+    !! Stuff that was in blocks
+    real(ccs_real), parameter :: dt = 1.0e-3_ccs_real
+    integer, parameter :: trans_width = 1
+    real(ccs_real) :: trans ! Transient contribution
+    real(ccs_real), dimension(trans_width) :: old
+
     call get_underrelaxation(run_options, phi, alpha)
     
     call get_field(flow, "density", rho)
@@ -133,9 +139,9 @@ contains
     if (timestepping_is_active()) then
       transient = create_transient_kernel()
       call get_vector_data_readonly(phi%old_values(1)%vec, phi_old1_data)
-      if (transient%get_width() == 2) then
-        call get_vector_data_readonly(phi%old_values(2)%vec, phi_old2_data)
-      end if
+      !!! if (transient%get_width() == 2) then
+      !!!   call get_vector_data_readonly(phi%old_values(2)%vec, phi_old2_data)
+      !!! end if
     end if
 
     ! Get diagonal and RHS vectors
@@ -147,67 +153,59 @@ contains
     call get_vector_data(M_diag, diag_vec)
     
     phi_static = create_static_field(phi)
+    
     call get_local_num_cells(local_n_cells)
-!$omp target teams distribute parallel do
+!$omp target teams distribute parallel do private(loc_p, vol, a_p, b_p, visc_avg, trans, old) 
     do index_p = 1, local_n_cells
-      call create_cell_locator(index_p, loc_p)
-      call get_volume(loc_p, vol)
+      ! call create_cell_locator(index_p, loc_p)
+      ! call get_volume(loc_p, vol)
 
-      !! Assemble flux contributions
-      call assemble_fluxes_ll(phi_static, phi_values, phi_name, SchmidtNo, loc_p, rho_values, mf_values, mu_values, &
-                              a_p, b_p)
+      ! !! Assemble flux contributions
+      ! call assemble_fluxes_ll(phi_static, phi_values, phi_name, SchmidtNo, loc_p, rho_values, mf_values, mu_values, &
+      !                         a_p, b_p)
       
       !! Assemble cell-centred contributions
-      if (deferred_visc) then
-        visc_avg = average_field_over_faces(mu, loc_p)
-        visc_avg = visc_avg / (SchmidtNo * rho_values(index_p))
-      else
-        visc_avg = 1.0_ccs_real
-      end if
-      block
-        real(ccs_real) :: diag ! The diagonal coefficient
-        real(ccs_real) :: b    ! The RHS 
-      
-        diag = a_p
-        b = b_p
+      ! if (deferred_visc) then
+      !   !visc_avg = average_field_over_faces(mu, loc_p)
+      !   visc_avg = 1.0_ccs_real
+      !   visc_avg = visc_avg / (SchmidtNo * rho_values(index_p))
+      ! else
+      !   visc_avg = 1.0_ccs_real
+      ! end if
+      !block
+      !  real(ccs_real) :: diag ! The diagonal coefficient
+      !  real(ccs_real) :: b    ! The RHS 
+      !
+      !  diag = a_p
+      !  b = b_p
 
-        ! Source terms
-        b = b - vol * pgrad(index_p) / visc_avg
-      
-        ! Transient terms
-        if (timestepping_is_active()) then
-          block
-            real(ccs_real), parameter :: dt = 1.0e-3_ccs_real
-            integer, parameter :: trans_width = 1
-            block
-              real(ccs_real) :: trans = 0 ! Transient contribution
-              !call transient%eval_coeffs(rho_values(index_p), vol, trans)
-              trans = vol * rho_values(index_p) / dt
-              diag = diag + trans / visc_avg
-            end block
-            block
-              real(ccs_real) :: trans = 0 ! Transient contribution
-              real(ccs_real), dimension(trans_width) :: old
-              !if (trans_width == 1) then
-                old = [ phi_old1_data(index_p) ]
-              !else
-              !  old = [ phi_old1_data(index_p), phi_old2_data(index_p) ]
-              !end if
-              ! call transient%eval_explicit(rho_values(index_p), vol, old, trans)
-              trans = vol * rho_values(index_p) * old(1) / dt
-              b = b + trans / visc_avg
-            end block
-          end block
-        end if
+      !  ! Source terms
+      !  b = b - vol * pgrad(index_p) / visc_avg
+      !
+      !  ! Transient terms
+      !  if (timestepping_is_active()) then
+      !    !call transient%eval_coeffs(rho_values(index_p), vol, trans)
+      !    trans = vol * rho_values(index_p) / dt
+      !    diag = diag + trans / visc_avg
 
-        ! Perform underrelaxation
-        b = b + ((1 - alpha) / alpha) * diag * phi_values(index_p)
-        diag = diag / alpha
+      !    !if (trans_width == 1) then
+      !      old = [ phi_old1_data(index_p) ]
+      !    !else
+      !    !  old = [ phi_old1_data(index_p), phi_old2_data(index_p) ]
+      !    !end if
+      !    ! call transient%eval_explicit(rho_values(index_p), vol, old, trans)
+      !    trans = vol * rho_values(index_p) * old(1) / dt
+      !    b = b + trans / visc_avg
+      !  end if
 
-        ! Restore diagonal coefficient and B
-        diag_vec(index_p) = diag
-        rhs_vec(index_p) = b
-      end block
+      !  ! Perform underrelaxation
+      !  b = b + ((1.0_ccs_real - alpha) / alpha) * diag * phi_values(index_p)
+      !  diag = diag / alpha
+
+      !  ! Restore diagonal coefficient and B
+      !  diag_vec(index_p) = diag
+      !  rhs_vec(index_p) = b
+      !end block
     end do
     
     ! Restore diagonal and RHS vectors
@@ -233,9 +231,9 @@ contains
 
     if (timestepping_is_active()) then
       call restore_vector_data_readonly(phi%old_values(1)%vec, phi_old1_data)
-      if (transient%get_width() == 2) then
-        call restore_vector_data_readonly(phi%old_values(2)%vec, phi_old2_data)
-      end if
+      !!! if (transient%get_width() == 2) then
+      !!!   call restore_vector_data_readonly(phi%old_values(2)%vec, phi_old2_data)
+      !!! end if
     end if
     
   end subroutine assemble_transport_equation
@@ -334,7 +332,7 @@ contains
   end subroutine assemble_fluxes
 
   subroutine assemble_fluxes_ll(phi_static, phi, phi_name, SchmidtNo, loc_p, rho, mf, mu, a_val, b_val)
-!$omp declare target
+!!$omp declare target
 
     use fv_kernels, only: diffusion_kernel
 
@@ -678,7 +676,7 @@ contains
 
   !> Compute the coefficients of the boundary condition
   pure subroutine compute_boundary_coeffs_ll(phi, component, loc_p, loc_f, normal, a, b)
-    !$omp declare target
+    !!$omp declare target
 
     type(static_field), intent(in) :: phi                       !< the field for which boundary values are being computed
     integer(ccs_int), intent(in) :: component             !< integer indicating direction of velocity field component
@@ -707,6 +705,12 @@ contains
     call get_local_index(loc_p, index_p)
     call create_neighbour_locator(loc_p, loc_f%cell_face_ctr, loc_nb)
     call get_local_index(loc_nb, index_nb)
+
+    if (-index_nb < 1) then
+            error stop "Too small BC"
+    else if (-index_nb > 4) then
+            error stop "Too big BC"
+    end if
     call get_bc_index_ll(phi%bcs%ids, index_nb, index_bc)
 
     select case (phi%bcs%bc_types(index_bc))
@@ -870,7 +874,7 @@ contains
 
   !> Linear interpolate of BC profile 
   pure module subroutine get_value_from_bc_profile(x, profile, bc_value)
-    !$omp declare target
+    !!$omp declare target
     real(ccs_real), dimension(:), intent(in) :: x
     type(bc_profile), intent(in) :: profile
     real(ccs_real), intent(out) :: bc_value
@@ -900,6 +904,7 @@ contains
 
   !> Sets the diffusion coefficient
   pure module subroutine calc_diffusion_coeff(index_p, index_nb, enable_cell_corrections, visc_p, visc_nb, dens_p, dens_nb, SchmidtNo, coeff) 
+!!$omp declare target
     integer(ccs_int), intent(in) :: index_p  !< the local cell index
     integer(ccs_int), intent(in) :: index_nb !< the local neigbouring cell index
     logical, intent(in) :: enable_cell_corrections !< Whether or not cell shape corrections are used
