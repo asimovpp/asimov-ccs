@@ -144,9 +144,9 @@ contains
     integer(ccs_int), dimension(:), intent(in) :: array
     integer(ccs_int), intent(in) :: value
 
-    do index=1, len(array)
+    do index=1, size(array)
       if (array(index) == value) then
-        break
+        exit
       end if
     end do
 
