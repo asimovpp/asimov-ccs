@@ -459,18 +459,17 @@ contains
       grads = 0.0_ccs_real
       block
         real(ccs_real) :: diff_coeff ! The coefficient of diffusion
-        real(ccs_real) :: SchmidtNo
-        SchmidtNo = phi%Schmidt
-        call interpolate_field_to_face(mu, loc_f, visc_face)
-        call interpolate_field_to_face(rho, loc_f, dens_face)
+        !! call interpolate_field_to_face(mu, loc_f, visc_face)
+        !! call interpolate_field_to_face(rho, loc_f, dens_face)
+        visc_face = mu(index_p) / rho(index_p)
         visc_face = visc_face / (SchmidtNo * dens_face)
         
-        call calc_diffusion_coeff(index_p, j, phi%enable_cell_corrections, &
+        call calc_diffusion_coeff(index_p, j, .false., & !phi%enable_cell_corrections, &
              1.0_ccs_real, 1.0_ccs_real, &
              1.0_ccs_real, 1.0_ccs_real, &
              1.0_ccs_real, diff_coeff)
         if (.not. is_boundary) then
-          if (phi%enable_cell_corrections) then
+          if (.false.) then ! (phi%enable_cell_corrections) then
             grads(:, 1) = grad_phi_p(:)
             grads(:, 2) = grad_phi_nb(:)
             rvecs(:, 1) = x_p_prime(:) - x_p(:)
@@ -498,36 +497,40 @@ contains
           end if
           index_bc = 0
 
-          ! Excentricity correction (convective term) (Ferziger & Peric 4th ed, sec 9.7.1)
-          call interpolate_field_to_face(phi, loc_f, face_value, face_correction_only)
-          hoe = hoe + face_correction_only * (sgn * mf%values_ro(index_f) * face_area)
+          !! ! Excentricity correction (convective term) (Ferziger & Peric 4th ed, sec 9.7.1)
+          !! call interpolate_field_to_face(phi, loc_f, face_value, face_correction_only)
+          !! hoe = hoe + face_correction_only * (sgn * mf%values_ro(index_f) * face_area)
 
-          if (phi%enable_cell_corrections) then
-            ! call get_face_interpolation(loc_f, interpol_factor)
-            ! x_f_prime = interpol_factor * x_p + (1.0_ccs_real - interpol_factor) * x_nb
-            ! grad_phi_k_prime = interpol_factor * grad_phi_p + (1.0_ccs_real - interpol_factor) * grad_phi_nb
-            !hoe = hoe + dot_product(grad_phi_k_prime, x_f - x_f_prime) * (sgn * mf(index_f) * face_area)
-            !hoe = hoe + 0.5_ccs_real * (dot_product(grad_phi_p, x_p_prime - x_p) + dot_product(grad_phi_nb, x_nb_prime - x_nb)) * (sgn * mf(index_f) * face_area)
-          end if
+          !! if (phi%enable_cell_corrections) then
+          !!   ! call get_face_interpolation(loc_f, interpol_factor)
+          !!   ! x_f_prime = interpol_factor * x_p + (1.0_ccs_real - interpol_factor) * x_nb
+          !!   ! grad_phi_k_prime = interpol_factor * grad_phi_p + (1.0_ccs_real - interpol_factor) * grad_phi_nb
+          !!   !hoe = hoe + dot_product(grad_phi_k_prime, x_f - x_f_prime) * (sgn * mf(index_f) * face_area)
+          !!   !hoe = hoe + 0.5_ccs_real * (dot_product(grad_phi_p, x_p_prime - x_p) + dot_product(grad_phi_nb, x_nb_prime - x_nb)) * (sgn * mf(index_f) * face_area)
+          !! end if
         else
           sgn = 1.0_ccs_real
           index_bc = index_nb
         end if
-        select type (phi)
-        type is (central_field)
-          call calc_advection_coeff(phi, loc_f, sgn * mf%values_ro(index_f), index_bc, aP, aF)
-        type is (upwind_field)                                     
-          call calc_advection_coeff(phi, loc_f, sgn * mf%values_ro(index_f), index_bc, aP, aF)
-        ! type is (gamma_field)                                      
-        !   call calc_advection_coeff(phi, loc_f, sgn * mf%values_ro(index_f), index_bc, loc_p, loc_nb, aP, aF)
-        ! type is (linear_upwind_field)                              
-        !   call calc_advection_coeff(phi, loc_f, sgn * mf%values_ro(index_f), index_bc, loc_p, loc_nb, aP, aF)
-        class default
-          call error_abort("Invalid velocity field discretisation.")
-        end select
-        aP = (sgn * mf%values_ro(index_f) * face_area) * aP
-        aF = (sgn * mf%values_ro(index_f) * face_area) * aF
-        aP = aP - sgn * mf%values_ro(index_f) * face_area
+        !! XXX: Low-level interface would use a function pointer, for now hardcode as central differences
+        !! select type (phi)
+        !! type is (central_field)
+        !!   call calc_advection_coeff(phi, loc_f, sgn * mf%values_ro(index_f), index_bc, aP, aF)
+        !! type is (upwind_field)                                     
+        !!   call calc_advection_coeff(phi, loc_f, sgn * mf%values_ro(index_f), index_bc, aP, aF)
+        !! ! type is (gamma_field)                                      
+        !! !   call calc_advection_coeff(phi, loc_f, sgn * mf%values_ro(index_f), index_bc, loc_p, loc_nb, aP, aF)
+        !! ! type is (linear_upwind_field)                              
+        !! !   call calc_advection_coeff(phi, loc_f, sgn * mf%values_ro(index_f), index_bc, loc_p, loc_nb, aP, aF)
+        !! class default
+        !!   call error_abort("Invalid velocity field discretisation.")
+        !! end select
+        aP = 0.5_ccs_real
+        aF = 0.5_ccs_real
+        
+        aP = (sgn * mf(index_f) * face_area) * aP
+        aF = (sgn * mf(index_f) * face_area) * aF
+        aP = aP - sgn * mf(index_f) * face_area
         hoe = hoe + (aP * phiP + aF * phiF) / visc_avg
 
         if (imex) then
@@ -536,14 +539,14 @@ contains
           aF = 0.0_ccs_real
         else
           !! Low-order advection contribution (implicit)
-          if ((sgn * mf%values_ro(index_f)) > 0.0_ccs_real) then
-            aP = sgn * mf%values_ro(index_f) * face_area
+          if ((sgn * mf(index_f)) > 0.0_ccs_real) then
+            aP = sgn * mf(index_f) * face_area
             aF = 0.0_ccs_real
           else
             aP = 0.0_ccs_real
-            aF = sgn * mf%values_ro(index_f) * face_area
+            aF = sgn * mf(index_f) * face_area
           end if
-          aP = aP - sgn * mf%values_ro(index_f) * face_area
+          aP = aP - sgn * mf(index_f) * face_area
           loe = loe + aP * phiP + aF * phiF
         end if
       end block
