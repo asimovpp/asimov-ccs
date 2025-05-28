@@ -17,7 +17,7 @@ submodule(fv) fv_common
                      create_face_locator, get_face_area, get_face_normal, create_cell_locator, &
                      get_local_num_cells, get_face_interpolation, &
                      get_max_faces, get_centre
-  use boundary_conditions, only: get_bc_index
+  use boundary_conditions, only: get_bc_index, get_bc_index_ll
   use timers, only: timer_register_start, timer_stop
   use bc_constants
   use error_codes
@@ -659,6 +659,108 @@ contains
     bc_value = 0.5_ccs_real * (phi%values_ro(index_p) + (b + a * phi%values_ro(index_p)))
 
   end subroutine compute_boundary_values
+  
+
+  pure module subroutine compute_boundary_coeffs_ll(bc_types, bc_values, bc_ids, index_p, x_gradients, y_gradients, z_gradients, component, loc_p, loc_f, normal, a, b)
+
+    integer(ccs_int), dimension(:), pointer, intent(in) :: bc_types
+    real(ccs_real), dimension(:), pointer, intent(in) :: bc_values
+    integer(ccs_int), dimension(:), pointer, intent(in) :: bc_ids
+    integer(ccs_int), intent(in) :: index_p
+    real(ccs_real), dimension(:), pointer, intent(in) :: x_gradients  !< pointer to array containing x_gradients
+    real(ccs_real), dimension(:), pointer, intent(in) :: y_gradients  !< pointer to array containing y_gradients
+    real(ccs_real), dimension(:), pointer, intent(in) :: z_gradients  !< pointer to array containing z_gradients
+    integer(ccs_int), intent(in) :: component             !< integer indicating direction of velocity field component
+    type(cell_locator), intent(in) :: loc_p               !< location of cell
+    type(face_locator), intent(in) :: loc_f               !< location of face
+    real(ccs_real), dimension(ndim), intent(in) :: normal !< boundary face normal direction
+    real(ccs_real), intent(out) :: a                      !< The diagonal coeff (implicit)
+    real(ccs_real), intent(out) :: b                      !< The RHS entry (explicit)
+
+    ! local variables
+    integer(ccs_int) :: index_bc
+    integer(ccs_int) :: index_nb
+    integer(ccs_int) :: index_p
+    type(neighbour_locator) :: loc_nb
+    integer(ccs_int) :: i
+    real(ccs_real), dimension(ndim) :: dx
+    real(ccs_real), dimension(ndim) :: x
+    real(ccs_real), dimension(ndim) :: parallel_component_map
+    real(ccs_real), dimension(ndim) :: phi_face_parallel_component
+    real(ccs_real) :: phi_face_parallel_component_norm
+    real(ccs_real) :: phi_face_parallel_component_portion
+    real(ccs_real) :: normal_norm
+    real(ccs_real) :: dxmag
+    real(ccs_real) :: bc_value
+
+    call get_local_index(loc_p, index_p)
+    call create_neighbour_locator(loc_p, loc_f%cell_face_ctr, loc_nb)
+    call get_local_index(loc_nb, index_nb)
+    call get_bc_index_ll(bc_ids, index_nb, index_bc)
+
+    select case (bc_types(index_bc))
+    case (bc_type_dirichlet)
+      a = -1.0_ccs_real
+      b = 2.0_ccs_real * bc_values(index_bc)
+    case (bc_type_extrapolate)
+      call get_distance(loc_p, loc_f, dx)
+
+      a = 1.0_ccs_real
+      b = 2.0_ccs_real * (x_gradients(index_p) * dx(1) + y_gradients(index_p) * dx(2) + z_gradients(index_p) * dx(3))
+    case (bc_type_sym)  ! XXX: Make sure this works as intended for symmetric BC.
+      select case (component)
+      case (0)
+        parallel_component_map = [1, 1, 1]
+      case (1)
+        parallel_component_map = [0, 1, 1]
+      case (2)
+        parallel_component_map = [1, 0, 1]
+      case (3)
+        parallel_component_map = [1, 1, 0]
+      case default
+        error stop invalid_component ! Invalid component provided
+      end select
+      ! Only keep the components of phi that are parallel to the surface
+      phi_face_parallel_component_norm = 0
+      normal_norm = 0
+      do i = 1, ndim
+        phi_face_parallel_component(i) = parallel_component_map(i) * normal(i)
+        phi_face_parallel_component_norm = phi_face_parallel_component_norm + &
+                                           phi_face_parallel_component(i) * phi_face_parallel_component(i)
+        normal_norm = normal_norm + normal(i) * normal(i)
+      end do
+      phi_face_parallel_component_portion = sqrt(phi_face_parallel_component_norm / normal_norm)
+
+      ! Get value of phi at boundary cell
+      a = phi_face_parallel_component_portion
+      b = 0.0_ccs_real
+    case (bc_type_neumann)
+      call get_distance(loc_p, loc_f, dx)
+      dxmag = norm2(dx)
+
+      a = 1.0_ccs_real
+      b = (2.0_ccs_real * dxmag) * bc_values(index_bc)
+    ! case (bc_type_profile)
+    !   call get_centre(loc_f, x)
+    !   if (allocated(phi%bcs%profiles(index_bc)%centre)) then
+    !     call get_value_from_bc_profile(x, phi%bcs%profiles(index_bc), bc_value)
+    !   else
+    !     bc_value = 0.0_ccs_real
+    !   end if
+
+    !   a = -1.0_ccs_real
+    !   b = 2.0_ccs_real * bc_value
+    case default
+      ! Set coefficients to cause divergence
+      ! Prevents "unused variable" compiler errors
+      a = 0.0_ccs_real
+      b = huge(1.0_ccs_real)
+
+      error stop unknown_bc_type ! Unknown BC type
+    end select
+
+  end subroutine
+
 
   !> Compute the coefficients of the boundary condition
   pure module subroutine compute_boundary_coeffs(phi, component, loc_p, loc_f, normal, a, b)
