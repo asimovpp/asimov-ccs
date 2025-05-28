@@ -130,7 +130,7 @@ contains
     ! Local variable
     integer(ccs_int), dimension(1) :: index_tmp ! The intrinsic returns a rank-1 array ...
 
-    index_tmp = findloc(bc_ids, -index_nb)
+    index_tmp = findloc_gpu(bc_ids, -index_nb)
     if (index_tmp(1) == 0) then
       error stop bc_index_not_found ! BC index not found
     end if
@@ -138,6 +138,19 @@ contains
     index_bc = index_tmp(1)
   end subroutine get_bc_index_ll
 
+  !> llvm doesn't handle findloc, so here is a reimplementation
+  pure integer(ccs_int) function findloc_gpu(array, value) result(index)
+    !$omp declare target
+    integer(ccs_int), dimension(:), intent(in) :: array
+    integer(ccs_int), intent(in) :: value
+
+    do index=1, len(array)
+      if (array(index) == value) then
+        break
+      end if
+    end do
+
+  end function
  
   !> Gets the index of the given boundary condition within the bc struct arrays
   pure subroutine get_bc_index(phi, index_nb, index_bc)
