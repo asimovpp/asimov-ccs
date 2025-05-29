@@ -82,7 +82,7 @@ contains
     use meshing, only: get_bc_id
 
     integer(ccs_int), intent(in) :: boundary_index !< index of the boundary within the bc struct's arrays
-    character(len=*), intent(in) :: name           !< string giving the bc name
+    character(len=128), intent(in) :: name           !< string giving the bc name
     type(bc_config), intent(inout) :: bcs          !< the bcs struct
 
     integer :: bc_id

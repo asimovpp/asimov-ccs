@@ -6,7 +6,7 @@ contains
 
   !> Returns the distance between two cell centres
   pure module subroutine get_neighbour_distance(loc_p, loc_nb, dx)
-    !!$omp declare target
+    !$omp declare target
     type(cell_locator), intent(in) :: loc_p            !< The cell distance is measured from.
     type(neighbour_locator), intent(in) :: loc_nb      !< The cell distance is measured to.
     real(ccs_real), dimension(ndim), intent(out) :: dx !< ndim-array of the distance
@@ -23,7 +23,7 @@ contains
 
   !> Returns the distance from cell to face centres
   pure module subroutine get_face_distance(loc_p, loc_f, dx)
-    !!$omp declare target
+    !$omp declare target
     type(cell_locator), intent(in) :: loc_p            !< The cell distance is measured from.
     type(face_locator), intent(in) :: loc_f            !< The face distance is measured to.
     real(ccs_real), dimension(ndim), intent(out) :: dx !< ndim-array of the distance
@@ -40,7 +40,7 @@ contains
 
   !> Returns the distance from cell to face centres
   pure module subroutine get_face_neighbour_distance(loc_nb, loc_f, dx)
-    !!$omp declare target
+    !$omp declare target
     type(neighbour_locator), intent(in) :: loc_nb      !< The cell distance is measured from.
     type(face_locator), intent(in) :: loc_f            !< The face distance is measured to.
     real(ccs_real), dimension(ndim), intent(out) :: dx !< ndim-array of the distance

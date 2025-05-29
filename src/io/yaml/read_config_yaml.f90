@@ -881,6 +881,7 @@ contains
     integer(ccs_int) :: n_boundaries
     type(type_error), allocatable :: io_err
     character(len=:), allocatable :: bc_field_string
+    character(len=128) :: bc_field_string_fw
     character(len=25) :: boundary_index
 
     class(*), pointer :: variable_dict
@@ -907,7 +908,8 @@ contains
           select case (bc_field)
           case ("name")
             call get_value(dict2, bc_field, bc_field_string)
-            call set_bc_id(i, bc_field_string, phi%bcs)
+            bc_field_string_fw = bc_field_string
+            call set_bc_id(i, bc_field_string_fw, phi%bcs)
           case ("type")
             call get_value(dict2, bc_field, bc_type, field_exists, required=required)
             if (field_exists) then
