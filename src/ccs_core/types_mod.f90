@@ -163,6 +163,7 @@ module types
     integer :: vert_coords_window                                       !< Associated shared window
     real(ccs_real), dimension(:), allocatable :: face_interpol          !< Face interpolation factor, factor = face_interpol(iface)
   end type geometry
+!$omp declare mapper (geo_mapper : geometry :: geo) map (geo, geo%volumes(:))
 
   !> Mesh type
   type, public :: ccs_mesh

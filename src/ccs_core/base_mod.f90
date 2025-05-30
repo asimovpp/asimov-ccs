@@ -10,8 +10,9 @@ module ccs_base
 
   private
 
-  type(ccs_mesh), public :: mesh
+  type(ccs_mesh), public, target :: mesh
   !$omp declare target(mesh)
+  !$omp declare mapper (mesh_mapper : ccs_mesh :: mesh) map (mesh, mesh%geo, mesh%geo%volumes)
 
   character(len=128), parameter :: left = "left"
   character(len=128), parameter :: right = "right"

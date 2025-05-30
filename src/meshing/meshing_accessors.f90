@@ -6,8 +6,6 @@ submodule(meshing) meshing_accessors
 
   implicit none
 
-  type(ccs_mesh), pointer :: mesh
-  type(topology), pointer :: topo
 
 contains
 
@@ -345,10 +343,10 @@ contains
     loc_p%index_p = index_p
 
     ! XXX: Potentially expensive...
-    call get_total_num_cells(total_num_cells)
-    if (index_p > total_num_cells) then
-      error stop no_access_to_cell ! Trying to access cell I don't have access to
-    end if
+    ! call get_total_num_cells(total_num_cells)
+    ! if (index_p > total_num_cells) then
+    !   error stop no_access_to_cell ! Trying to access cell I don't have access to
+    ! end if
   end subroutine create_cell_locator
 
   !v Constructs a neighbour locator object.
@@ -523,6 +521,20 @@ contains
       end do
     end associate
   end subroutine get_vert_centre
+
+  !> Returns the volume of a cell
+  pure module subroutine get_cell_volume_mesh(mesh_local, loc_p, V)
+    !$omp declare target
+    type(ccs_mesh), intent(in) :: mesh_local
+    type(cell_locator), intent(in) :: loc_p !< the cell locator object.
+    real(ccs_real), intent(out) :: V        !< the cell volume.
+
+    associate (cell => loc_p%index_p, &
+               offset => mesh_local%topo%shared_array_total_offset)   ! Volume arrays interleave halo cells with local cells, hence specify total offset
+      V = mesh_local%geo%volumes(cell+offset)
+    end associate
+  end subroutine get_cell_volume_mesh
+
 
   !> Returns the volume of a cell
   pure module subroutine get_cell_volume(loc_p, V)

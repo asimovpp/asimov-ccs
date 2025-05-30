@@ -52,6 +52,11 @@ module meshing
   public :: get_mesh_generated, set_mesh_generated
   public :: get_bc_id
   public :: find_entities
+
+  type(ccs_mesh), pointer :: mesh
+  !$omp declare target(mesh)
+  type(topology), pointer :: topo
+  !$omp declare target(topo)
   
   interface get_centre
     module procedure get_cell_centre
@@ -100,6 +105,7 @@ module meshing
 
   interface get_volume
     module procedure get_cell_volume
+    module procedure get_cell_volume_mesh
     module procedure get_neighbour_volume
   end interface get_volume
 
@@ -237,6 +243,12 @@ module meshing
       type(vert_locator), intent(in) :: loc_v           !< the vertex locator object.
       real(ccs_real), dimension(:), intent(out) :: x !< an ndimensional array representing the vertex centre.
     end subroutine get_vert_centre
+
+    pure module subroutine get_cell_volume_mesh(mesh_local, loc_p, V)
+      type(ccs_mesh), intent(in) :: mesh_local
+      type(cell_locator), intent(in) :: loc_p !< the cell locator object.
+      real(ccs_real), intent(out) :: V        !< the cell volume.
+    end subroutine
 
     !> Returns the volume of a cell
     pure module subroutine get_cell_volume(loc_p, V)

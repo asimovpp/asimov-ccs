@@ -51,7 +51,7 @@ contains
 
   end subroutine compute_fluxes
 
-  module subroutine assemble_transport_equation(par_env, run_options, mesh, phi, flow, M, rhs)
+  module subroutine assemble_transport_equation(par_env, run_options, mesh_2, phi, flow, M, rhs)
 
     use core, only: get_underrelaxation
     use utils, only: get_field, initialise, set_size, finalise
@@ -61,10 +61,14 @@ contains
     use types, only: vector_spec
 
     use timestepping, only: timestepping_is_active, create_transient_kernel
+    use ccs_base, only: mesh
+    use omp_lib
+  !$omp declare mapper (mesh_mapper : ccs_mesh :: mesh) map (mesh, mesh%geo, mesh%geo%volumes)
+    !use meshing, only: mesh, topo
 
     class(parallel_environment), allocatable, intent(in) :: par_env
     class(ccs_options), intent(in) :: run_options
-    type(ccs_mesh), intent(in) :: mesh
+    type(ccs_mesh), intent(in) :: mesh_2
     class(field), intent(inout) :: phi
     class(fluid), intent(in) :: flow
     class(ccs_matrix), intent(inout) :: M
@@ -101,6 +105,7 @@ contains
     real(ccs_real), dimension(:), pointer :: phi_values => null()
     real(ccs_real), dimension(:), pointer :: mf_values => null()
     real(ccs_real), dimension(:), pointer :: mu_values => null()
+    real(ccs_real), dimension(:), allocatable :: rhs_vec_local, diag_vec_local
     
     real(ccs_real) :: SchmidtNo
     character(len=:), allocatable :: phi_name
@@ -111,6 +116,8 @@ contains
     integer, parameter :: trans_width = 1
     real(ccs_real) :: trans ! Transient contribution
     real(ccs_real), dimension(trans_width) :: old
+    real(ccs_real) :: diag ! The diagonal coefficient
+    real(ccs_real) :: b    ! The RHS 
 
     call get_underrelaxation(run_options, phi, alpha)
     
@@ -155,15 +162,22 @@ contains
     phi_static = create_static_field(phi)
     
     call get_local_num_cells(local_n_cells)
-!$omp target teams distribute parallel do private(loc_p, vol, a_p, b_p, visc_avg, trans, old)
-    do index_p = 1, local_n_cells
-       call create_cell_locator(index_p, loc_p)
-       call get_volume(loc_p, vol)
+    allocate(rhs_vec_local(local_n_cells))
+    allocate(diag_vec_local(local_n_cells))
 
-       !! Assemble flux contributions
-       call assemble_fluxes_ll(phi_static, phi_values, phi_name, SchmidtNo, loc_p, rho_values, mf_values, mu_values, &
-                               a_p, b_p)
-      
+!$omp target teams distribute parallel do default(shared) map (mapper(mesh_mapper), tofrom : mesh)
+    do index_p = 1, local_n_cells
+      call create_cell_locator(index_p, loc_p)
+      ! vol = 1.0_ccs_real
+      ! call get_volume(mesh, loc_p, vol)
+      call get_volume(loc_p, vol)
+
+      !! !!  !! Assemble flux contributions
+      !call assemble_fluxes_ll(phi_static, phi_values, phi_name, SchmidtNo, loc_p, rho_values,  mf_values, mu_values, & 
+      !                        a_p, b_p)
+      a_p = 1.0_ccs_real
+      b_p = 1.0_ccs_real
+      !! !! 
       ! Assemble cell-centred contributions
        if (deferred_visc) then
          !visc_avg = average_field_over_faces(mu, loc_p)
@@ -172,41 +186,39 @@ contains
        else
          visc_avg = 1.0_ccs_real
        end if
-      block
-        real(ccs_real) :: diag ! The diagonal coefficient
-        real(ccs_real) :: b    ! The RHS 
-      
-        diag = a_p
-        b = b_p
 
-        ! Source terms
-        b = b - vol * pgrad(index_p) / visc_avg
-      
-        ! Transient terms
-        if (timestepping_is_active()) then
-          !call transient%eval_coeffs(rho_values(index_p), vol, trans)
-          trans = vol * rho_values(index_p) / dt
-          diag = diag + trans / visc_avg
+       diag = a_p
+       b = b_p
 
-          !if (trans_width == 1) then
-            old = [ phi_old1_data(index_p) ]
-          !else
-          !  old = [ phi_old1_data(index_p), phi_old2_data(index_p) ]
-          !end if
-          ! call transient%eval_explicit(rho_values(index_p), vol, old, trans)
-          trans = vol * rho_values(index_p) * old(1) / dt
-          b = b + trans / visc_avg
-        end if
+       ! Source terms
+       b = b - vol * pgrad(index_p) / visc_avg
 
-        ! Perform underrelaxation
-        b = b + ((1.0_ccs_real - alpha) / alpha) * diag * phi_values(index_p)
-        diag = diag / alpha
+       ! Transient terms
+       if (timestepping_is_active()) then
+         !call transient%eval_coeffs(rho_values(index_p), vol, trans)
+         trans = vol * rho_values(index_p) / dt
+         diag = diag + trans / visc_avg
 
-        ! Restore diagonal coefficient and B
-        diag_vec(index_p) = diag
-        rhs_vec(index_p) = b
-      end block
-    end do
+         !if (trans_width == 1) then
+           old = [ phi_old1_data(index_p) ]
+         !else
+         !  old = [ phi_old1_data(index_p), phi_old2_data(index_p) ]
+         !end if
+         ! call transient%eval_explicit(rho_values(index_p), vol, old, trans)
+         trans = vol * rho_values(index_p) * old(1) / dt
+         b = b + trans / visc_avg
+       end if
+
+       ! Perform underrelaxation
+       b = b + ((1.0_ccs_real - alpha) / alpha) * diag * rho_values(index_p)
+       diag = diag / alpha
+
+       ! Restore diagonal coefficient and B
+       diag_vec_local(index_p) = diag
+       rhs_vec_local(index_p) = b
+     end do
+     diag_vec(:) = diag_vec_local(:)
+     rhs_vec(:) = rhs_vec_local(:)
     
     ! Restore diagonal and RHS vectors
     call restore_vector_data(rhs, rhs_vec)
@@ -388,9 +400,11 @@ contains
     real(ccs_real) :: dens_face
 
     call get_max_faces(max_faces)
-    call count_neighbours(loc_p, nnb)
+    ! call count_neighbours(loc_p, nnb)
+    nnb = 4
 
-    call get_local_index(loc_p, index_p)
+    !call get_local_index(loc_p, index_p)
+    index_p = 1
 
     ! Initialise accumulators
     adv_coeff_total = 0.0_ccs_real
@@ -411,16 +425,23 @@ contains
     phiP = phi(index_p)
 
     do j = 1, nnb
-      call create_neighbour_locator(loc_p, j, loc_nb)
-      call get_boundary_status(loc_nb, is_boundary)
-      call create_face_locator(index_p, j, loc_f)
-      call get_face_normal(loc_f, face_normal)
+      !call create_neighbour_locator(loc_p, j, loc_nb)
+      ! call get_boundary_status(loc_nb, is_boundary)
+      is_boundary = .false.
+      !call create_face_locator(index_p, j, loc_f)
+      !call get_face_normal(loc_f, face_normal)
+      face_normal = [ 1.0_ccs_real, 0.0_ccs_real, 0.0_ccs_real]
 
-      call get_local_index(loc_nb, index_nb)
+      !call get_local_index(loc_nb, index_nb)
+      index_nb = index_p
 
-      call get_face_area(loc_f, face_area)
-      call get_local_index(loc_f, index_f)
-      call get_face_interpolation(loc_f, interpol_factor)
+      !call get_face_area(loc_f, face_area)
+      face_area = 1.0_ccs_real/64
+      !call get_local_index(loc_f, index_f)
+      index_f = 1
+      ! call get_face_interpolation(loc_f, interpol_factor)
+      interpol_factor = 0.5_ccs_real
+      
 
       if (.not. is_boundary) then
         phiF = phi(index_nb)
