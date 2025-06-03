@@ -406,7 +406,7 @@ contains
     class(ccs_vector), target, intent(inout) :: input_res
     class(ccs_vector), pointer :: res
     real(ccs_real), dimension(:), intent(inout) :: residuals
-    real(ccs_real) :: Linfty, rms
+    real(ccs_real) :: Linfty, L2_sq
     integer(ccs_int) :: nfields, ifield
 
     ! Local variables
@@ -502,9 +502,9 @@ contains
 
     call get_field_idx(flow, u, ifield)
     call count_fields(flow, nfields)
-    call get_normalised_residuals(res, RMS, Linfty)
-    ! Stores RMS of residuals
-    residuals(ifield) = RMS
+    call get_normalised_residuals(res, L2_sq, Linfty)
+    ! Stores L2**2 of residuals
+    residuals(ifield) = L2_sq
     ! Stores Linf norm of residuals
     residuals(nfields + ifield) = Linfty
 
@@ -1021,7 +1021,7 @@ contains
     class(field), pointer :: p        !< The pressure field
     class(field), pointer :: mf       !< The face velocity flux
 
-    real(ccs_real) :: Linfty, rms
+    real(ccs_real) :: Linfty, L2_sq
 
     call get_field(flow, "u", u)
     call get_field(flow, "v", v)
@@ -1127,8 +1127,8 @@ contains
     call get_field_idx(flow, p, ifield)
     call count_fields(flow, nfields)
 
-    call get_normalised_residuals(b, rms, Linfty)
-    residuals(ifield) = rms
+    call get_normalised_residuals(b, L2_sq, Linfty)
+    residuals(ifield) = L2_sq
     ! Stores Linf norm of residuals
     residuals(nfields + ifield) = Linfty
 
@@ -1227,7 +1227,7 @@ contains
     real(ccs_real) :: mib
     type(vector_values) :: vec_values
 
-    real(ccs_real) :: Linfty, rms
+    real(ccs_real) :: Linfty, L2_sq
 
     call create_vector_values(1_ccs_int, vec_values)
     call set_mode(insert_mode, vec_values)
@@ -1293,12 +1293,12 @@ contains
     !! Get corrected mass-imbalance
     call update(b)
 
-    ! Stores RMS of residuals
+    ! Stores L2**2 of residuals
     call get_field_idx(flow, p_prime, ifield)
     call count_fields(flow, nfields)
 
-    call get_normalised_residuals(b, rms, Linfty)
-    residuals(ifield) = rms
+    call get_normalised_residuals(b, L2_sq, Linfty)
+    residuals(ifield) = L2_sq
     ! Stores Linf norm of residuals
     residuals(nfields + ifield) = Linfty
 
@@ -1314,7 +1314,7 @@ contains
     class(parallel_environment), allocatable, intent(in) :: par_env !< The parallel environment
     type(fluid), intent(inout) :: flow                              !< Container for flow fields
     integer(ccs_int), intent(in) :: itr                             !< Iteration count
-    real(ccs_real), dimension(:), intent(inout) :: residuals           !< RMS and Linf of residuals for each equation
+    real(ccs_real), dimension(:), intent(inout) :: residuals        !< RMS and Linf of residuals for each equation
     real(ccs_real), intent(in) :: res_target                        !< Target residual
     logical, intent(inout) :: converged                             !< Has solution converged (true/false)
     logical, optional, intent(out) :: diverged                      !< Has solution diverged (true/false)

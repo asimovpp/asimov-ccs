@@ -469,6 +469,7 @@ contains
     
   end subroutine count_fields
 
+  !> Get the field idx from of flow_field in flow
   pure subroutine get_field_idx(flow, flow_field, idx)
    type(fluid), intent(in) :: flow                          !< The flowfield
    class(field), intent(in) :: flow_field  !< the field of interest
