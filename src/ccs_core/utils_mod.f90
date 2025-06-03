@@ -51,6 +51,7 @@ module utils
   public :: add_field_to_outputlist
   public :: reset_outputlist_counter
   public :: get_field
+  public :: get_field_idx
   public :: get_is_field_solved
   public :: add_field
   public :: set_is_field_solved
@@ -59,6 +60,8 @@ module utils
   public :: reorder_data
   public :: get_scheme_name
   public :: get_scheme_id
+  public :: get_field_name
+  public :: count_fields
 
   !> Generic interface to set values on an object.
   interface set_values
@@ -454,6 +457,50 @@ contains
     outputlist_counter = 0
 
   end subroutine
+
+  !> Get the count of stored fields
+  pure subroutine count_fields(flow, nfields)
+
+    type(fluid), intent(in) :: flow          !< The flowfield
+    integer(ccs_int), intent(out) :: nfields !< The count of fields
+
+    nfields = size(flow%fields)
+    
+  end subroutine count_fields
+
+  pure subroutine get_field_idx(flow, flow_field, idx)
+   type(fluid), intent(in) :: flow                          !< The flowfield
+   class(field), intent(in) :: flow_field  !< the field of interest
+   integer(ccs_int), intent(out) :: idx                      !< The field counter
+   integer(ccs_int) :: nfields, ifield
+
+   idx = -1
+   call count_fields(flow, nfields)
+
+   do ifield=1, nfields
+    if (flow_field%name == flow%fields(ifield)%ptr%name) then
+      idx = ifield
+      return
+    end if
+   end do
+
+  end subroutine get_field_idx
+
+  !> Get the name of the i'th field
+  subroutine get_field_name(flow, s, field_name)
+
+   type(fluid), intent(in) :: flow                          !< The flowfield
+   integer(ccs_int), intent(in) :: s                        !< The field counter
+   character(len=:), allocatable, intent(out) :: field_name !< The field name
+
+   class(field), pointer :: phi
+   
+   call get_field(flow, s, phi)
+   field_name = phi%name
+   nullify(phi)
+
+  end subroutine get_field_name
+
 
   !> Gets the field from the fluid structure specified by field_name
   subroutine get_field_byname(flow, field_name, flow_field)
