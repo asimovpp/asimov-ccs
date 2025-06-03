@@ -409,11 +409,11 @@ contains
     class(ccs_vector), target, intent(inout) :: input_res
     class(ccs_vector), pointer :: res
     real(ccs_real), dimension(:), intent(inout) :: residuals
+    real(ccs_real) :: Linfty, rms
 
     ! Local variables
     class(linear_solver), allocatable :: lin_solver
     integer(ccs_int) :: nvar ! Number of flow variables to solve
-    integer(ccs_int) :: global_num_cells
     integer(ccs_int) :: timer_coeffs
 
     ! First zero matrix/RHS
@@ -487,11 +487,11 @@ contains
     call mat_vec_product(M, u%values, res)
     call vec_aypx(vec, -1.0_ccs_real, res)
     ! Stores RMS of residuals
-    call get_global_num_cells(global_num_cells)
-    residuals(ivar) = norm(res, 2) / sqrt(real(global_num_cells))
+    call get_normalised_residuals(res, RMS, Linfty)
+    residuals(ivar) = RMS ! norm(res, 2) / sqrt(real(global_num_cells))
     ! Stores Linf norm of residuals
     nvar = int(size(residuals) / 2_ccs_int)
-    residuals(ivar + nvar) = norm(res, 0)
+    residuals(ivar + nvar) = Linfty ! norm(res, 0)
 
     ! Create linear solver
     if (allocated(u%values%name)) then
@@ -1016,7 +1016,6 @@ contains
 
     real(ccs_real) :: mib ! Cell mass imbalance
     integer(ccs_int) :: nvar ! Number of flow variables to solve
-    integer(ccs_int) :: global_num_cells
 
     logical, save :: first_time = .true.
 
@@ -1025,6 +1024,8 @@ contains
     class(field), pointer :: w        !< The z velocity component
     class(field), pointer :: p        !< The pressure field
     class(field), pointer :: mf       !< The face velocity flux
+
+    real(ccs_real) :: Linfty, rms
 
     call get_field(flow, "u", u)
     call get_field(flow, "v", v)
@@ -1136,11 +1137,12 @@ contains
 
     ! Pressure residual
     ! Stores RMS of residuals
-    call get_global_num_cells(global_num_cells)
-    residuals(varp) = norm(b, 2) / sqrt(real(global_num_cells))
+    call get_normalised_residuals(b, rms, Linfty)
+    !call get_global_num_cells(global_num_cells)
+    residuals(varp) = rms !norm(b, 2) / sqrt(real(global_num_cells))
     ! Stores Linf norm of residuals
     nvar = int(size(residuals) / 2_ccs_int)
-    residuals(varp + nvar) = norm(b, 0)
+    residuals(varp + nvar) = Linfty !norm(b, 0)
 
   end subroutine compute_mass_imbalance
 
@@ -1238,7 +1240,7 @@ contains
     integer(ccs_int) :: nvar ! Number of flow variables to solve
     type(vector_values) :: vec_values
 
-    integer(ccs_int) :: global_num_cells
+    real(ccs_real) :: Linfty, rms
 
     call create_vector_values(1_ccs_int, vec_values)
     call set_mode(insert_mode, vec_values)
@@ -1305,13 +1307,43 @@ contains
     call update(b)
 
     ! Stores RMS of residuals
-    call get_global_num_cells(global_num_cells)
-    residuals(varp + 1) = norm(b, 2) / sqrt(real(global_num_cells))
+    call get_normalised_residuals(b, rms, Linfty)
+    !call get_global_num_cells(global_num_cells)
+    residuals(varp + 1) = rms !norm(b, 2) / sqrt(real(global_num_cells))
     ! Stores Linf norm of residuals
     nvar = int(size(residuals) / 2_ccs_int)
-    residuals(varp + 1 + nvar) = norm(b, 0)
+    residuals(varp + 1 + nvar) = Linfty !norm(b, 0)
 
   end subroutine update_face_velocity
+
+  !v Computes the L2 square and Linfinity norms of the residuals normalised by cell volumes**(2/3)
+  subroutine get_normalised_residuals(res, L2sq, Linfty)
+    class(ccs_vector), intent(inout) :: res !< residuals vector
+    real(ccs_real), intent(out) :: L2sq     !< output L2 norm squared
+    real(ccs_real), intent(out) :: Linfty   !< output Linfinity norm
+    real(ccs_real), dimension(:), pointer :: res_data
+    integer(ccs_int) :: local_num_cells
+    integer(ccs_int) :: index_p
+    real(ccs_real) :: V, normalised_res
+    type(cell_locator) :: loc_p
+
+    call get_local_num_cells(local_num_cells)
+    L2sq = 0.0_ccs_real
+    Linfty = 0.0_ccs_real
+    call get_vector_data_readonly(res, res_data)
+
+    do index_p=1, local_num_cells
+      call create_cell_locator(index_p, loc_p)
+      call get_volume(loc_p, V)
+      normalised_res = res_data(index_p)/(V**(2.0_ccs_real/3.0_ccs_real))
+      L2sq = L2sq + normalised_res**2
+      Linfty = max(abs(normalised_res), Linfty)
+    end do
+
+    call restore_vector_data_readonly(res, res_data)
+
+  end subroutine
+
 
   subroutine check_convergence(par_env, flow, itr, residuals, res_target, &
                                converged, diverged)
