@@ -62,6 +62,7 @@ module utils
   public :: get_scheme_id
   public :: get_field_name
   public :: count_fields
+  public :: get_normalised_residuals
 
   !> Generic interface to set values on an object.
   interface set_values
@@ -636,5 +637,37 @@ contains
     end if
 
   end function get_scheme_name
+
+  !v Computes the L2 square and Linfinity norms of the residuals normalised by cell volumes**(2/3)
+  subroutine get_normalised_residuals(res, L2sq, Linfty)
+    use types, only: ccs_vector, cell_locator
+    use vec, only: get_vector_data_readonly, restore_vector_data_readonly
+    use meshing, only: get_local_num_cells, create_cell_locator, get_volume
+
+    class(ccs_vector), intent(inout) :: res !< residuals vector
+    real(ccs_real), intent(out) :: L2sq     !< output L2 norm squared
+    real(ccs_real), intent(out) :: Linfty   !< output Linfinity norm
+    real(ccs_real), dimension(:), pointer :: res_data
+    integer(ccs_int) :: local_num_cells
+    integer(ccs_int) :: index_p
+    real(ccs_real) :: V, normalised_res
+    type(cell_locator) :: loc_p
+
+    call get_local_num_cells(local_num_cells)
+    L2sq = 0.0_ccs_real
+    Linfty = 0.0_ccs_real
+    call get_vector_data_readonly(res, res_data)
+
+    do index_p=1, local_num_cells
+      call create_cell_locator(index_p, loc_p)
+      call get_volume(loc_p, V)
+      normalised_res = res_data(index_p)/(V**(2.0_ccs_real/3.0_ccs_real))
+      L2sq = L2sq + normalised_res**2
+      Linfty = max(abs(normalised_res), Linfty)
+    end do
+
+    call restore_vector_data_readonly(res, res_data)
+
+  end subroutine
     
 end module utils

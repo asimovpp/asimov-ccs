@@ -18,7 +18,7 @@ submodule(pv_coupling) pv_coupling_simple
                  set_matrix_values_spec_ncols, create_matrix_values, mat_vec_product
   use utils, only: update, initialise, finalise, set_size, set_values, &
                    mult, zero, clear_entries, set_entry, set_row, set_col, set_mode, &
-                   str, exit_print, count_fields, get_field_idx
+                   str, exit_print, count_fields, get_field_idx, get_normalised_residuals
 
   use utils, only: debug_print, get_field, get_is_field_solved
   use solver, only: create_solver, solve, set_equation_system, axpy, norm, set_solver_method, set_solver_precon
@@ -210,7 +210,7 @@ contains
       ! Transport scalars
       ! XXX: Should we distinguish active scalars (update in non-linear loop) and passive scalars
       !      (single update per timestep)?
-      call update_scalars(par_env, mesh, eval_sources, flow)
+      call update_scalars(par_env, mesh, eval_sources, flow, residuals)
 
       !< density values change to exponential here after update
 
@@ -1303,35 +1303,6 @@ contains
     residuals(nfields + ifield) = Linfty
 
   end subroutine update_face_velocity
-
-  !v Computes the L2 square and Linfinity norms of the residuals normalised by cell volumes**(2/3)
-  subroutine get_normalised_residuals(res, L2sq, Linfty)
-    class(ccs_vector), intent(inout) :: res !< residuals vector
-    real(ccs_real), intent(out) :: L2sq     !< output L2 norm squared
-    real(ccs_real), intent(out) :: Linfty   !< output Linfinity norm
-    real(ccs_real), dimension(:), pointer :: res_data
-    integer(ccs_int) :: local_num_cells
-    integer(ccs_int) :: index_p
-    real(ccs_real) :: V, normalised_res
-    type(cell_locator) :: loc_p
-
-    call get_local_num_cells(local_num_cells)
-    L2sq = 0.0_ccs_real
-    Linfty = 0.0_ccs_real
-    call get_vector_data_readonly(res, res_data)
-
-    do index_p=1, local_num_cells
-      call create_cell_locator(index_p, loc_p)
-      call get_volume(loc_p, V)
-      normalised_res = res_data(index_p)/(V**(2.0_ccs_real/3.0_ccs_real))
-      L2sq = L2sq + normalised_res**2
-      Linfty = max(abs(normalised_res), Linfty)
-    end do
-
-    call restore_vector_data_readonly(res, res_data)
-
-  end subroutine
-
 
   subroutine check_convergence(par_env, flow, itr, residuals, res_target, &
                                converged, diverged)
