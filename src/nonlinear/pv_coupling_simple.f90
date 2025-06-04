@@ -915,20 +915,19 @@ contains
         b = diff_kernel%eval_explicit(coeff_f, interpol_factor, rvecs, grads)
 
         coeff_p = coeff_p + coeffs(1)
+        coeff_nb = coeffs(2)
 
         ! Set equation entries
         if (.not. is_boundary) then
           call create_neighbour_locator(loc_p, j, loc_nb)
           call get_global_index(loc_nb, global_index_nb)
-          coeff_nb = coeffs(2)
           col = global_index_nb
         else
           ! Apply boundary modification to discretised equation
           call compute_boundary_coeffs(p_prime, 0, loc_p, loc_f, face_normal, aPb, bP)
-          coeff_p = coeff_p + coeff_f * aPb
-          r = r - coeff_f * bP
+          coeff_p = coeff_p + coeff_nb * aPb
+          r = r - coeff_nb * bP
           col = -1 ! Don't attempt to set neighbour coefficients
-          coeff_nb = 0.0
         end if
 
         call set_row(row, mat_coeffs)
