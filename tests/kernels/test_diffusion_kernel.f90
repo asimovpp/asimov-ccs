@@ -68,7 +68,6 @@ contains
     ! Velocity field
     real(ccs_real), intent(in) :: x
 
-    ! mu = cos(x)
     mu = 3.1415_ccs_real + 0 * x
   end function mu
 
@@ -77,7 +76,6 @@ contains
     real(ccs_real), intent(in) :: x
 
     phi = sin(2 * x + 17)
-    ! phi = 2.0_ccs_real * x
   end function phi
 
   real(ccs_real) pure function dphi(x)
@@ -85,7 +83,6 @@ contains
     real(ccs_real), intent(in) :: x
 
     dphi = 2 * cos(2 * x + 17)
-    ! dphi = 2.0_ccs_real + 0 * x
   end function dphi
 
   subroutine get_error(coeffs, rhs, x_P, x_N, x_f, error)
