@@ -534,7 +534,7 @@ module meshing
     !> Get the numerical ID of a boundary from its name
     pure module subroutine get_bc_id(mesh, name, bc_id)
       type(ccs_mesh), intent(in) :: mesh     !< The mesh
-      character(len=*), intent(in) :: name   !< The boundary name
+      character(len=128), intent(in) :: name   !< The boundary name
       integer(ccs_int), intent(out) :: bc_id !< The boundary ID
     end subroutine get_bc_id
 

@@ -333,6 +333,8 @@ contains
     end if
 
     call build_init_assembly(M)
+    call update(M)
+    call finalise(M)
 
     ! u-velocity
     ! ----------
@@ -377,6 +379,7 @@ contains
   subroutine calculate_velocity_component(flow, par_env, run_options, eval_sources, ivar, p, M, vec, &
                                           lin_sys, u, invA, workvec, sourcevec, input_res, residuals)
 
+    use ccs_base, only: mesh ! XXX: Fix this --- hackathon only!
     use timestepping, only: apply_timestep
     use timers, only: timer_register_start, timer_stop
     use fv, only: assemble_transport_equation
@@ -434,7 +437,7 @@ contains
     ! Zero residual vector
     call zero(res)
 
-    call assemble_transport_equation(run_options, u, flow, M, vec)
+    call assemble_transport_equation(par_env, run_options, mesh, u, flow, M, vec)
 
     ! Add source terms
     if (.false.) then

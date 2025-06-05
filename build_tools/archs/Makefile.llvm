@@ -5,7 +5,7 @@ FC = mpif90
 # Check for gfortran version >= 10
 GFORTRAN_VER_GTE10 := $(shell echo `${FC} -dumpversion | cut -f1 -d.` \>= 10 | bc)
 
-FFLAGS = -cpp -std=f2018 -fimplicit-none -g
+FFLAGS = -cpp -std=f2018 -fimplicit-none
 CAFFLAGS = -fcoarray=single
 ifeq ($(VERBOSE),yes)
   FFLAGS += -DVERBOSE
@@ -30,7 +30,7 @@ ifeq ($(GFORTRAN_VER_GTE10),0)
   FFLAGS += -fno-range-check -Wno-conversion # allow compilation of zcurve mortif library using GCC 9
 endif
 
-FFLAGS += -fopenmp
+FFLAGS += -fopenmp -fopenmp-force-usm --offload-arch=gfx942
 FFLAGS += -J$(OBJ_DIR)
 MPIRUN = mpirun --oversubscribe
 

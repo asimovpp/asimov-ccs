@@ -123,7 +123,7 @@ obj: $(OBJ)
 all: obj app
 
 $(EXE): $(EXE_DEPS)
-	$(FC) $(FFLAGS) $(CAFLINK) -o $@ $(filter-out $(EXE_DEPS),$^) $(INC) $(LIB) 
+	$(FC) $(FFLAGS) $(CAFLINK) -o $@ $(filter-out $(EXE_DEPS),$^) $(INC) $(LIB) -lflang_rt.hostdevice
 	@echo -n "===> Built ccs_app with "
 	@grep main $(CCS_DIR)/config.yaml
 

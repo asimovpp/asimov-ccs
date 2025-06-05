@@ -8,7 +8,9 @@ module fv
   use kinds, only: ccs_real, ccs_int
   use types, only: ccs_matrix, ccs_vector, ccs_mesh, field, upwind_field, central_field, &
                    gamma_field, linear_upwind_field, bc_config, face_locator, cell_locator, &
-                   neighbour_locator, bc_profile, fluid
+                   neighbour_locator, bc_profile, fluid, &
+                   ccs_mesh
+  use parallel_types, only: parallel_environment
   use transient_kernels, only: transient_kernel
   use constants, only: ndim
 
@@ -113,8 +115,10 @@ module fv
     end subroutine
 
     !> Assembles a transport equation, if u,v,w adds the pressure gradient
-    module subroutine assemble_transport_equation(run_options, phi, flow, M, rhs)
+    module subroutine assemble_transport_equation(par_env, run_options, mesh, phi, flow, M, rhs)
+      class(parallel_environment), allocatable, intent(in) :: par_env
       class(ccs_options), intent(in) :: run_options
+      type(ccs_mesh), intent(in) :: mesh
       class(field), intent(inout) :: phi
       class(fluid), intent(in) :: flow
       class(ccs_matrix), intent(inout) :: M
