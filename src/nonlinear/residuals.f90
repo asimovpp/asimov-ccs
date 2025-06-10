@@ -11,7 +11,8 @@ module residuals
   use types, only: fluid, field, ccs_vector, ccs_matrix, ccs_residuals
   use parallel_types, only: parallel_environment
   use parallel_types_mpi, only: parallel_environment_mpi
-  use utils, only: get_field, count_fields, get_field_idx, get_is_field_solved, exit_print
+  use utils, only: exit_print
+  use fields, only: get_field, count_fields, get_field_idx, get_is_field_solved
   use mat, only: mat_vec_product
   use vec, only: vec_aypx
   use meshing, only: get_global_num_cells

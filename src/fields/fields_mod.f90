@@ -11,12 +11,13 @@ module fields
                    vector_spec, face_field, central_field, upwind_field, gamma_field, linear_upwind_field
   use kinds, only: ccs_int
 
-  use utils, only: update, add_field, get_scheme_name
+  use utils, only: update, get_scheme_name
   use parallel, only: is_root
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
   use vec, only: create_vector, get_vector_data_readonly
   use fv, only: update_gradient
   use timestepping, only: initialise_old_values
+  use error_codes
 
   implicit none
 
@@ -31,6 +32,20 @@ module fields
   public :: set_field_enable_cell_corrections
   public :: set_field_name
   public :: set_field_type
+  public :: get_is_field_solved
+  public :: set_is_field_solved
+  public :: get_field
+  public :: get_field_idx
+  public :: add_field
+  public :: dealloc_fluid_fields
+  public :: get_field_name
+  public :: count_fields
+
+  !> Generic interface to get a field from the flow
+  interface get_field
+    module procedure get_field_byname
+    module procedure get_field_byidx
+  end interface get_field
 
 contains
 
@@ -88,6 +103,24 @@ contains
     end associate
 
   end subroutine create_field
+
+  !> Sets the solve flag for a field
+  pure subroutine set_is_field_solved(solve, phi)
+    logical, intent(in) :: solve      !< flag indicating whether to solve for the given field
+    type(field), intent(inout) :: phi !< Field variable
+
+    phi%solve = solve
+    
+  end subroutine set_is_field_solved
+
+  !> Gets the solve flag for a field
+  pure subroutine get_is_field_solved(phi, solve)
+    class(field), intent(in) :: phi !< Field variable
+    logical, intent(out) :: solve   !< flag indicating whether to solve for the given field
+
+    solve = phi%solve
+    
+  end subroutine get_is_field_solved
 
   !> Print a brief description (name, type) of a field as it is created
   subroutine print_field(par_env, field_properties)
@@ -253,5 +286,120 @@ contains
     field_properties%field_type = field_type
 
   end subroutine set_field_type
+
+  !> Gets the field from the fluid structure specified by field_name
+  subroutine get_field_byname(flow, field_name, flow_field)
+    type(fluid), intent(in) :: flow                   !< the structure containing all the fluid fields
+    character(len=*), intent(in) :: field_name
+    class(field), pointer, intent(out) :: flow_field  !< the field of interest
+
+    integer(ccs_int) :: i
+
+    logical :: found
+
+    do i = 1, size(flow%fields)
+      call get_field_byidx(flow, i, flow_field)
+      if (trim(flow_field%name) == field_name) then
+        found = .true.
+        exit
+      else
+        found = .false.
+        nullify (flow_field)
+      end if
+    end do
+
+    if (.not. found) then
+      error stop field_not_found ! Field name not found
+    end if
+
+  end subroutine get_field_byname
+
+  ! Deallocates fluid arrays
+  subroutine dealloc_fluid_fields(flow)
+    type(fluid), intent(inout) :: flow  !< The fluid structure to deallocate
+
+    deallocate (flow%fields)
+  end subroutine dealloc_fluid_fields
+
+  !> Get the count of stored fields
+  pure subroutine count_fields(flow, nfields)
+
+    type(fluid), intent(in) :: flow          !< The flowfield
+    integer(ccs_int), intent(out) :: nfields !< The count of fields
+
+    nfields = size(flow%fields)
+
+  end subroutine count_fields
+
+  !< Sets the pointer to the field and the corresponding field name in the fluid structure
+  subroutine add_field(flow_field_ptr, flow)
+    type(field_ptr), target, intent(in) :: flow_field_ptr !< the field
+    type(fluid), intent(inout) :: flow                    !< the fluid structure
+
+    logical, save :: first_call = .true.
+
+    ! Handle the case when a program body is called in a loop (e.g. as part of a convergence test)
+    if (.not. allocated(flow%fields)) then
+      first_call = .true.
+    end if
+
+    if (first_call) then
+      allocate (flow%fields(1))
+      flow%fields(1) = flow_field_ptr
+      first_call = .false.
+    else
+      flow%fields = [flow%fields, flow_field_ptr]
+    end if
+
+  end subroutine add_field
+  !> Gets the field from the fluid structure specified by field_index
+  subroutine get_field_byidx(flow, field_index, flow_field)
+    type(fluid), intent(in) :: flow                   !< the structure containing all the fluid fields
+    integer, intent(in) :: field_index
+    class(field), pointer, intent(out) :: flow_field  !< the field of interest
+
+    if (field_index > size(flow%fields)) then
+      error stop field_index_exceeded ! Field index exceeds number of flow fields
+    end if
+
+    flow_field => flow%fields(field_index)%ptr
+
+  end subroutine get_field_byidx
+
+  !> Get the name of the i'th field
+  subroutine get_field_name(flow, idx, field_name)
+
+    type(fluid), intent(in) :: flow                          !< The flowfield
+    integer(ccs_int), intent(in) :: idx                      !< The field counter
+    character(len=:), allocatable, intent(out) :: field_name !< The field name
+
+    class(field), pointer :: phi
+
+    call get_field(flow, idx, phi)
+    field_name = phi%name
+    nullify (phi)
+
+  end subroutine get_field_name
+
+  !> Get the field idx from of flow_field in flow
+  pure subroutine get_field_idx(flow, flow_field, idx)
+    type(fluid), intent(in) :: flow                          !< The flowfield
+    class(field), intent(in) :: flow_field  !< the field of interest
+    integer(ccs_int), intent(out) :: idx                      !< The field counter
+    integer(ccs_int) :: nfields, ifield
+
+    idx = -1
+    call count_fields(flow, nfields)
+
+    do ifield = 1, nfields
+      if (flow_field%name == flow%fields(ifield)%ptr%name) then
+        idx = ifield
+        return
+      end if
+    end do
+
+  end subroutine get_field_idx
+
+
 
 end module fields

@@ -12,7 +12,8 @@ module poiseuille_core
   use types, only: field, fluid, ccs_mesh, bc_profile
   use parallel, only: timer, is_root
   use parallel_types, only: parallel_environment
-  use utils, only:  calc_kinetic_energy, calc_enstrophy, get_field
+  use utils, only:  calc_kinetic_energy, calc_enstrophy
+  use fields, only: get_field
   use boundary_conditions, only: set_bc_profile
   use timestepping, only: reset_timestepping
   use meshing, only: get_total_num_cells, set_mesh_object, get_global_num_cells, nullify_mesh_object, get_local_num_cells

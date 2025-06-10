@@ -16,10 +16,9 @@ program tgv
   use types, only: fluid, field
   use utils, only: exit_print, &
                    calc_kinetic_energy, calc_enstrophy, &
-                   add_field_to_outputlist, get_field, add_field, &
-                   set_is_field_solved, &
-                   str, debug_print, &
-                   dealloc_fluid_fields
+                   add_field_to_outputlist, &
+                   str, debug_print
+  use fields, only: get_field, add_field, dealloc_fluid_fields, set_is_field_solved
   use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, timer_print, &
                     timer_get_time, timer_print_all, timer_export_csv, timer_get_index
 

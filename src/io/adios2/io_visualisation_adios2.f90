@@ -8,7 +8,8 @@ submodule(io_visualisation) io_visualisation_adios2
                 write_array, read_array
   use adios2
   use adios2_types, only: adios2_io_process
-  use utils, only: exit_print, get_field, update, set_values
+  use utils, only: exit_print, update, set_values
+  use fields, only: get_field
   use timers, only: timer_register, timer_start, timer_stop
   use types, only: field
   
