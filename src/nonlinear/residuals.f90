@@ -1,5 +1,5 @@
 !v Module for handling residuals
-! 
+!
 ! Computes them, compute their norms, and prints them
 
 module residuals
@@ -15,7 +15,7 @@ module residuals
   use vec, only: vec_aypx
   use meshing, only: get_global_num_cells
 
-  contains
+contains
 
   !v Allocate residuals arrays
   subroutine init_residuals(flow, residuals)
@@ -25,8 +25,8 @@ module residuals
 
     call count_fields(flow, nfields)
 
-    allocate(residuals%L2(nfields))
-    allocate(residuals%Linfty(nfields))
+    allocate (residuals%L2(nfields))
+    allocate (residuals%Linfty(nfields))
 
     residuals%L2 = 0.0_ccs_real
     residuals%Linfty = 0.0_ccs_real
@@ -44,7 +44,6 @@ module residuals
     type(ccs_residuals), intent(inout) :: residuals
     integer(ccs_int) :: ifield
 
-
     call mat_vec_product(M, phi%values, res)
     call vec_aypx(rhs, -1.0_ccs_real, res)
 
@@ -53,8 +52,7 @@ module residuals
 
   end subroutine
 
-
-  !v Computes normalised residuals and stores them in residuals structure. 
+  !v Computes normalised residuals and stores them in residuals structure.
   ! Residuals are normalised by cell volumes**(2/3) and their L2 (squared) and Linfinity norms are stored
   subroutine normalise_residuals(res, ifield, residuals)
     use types, only: ccs_vector, cell_locator
@@ -64,8 +62,8 @@ module residuals
     class(ccs_vector), intent(inout) :: res !< residuals vector
     type(ccs_residuals), intent(inout) :: residuals
     integer(ccs_int), intent(in) :: ifield
-    real(ccs_real)  :: L2sq     !< output L2 norm squared
-    real(ccs_real)  :: Linfty   !< output Linfinity norm
+    real(ccs_real) :: L2sq     !< output L2 norm squared
+    real(ccs_real) :: Linfty   !< output Linfinity norm
     real(ccs_real), dimension(:), pointer :: res_data
     integer(ccs_int) :: local_num_cells
     integer(ccs_int) :: index_p
@@ -77,10 +75,10 @@ module residuals
     Linfty = 0.0_ccs_real
     call get_vector_data_readonly(res, res_data)
 
-    do index_p=1, local_num_cells
+    do index_p = 1, local_num_cells
       call create_cell_locator(index_p, loc_p)
       call get_volume(loc_p, V)
-      normalised_res = res_data(index_p)/(V**(2.0_ccs_real/3.0_ccs_real))
+      normalised_res = res_data(index_p) / (V**(2.0_ccs_real / 3.0_ccs_real))
       L2sq = L2sq + normalised_res**2
       Linfty = max(abs(normalised_res), Linfty)
     end do
@@ -118,13 +116,12 @@ module residuals
     integer(ccs_int) :: nfields, ifield, global_num_cells
     integer :: ierr
 
-
     call count_fields(flow, nfields)
     call get_global_num_cells(global_num_cells)
 
     select type (par_env)
     type is (parallel_environment_mpi)
-      do ifield=1, nfields
+      do ifield = 1, nfields
         !Computes RMS from L2 squared
         call MPI_ALLREDUCE(MPI_IN_PLACE, residuals%L2(ifield), 1, MPI_DOUBLE_PRECISION, MPI_SUM, par_env%comm, ierr)
         residuals%L2(ifield) = sqrt(residuals%L2(ifield)) / sqrt(real(global_num_cells))
@@ -186,7 +183,7 @@ module residuals
           else
             prefix = "Linf_"
           end if
-          do ifield=1, nfields
+          do ifield = 1, nfields
             call get_field(flow, ifield, phi)
             call get_is_field_solved(phi, phi_sol)
 
@@ -212,7 +209,7 @@ module residuals
         write (io_unit, '(i6,1x,e12.4,1x)', advance='no') step, time, itr
       end if
 
-      do ifield=1, nfields
+      do ifield = 1, nfields
         call get_field(flow, ifield, phi)
         call get_is_field_solved(phi, phi_sol)
 
@@ -222,7 +219,7 @@ module residuals
         end if
       end do
 
-      do ifield=1, nfields
+      do ifield = 1, nfields
         call get_field(flow, ifield, phi)
         call get_is_field_solved(phi, phi_sol)
 
@@ -236,7 +233,6 @@ module residuals
       write (io_unit, *)
       close (io_unit)
     end if
-
 
   end subroutine
 
