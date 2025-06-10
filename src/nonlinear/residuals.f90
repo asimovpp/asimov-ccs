@@ -1,6 +1,7 @@
 !v Module for handling residuals
 !
 ! Computes them, compute their norms, and prints them
+! @dont_fail_linter
 
 module residuals
 #include "ccs_macros.inc"
@@ -122,11 +123,11 @@ contains
     select type (par_env)
     type is (parallel_environment_mpi)
       do ifield = 1, nfields
-        !Computes RMS from L2 squared
+        ! Computes RMS from L2 squared
         call MPI_ALLREDUCE(MPI_IN_PLACE, residuals%L2(ifield), 1, MPI_DOUBLE_PRECISION, MPI_SUM, par_env%comm, ierr)
-        residuals%L2(ifield) = sqrt(residuals%L2(ifield)) / sqrt(real(global_num_cells))
+        residuals%L2(ifield) = sqrt(residuals%L2(ifield)) / sqrt(real(global_num_cells, kind=ccs_real))
 
-        !Linf
+        ! Linf
         call MPI_ALLREDUCE(MPI_IN_PLACE, residuals%Linfty(ifield), 1, MPI_DOUBLE_PRECISION, MPI_MAX, par_env%comm, ierr)
       end do
     class default
