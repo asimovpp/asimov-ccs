@@ -302,6 +302,15 @@ module types
      procedure(eval_interface), deferred :: eval
   end type abstract_kernel
 
+
+  type, public :: ccs_residuals
+    integer(ccs_int) :: normalisation_method
+    real(ccs_real), dimension(:), allocatable :: L2_local
+    real(ccs_real), dimension(:), allocatable :: Linfty_local
+    real(ccs_real), dimension(:), allocatable :: L2
+    real(ccs_real), dimension(:), allocatable :: Linfty
+  end type ccs_residuals
+
   !> Abstract kernel interface
   abstract interface
      pure function coeffs_interface(this) result(coeffs)
