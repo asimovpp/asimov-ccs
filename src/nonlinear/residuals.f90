@@ -3,17 +3,35 @@
 ! Computes them, compute their norms, and prints them
 
 module residuals
-    
+#include "ccs_macros.inc"
+
   use ccs_base, only: L2, Linfty
   use kinds, only: ccs_int, ccs_real
   use types, only: fluid, field, ccs_vector, ccs_matrix, ccs_residuals
   use parallel_types, only: parallel_environment
   use parallel_types_mpi, only: parallel_environment_mpi
-  use utils, only: get_field, count_fields, get_field_idx, get_is_field_solved
+  use utils, only: get_field, count_fields, get_field_idx, get_is_field_solved, exit_print
   use mat, only: mat_vec_product
   use vec, only: vec_aypx
+  use meshing, only: get_global_num_cells
 
   contains
+
+  !v Allocate residuals arrays
+  subroutine init_residuals(flow, residuals)
+    type(fluid), intent(in) :: flow                              !< The structure containting all the fluid fields
+    type(ccs_residuals), intent(inout) :: residuals
+    integer(ccs_int) :: nfields
+
+    call count_fields(flow, nfields)
+
+    allocate(residuals%L2(nfields))
+    allocate(residuals%Linfty(nfields))
+
+    residuals%L2 = 0.0_ccs_real
+    residuals%Linfty = 0.0_ccs_real
+
+  end subroutine
 
   !v Computes residuals from a matric, vector and rhs.
   ! Residuals are stored in 'res' variable and their norms in the residuals data structure
@@ -22,7 +40,7 @@ module residuals
     class(ccs_matrix), intent(in) :: M
     class(field), intent(in) :: phi
     class(ccs_vector), intent(in) :: rhs
-    class(ccs_vector), allocatable, intent(inout) :: res
+    class(ccs_vector), intent(inout) :: res
     type(ccs_residuals), intent(inout) :: residuals
     integer(ccs_int) :: ifield
 
@@ -74,6 +92,7 @@ module residuals
 
   end subroutine
 
+  !v Get the maximum residuals for a specific norm
   real(ccs_real) function get_max_residuals(residuals, norm) result(max_value)
     type(ccs_residuals), intent(in) :: residuals
     integer, intent(in) :: norm
@@ -142,6 +161,7 @@ module residuals
     class(field), pointer :: phi
     logical :: phi_sol
 
+    call count_fields(flow, nfields)
 
     ! Print residuals
     if (is_root(par_env)) then

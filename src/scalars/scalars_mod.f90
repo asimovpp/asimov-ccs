@@ -4,7 +4,7 @@
 
 module scalars
 
-  use types, only: field, ccs_mesh, fluid
+  use types, only: field, ccs_mesh, fluid, ccs_residuals
   use parallel_types, only: parallel_environment
   use kinds, only: ccs_real
 
@@ -29,7 +29,7 @@ module scalars
         end subroutine eval_sources
       end interface
       type(fluid), intent(inout) :: flow                                !< The structure containting all the fluid fields
-      real(ccs_real), dimension(:), optional, intent(inout) :: residuals
+      type(ccs_residuals), optional, intent(inout) :: residuals
     end subroutine update_scalars
   end interface
 

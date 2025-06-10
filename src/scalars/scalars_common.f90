@@ -8,7 +8,7 @@ submodule(scalars) scalars_common
   use kinds, only: ccs_int, ccs_real !< added here
   use types, only: ccs_matrix, ccs_vector, &
        vector_spec, matrix_spec, &
-       linear_solver, equation_system
+       linear_solver, equation_system, ccs_residuals
 
   use fv, only: compute_fluxes, update_gradient
   use timestepping, only: update_old_values, get_current_step, apply_timestep
@@ -20,6 +20,7 @@ submodule(scalars) scalars_common
   use meshing, only: get_max_faces
   use utils, only: get_field, update, initialise, finalise, set_size, debug_print, &
        zero, count_fields, get_field_name
+  use residuals, only: compute_residuals
 
   implicit none
   
@@ -51,15 +52,13 @@ contains
       end subroutine eval_sources
     end interface
     type(fluid), intent(inout) :: flow                              !< The structure containting all the fluid fields
-    real(ccs_real), dimension(:), optional, intent(inout) :: residuals
+    type(ccs_residuals), optional, intent(inout) :: residuals
 
     class(ccs_matrix), allocatable :: M
     class(ccs_vector), allocatable :: rhs
     class(ccs_vector), allocatable :: D
     class(ccs_vector), allocatable :: source
     class(ccs_vector), allocatable :: res
-    real(ccs_real) :: L2_square_res, Linfty_res
-
     
     integer(ccs_int) :: nfields  ! Number of variables in the flowfield
     integer(ccs_int) :: s        ! Scalar field counter
@@ -128,17 +127,13 @@ contains
           call update_old_values(phi)
        end if
 
-       call transport_scalar(par_env, flow, eval_sources, M, rhs, D, source, phi, res, L2_square_res, Linfty_res)
-       if (present(residuals)) then
-         residuals(s) = L2_square_res
-         residuals(s + nfields) = Linfty_res
-       end if
+       call transport_scalar(par_env, flow, eval_sources, M, rhs, D, source, phi, res, residuals)
     end do
     
   end subroutine update_scalars
 
   !> Subroutine to transport a scalar field.
-  subroutine transport_scalar(par_env, flow, eval_sources, M, rhs, D, S, phi, res, L2_square_res, Linfty_res)
+  subroutine transport_scalar(par_env, flow, eval_sources, M, rhs, D, S, phi, res, residuals)
     use utils, only: get_normalised_residuals
 
     class(parallel_environment), allocatable, intent(in) :: par_env !< parallel environment
@@ -161,7 +156,7 @@ contains
     class(ccs_vector), intent(inout) :: S !< Working vector for equation RHS
     class(field), intent(inout) :: phi ! The scalar field
     class(ccs_vector), allocatable, intent(inout) :: res
-    real(ccs_real), intent(out) :: L2_square_res, Linfty_res
+    type(ccs_residuals), intent(inout), optional :: residuals
 
 
     class(field), pointer :: mf  ! The advecting velocity field
@@ -201,10 +196,10 @@ contains
     call solve(lin_solver)
 
     ! Compute residuals
-    call mat_vec_product(M, phi%values, res)
-    call vec_aypx(rhs, -1.0_ccs_real, res)
-    call get_normalised_residuals(res, L2_square_res, Linfty_res)
- 
+    if (present(residuals)) then
+      call compute_residuals(flow, M, phi, rhs, res, residuals)
+    end if
+
     call update_gradient(phi)
 
     deallocate(lin_solver)
