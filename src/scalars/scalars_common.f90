@@ -134,7 +134,6 @@ contains
 
   !> Subroutine to transport a scalar field.
   subroutine transport_scalar(par_env, flow, eval_sources, M, rhs, D, S, phi, res, residuals)
-    use utils, only: get_normalised_residuals
 
     class(parallel_environment), allocatable, intent(in) :: par_env !< parallel environment
     type(fluid), intent(inout) :: flow                              !< The structure containting all the fluid fields
