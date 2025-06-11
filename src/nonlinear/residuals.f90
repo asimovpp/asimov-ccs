@@ -127,7 +127,7 @@ contains
       do ifield = 1, nfields
         ! Computes RMS from L2 squared
         call MPI_ALLREDUCE(MPI_IN_PLACE, residuals%L2(ifield), 1, MPI_DOUBLE_PRECISION, MPI_SUM, par_env%comm, ierr)
-        residuals%L2(ifield) = sqrt(residuals%L2(ifield)) / sqrt(real(global_num_cells, kind=ccs_real))
+        residuals%L2(ifield) = sqrt(residuals%L2(ifield) / real(global_num_cells, kind=ccs_real))
 
         ! Linf
         call MPI_ALLREDUCE(MPI_IN_PLACE, residuals%Linfty(ifield), 1, MPI_DOUBLE_PRECISION, MPI_MAX, par_env%comm, ierr)
