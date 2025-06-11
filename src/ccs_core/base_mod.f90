@@ -20,5 +20,8 @@ module ccs_base
   character(len=128), parameter :: front = "front"
   character(len=128), dimension(6), parameter, public :: bnd_names_default = &
        [left, right, bottom, top, back, front]
+
+  integer, parameter, public :: L2 = 2
+  integer, parameter, public :: Linfty = 0
   
 end module ccs_base

@@ -8,18 +8,19 @@ submodule(scalars) scalars_common
   use kinds, only: ccs_int, ccs_real !< added here
   use types, only: ccs_matrix, ccs_vector, &
        vector_spec, matrix_spec, &
-       linear_solver, equation_system
+       linear_solver, equation_system, ccs_residuals
 
   use fv, only: compute_fluxes, update_gradient
   use timestepping, only: update_old_values, get_current_step, apply_timestep
 
-  use vec, only: create_vector, get_vector_data, restore_vector_data !< added here
+  use vec, only: create_vector, get_vector_data, restore_vector_data
   use mat, only: create_matrix, set_nnz
   use solver, only: create_solver, solve, set_equation_system
 
   use meshing, only: get_max_faces
-  use utils, only: get_field, update, initialise, finalise, set_size, debug_print, &
-       zero
+  use utils, only: update, initialise, finalise, set_size, debug_print, zero
+  use fields, only: get_field, count_fields, get_field_name
+  use residuals, only: compute_residuals
 
   implicit none
   
@@ -35,7 +36,7 @@ submodule(scalars) scalars_common
 contains
   
   !> Subroutine to perform scalar transport for all scalar fields.
-  module subroutine update_scalars(par_env, mesh, eval_sources, flow)
+  module subroutine update_scalars(par_env, mesh, eval_sources, flow, residuals)
     class(parallel_environment), allocatable, intent(in) :: par_env !< parallel environment
     type(ccs_mesh), intent(in) :: mesh                              !< the mesh
     interface
@@ -51,11 +52,13 @@ contains
       end subroutine eval_sources
     end interface
     type(fluid), intent(inout) :: flow                              !< The structure containting all the fluid fields
+    type(ccs_residuals), optional, intent(inout) :: residuals
 
     class(ccs_matrix), allocatable :: M
     class(ccs_vector), allocatable :: rhs
     class(ccs_vector), allocatable :: D
     class(ccs_vector), allocatable :: source
+    class(ccs_vector), allocatable :: res
     
     integer(ccs_int) :: nfields  ! Number of variables in the flowfield
     integer(ccs_int) :: s        ! Scalar field counter
@@ -86,6 +89,8 @@ contains
     call create_vector(vec_properties, rhs)
     call create_vector(vec_properties, D)
     call create_vector(vec_properties, source)
+    call create_vector(vec_properties, res)
+
 
     ! Check whether we need to update the old values
     call dprint("SCALAR: check new timestep")
@@ -113,17 +118,22 @@ contains
        end if
 
        call get_field(flow, field_name, phi)
+
+       if (.not. phi%solve) then
+         cycle
+       end if
+
        if (do_update) then
           call update_old_values(phi)
        end if
 
-       call transport_scalar(par_env, flow, eval_sources, M, rhs, D, source, phi)
+       call transport_scalar(par_env, flow, eval_sources, M, rhs, D, source, phi, res, residuals)
     end do
     
   end subroutine update_scalars
 
   !> Subroutine to transport a scalar field.
-  subroutine transport_scalar(par_env, flow, eval_sources, M, rhs, D, S, phi)
+  subroutine transport_scalar(par_env, flow, eval_sources, M, rhs, D, S, phi, res, residuals)
 
     class(parallel_environment), allocatable, intent(in) :: par_env !< parallel environment
     type(fluid), intent(inout) :: flow                              !< The structure containting all the fluid fields
@@ -144,6 +154,9 @@ contains
     class(ccs_vector), intent(inout) :: D !< Working vector for equation diagonal
     class(ccs_vector), intent(inout) :: S !< Working vector for equation RHS
     class(field), intent(inout) :: phi ! The scalar field
+    class(ccs_vector), allocatable, intent(inout) :: res
+    type(ccs_residuals), intent(inout), optional :: residuals
+
 
     class(field), pointer :: mf  ! The advecting velocity field
     class(field), pointer :: viscosity  ! viscosity
@@ -180,37 +193,18 @@ contains
     call create_solver(lin_system, lin_solver)
 
     call solve(lin_solver)
+
+    ! Compute residuals
+    if (present(residuals)) then
+      call compute_residuals(flow, M, phi, rhs, res, residuals)
+    end if
+
     call update_gradient(phi)
 
     deallocate(lin_solver)
     
   end subroutine transport_scalar
 
-  !> Get the count of stored fields - probably belongs somewhere else
-  pure subroutine count_fields(flow, nfields)
-
-    type(fluid), intent(in) :: flow          !< The flowfield
-    integer(ccs_int), intent(out) :: nfields !< The count of fields
-
-    nfields = size(flow%fields)
-    
-  end subroutine count_fields
-
-  !> Get the name of the i'th field
-  subroutine get_field_name(flow, s, field_name)
-
-    type(fluid), intent(in) :: flow                          !< The flowfield
-    integer(ccs_int), intent(in) :: s                        !< The field counter
-    character(len=:), allocatable, intent(out) :: field_name !< The field name
-
-    class(field), pointer :: phi
-   
-    call get_field(flow, s, phi)
-    field_name = phi%name
-    nullify(phi)
-
-  end subroutine get_field_name
- 
   !> Compute source terms and add to the equation system
   subroutine apply_sources(flow, phi, eval_sources, R, S, M, rhs)
 

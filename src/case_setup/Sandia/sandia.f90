@@ -17,7 +17,8 @@ program sandia
   use scalars, only: update_scalars
   use read_config, only: get_enable_cell_corrections, get_store_residuals
   use boundary_conditions, only: set_bc_profile
-  use utils, only: str, dealloc_fluid_fields
+  use utils, only: str
+  use fields, only: dealloc_fluid_fields
   use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, &
                     timer_print, timer_get_time, timer_print_all, timer_export_csv
 

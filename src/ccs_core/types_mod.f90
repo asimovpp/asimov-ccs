@@ -302,6 +302,12 @@ module types
      procedure(eval_interface), deferred :: eval
   end type abstract_kernel
 
+  !v Residuals type storing L2 and Linfty norms of the residuals for each equation
+  type, public :: ccs_residuals
+    real(ccs_real), dimension(:), allocatable :: L2
+    real(ccs_real), dimension(:), allocatable :: Linfty
+  end type ccs_residuals
+
   !> Abstract kernel interface
   abstract interface
      pure function coeffs_interface(this) result(coeffs)
