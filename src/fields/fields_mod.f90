@@ -299,7 +299,7 @@ contains
 
     do i = 1, size(flow%fields)
       call get_field_byidx(flow, i, flow_field)
-      if (trim(flow_field%name) == field_name) then
+      if (trim(flow_field%name) == trim(field_name)) then
         found = .true.
         exit
       else
@@ -392,7 +392,7 @@ contains
     call count_fields(flow, nfields)
 
     do ifield = 1, nfields
-      if (flow_field%name == flow%fields(ifield)%ptr%name) then
+      if (trim(flow_field%name) == trim(flow%fields(ifield)%ptr%name)) then
         idx = ifield
         return
       end if
