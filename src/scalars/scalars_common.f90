@@ -18,8 +18,8 @@ submodule(scalars) scalars_common
   use solver, only: create_solver, solve, set_equation_system
 
   use meshing, only: get_max_faces
-  use utils, only: get_field, update, initialise, finalise, set_size, debug_print, &
-       zero, count_fields, get_field_name
+  use utils, only: update, initialise, finalise, set_size, debug_print, zero
+  use fields, only: get_field, count_fields, get_field_name
   use residuals, only: compute_residuals
 
   implicit none

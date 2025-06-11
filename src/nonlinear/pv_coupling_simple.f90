@@ -18,9 +18,9 @@ submodule(pv_coupling) pv_coupling_simple
                  set_matrix_values_spec_ncols, create_matrix_values, mat_vec_product
   use utils, only: update, initialise, finalise, set_size, set_values, &
                    mult, zero, clear_entries, set_entry, set_row, set_col, set_mode, &
-                   str, exit_print, count_fields, get_field_idx
+                   str, exit_print, debug_print
+  use fields, only:  count_fields, get_field_idx, get_field, get_is_field_solved
 
-  use utils, only: debug_print, get_field, get_is_field_solved
   use solver, only: create_solver, solve, set_equation_system, axpy, norm, set_solver_method, set_solver_precon
   use constants, only: insert_mode, add_mode, ndim, cell
   use meshing, only: get_face_area, get_global_index, get_local_index, count_neighbours, &

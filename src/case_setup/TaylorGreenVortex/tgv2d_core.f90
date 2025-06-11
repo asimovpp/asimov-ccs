@@ -14,9 +14,8 @@ module tgv2d_core
   use meshing, only: get_global_num_cells, set_mesh_object, nullify_mesh_object
   use mesh_utils, only: build_square_mesh
   use utils, only: exit_print, calc_kinetic_energy, calc_enstrophy, &
-                   add_field_to_outputlist, reset_outputlist_counter, get_field, add_field, &
-                   set_is_field_solved, &
-                   dealloc_fluid_fields
+                   add_field_to_outputlist, reset_outputlist_counter
+  use fields, only: get_field, add_field, dealloc_fluid_fields, set_is_field_solved
   use timestepping, only: reset_timestepping
   use io_visualisation, only: reset_io_visualisation
   use timers, only: timer_register_start, timer_stop, timer_print_all, timer_export_csv

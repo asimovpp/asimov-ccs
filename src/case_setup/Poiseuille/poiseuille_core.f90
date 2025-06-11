@@ -12,12 +12,13 @@ module poiseuille_core
   use types, only: field, fluid, ccs_mesh, bc_profile
   use parallel, only: timer, is_root
   use parallel_types, only: parallel_environment
-  use utils, only:  calc_kinetic_energy, calc_enstrophy, get_field
+  use utils, only:  calc_kinetic_energy, calc_enstrophy
+  use fields, only: get_field, dealloc_fluid_fields
   use boundary_conditions, only: set_bc_profile
   use timestepping, only: reset_timestepping
   use meshing, only: get_total_num_cells, set_mesh_object, get_global_num_cells, nullify_mesh_object, get_local_num_cells
   use io_visualisation, only: reset_io_visualisation
-  use utils, only: str, exit_print, reset_outputlist_counter, dealloc_fluid_fields
+  use utils, only: str, exit_print, reset_outputlist_counter
   use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, &
                     timer_print, timer_get_time, timer_print_all, timer_reset
 

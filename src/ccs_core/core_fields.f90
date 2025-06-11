@@ -7,13 +7,12 @@ submodule(core) core_fields
   use boundary_conditions, only: set_bc_type
   use ccs_base, only: mesh
   use parallel, only: is_root
-  use utils, only: set_size, initialise, get_field, add_field_to_outputlist, set_is_field_solved, &
-                   exit_print
+  use utils, only: set_size, initialise, add_field_to_outputlist, exit_print
   use read_config, only: get_store_residuals, get_enable_cell_corrections, get_boundary_count
   use vec, only: set_vector_location
   use fields, only: set_field_config_file, set_field_n_boundaries, set_field_store_residuals, &
                     set_field_enable_cell_corrections, set_field_vector_properties, create_field, &
-                    set_field_name, set_field_type
+                    set_field_name, set_field_type, set_is_field_solved, get_field
   use fortran_yaml_c_interface, only: parse
 
 implicit none
