@@ -239,8 +239,6 @@ contains
     deallocate (lin_solverP)
 
     ! Free up memory
-    ! deallocate (residuals)
-
     deallocate(invAu)
     deallocate(invAv)
     deallocate(invAw)
@@ -982,7 +980,6 @@ contains
     class(field), pointer :: w        !< The z velocity component
     class(field), pointer :: p        !< The pressure field
     class(field), pointer :: mf       !< The face velocity flux
-
 
     call get_field(flow, "u", u)
     call get_field(flow, "v", v)
