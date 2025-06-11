@@ -159,10 +159,13 @@ contains
     class(field), pointer :: phi
     logical :: phi_sol
 
-    call count_fields(flow, nfields)
 
     ! Print residuals
     if (is_root(par_env)) then
+      call count_fields(flow, nfields)
+      call get_current_step(step)
+      call get_current_time(time)
+
       if (first_time) then
         ! Write header
         open (newunit=io_unit, file="residuals.log", status="replace", form="formatted")
