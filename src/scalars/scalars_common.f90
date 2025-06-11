@@ -13,8 +13,8 @@ submodule(scalars) scalars_common
   use fv, only: compute_fluxes, update_gradient
   use timestepping, only: update_old_values, get_current_step, apply_timestep
 
-  use vec, only: create_vector, get_vector_data, restore_vector_data, vec_aypx !< added here
-  use mat, only: create_matrix, set_nnz, mat_vec_product
+  use vec, only: create_vector, get_vector_data, restore_vector_data
+  use mat, only: create_matrix, set_nnz
   use solver, only: create_solver, solve, set_equation_system
 
   use meshing, only: get_max_faces
