@@ -21,7 +21,7 @@ program scalar_transport
                      get_local_index, get_boundary_status, get_face_normal, nullify_mesh_object, &
                      get_local_num_cells
   use scalars, only: update_scalars
-  use utils, only: exit_print, add_field_to_outputlist, &
+  use utils, only: exit_print, add_field_to_outputlist
   use fields, only: get_field, dealloc_fluid_fields
   use timers, only: timer_init, timer_register_start, timer_stop, &
                     timer_print_all, timer_export_csv
