@@ -16,7 +16,7 @@ module residuals
   use mat, only: mat_vec_product
   use vec, only: vec_aypx
   use meshing, only: get_global_num_cells
-  use timesetpping, only: get_current_step, get_current_time
+  use timestepping, only: get_current_step, get_current_time
 
 contains
 
