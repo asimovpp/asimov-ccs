@@ -2,9 +2,6 @@
 program tgv
 #include "ccs_macros.inc"
 
-  use petscsys
-  use petscvec
-
   use core
   use constants, only: ndim
   use meshing, only: nullify_mesh_object
@@ -29,9 +26,6 @@ program tgv
 
   type(ccs_options) :: run_options
 
-  integer(ccs_int):: irank  ! MPI rank ID
-  integer(ccs_int):: isize  ! Size of MPI world
-
   integer(ccs_int):: timer_index_total
   integer(ccs_int):: timer_index_init
   integer(ccs_int):: timer_index_io_sol
@@ -47,8 +41,6 @@ program tgv
 
   call get_config(par_env, run_options)
   call configure_parallelism(run_options, par_env, shared_env)
-  irank = par_env%proc_id
-  isize = par_env%num_procs
 
   call timer_register_start("Elapsed time", timer_index_total, is_total_time=.true.)
 

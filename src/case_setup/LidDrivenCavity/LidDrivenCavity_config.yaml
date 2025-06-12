@@ -7,7 +7,7 @@ restart: false
 unsteady: false
 
 #  number of steady iterations
-iterations: 10
+iterations: 100
 
 #  number of timesteps
 steps: 100
@@ -20,7 +20,7 @@ write_frequency: 5
 mesh: 2d
 # Square/cubic mesh generation parameters
 # cells per side
-cps: 16
+cps: 64
 # domain size
 L: 1.0
 
@@ -83,11 +83,11 @@ variables:
     solve: on
   variable_2:
     name: v
-    type: upwind
+    type: central
     solve: on
   variable_3:
     name: w
-    type: upwind
+    type: central
     solve: on
   variable_4:
     name: p
