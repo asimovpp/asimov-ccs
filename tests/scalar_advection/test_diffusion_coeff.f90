@@ -58,7 +58,7 @@ program test_diffusion_coeff
   if (is_boundary) then
     dx = dx / 2.0_ccs_real
   end if
-  expected_coeff = -D * (A / dx)
+  expected_coeff = D * (A / dx)
 
   call assert_eq(coeff, expected_coeff, "Incorrect diffusion coefficient computed")
 

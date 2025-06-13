@@ -63,6 +63,9 @@ contains
 
   !> Computes the matrix coefficient for cells in the interior of the mesh
   subroutine compute_coeffs(phi, mf, visc, dens, component, n_int_cells, M, b)
+
+    use fv_kernels, only: diffusion_kernel
+    
     class(field), intent(inout) :: phi                !< scalar field structure
     real(ccs_real), dimension(:), intent(in) :: mf !< mass flux array defined at faces
     real(ccs_real), dimension(:), intent(in) :: visc !< viscosity
@@ -80,16 +83,16 @@ contains
     type(face_locator) :: loc_f
     integer(ccs_int) :: local_num_cells
     integer(ccs_int) :: global_index_p, global_index_nb, index_p, index_nb
+    integer(ccs_int) :: index_bc ! The boundary index (0 for interior)
     integer(ccs_int) :: j
     integer(ccs_int) :: nnb
     real(ccs_real) :: face_area
     real(ccs_real) :: diff_coeff, diff_coeff_total
-    real(ccs_real) :: adv_coeff_total, adv_coeffaF, adv_coeffaP
+    real(ccs_real) :: adv_coeff_total
     real(ccs_real), dimension(ndim) :: face_normal
     real(ccs_real), dimension(ndim) :: grad_phi_p 
     real(ccs_real), dimension(ndim) :: grad_phi_nb
     real(ccs_real), dimension(ndim) :: x_nb, x_p, x_f, x_nb_prime, x_p_prime
-    real(ccs_real), dimension(ndim) :: n
     real(ccs_real) :: face_value, face_correction_only
 
     logical :: is_boundary
@@ -98,11 +101,19 @@ contains
 
     real(ccs_real) :: sgn ! Sign indicating face orientation
     real(ccs_real) :: aP, aF, bP, aPb
+    real(ccs_real), dimension(2) :: coeffs
     real(ccs_real) :: hoe ! High-order explicit flux
     real(ccs_real) :: loe ! Low-order explicit flux
     real(ccs_real) :: dx_orth ! distance between cell centers projected to the face othogonal (used for corrections)
     real(ccs_real) :: SchmidtNo
 
+    real(ccs_real) :: phiP, phiF ! current field at central/neighbour cells
+
+    real(ccs_real), dimension(3, 2) :: grads, rvecs ! Cell gradients and relative vectors
+
+    type(diffusion_kernel) :: diff_kernel
+    real(ccs_real) :: interpol_factor
+    
     call set_matrix_values_spec_nrows(1_ccs_int, mat_val_spec)
     call set_matrix_values_spec_ncols(n_int_cells, mat_val_spec)
     call create_matrix_values(mat_val_spec, mat_coeffs)
@@ -115,9 +126,10 @@ contains
     do index_p = 1, local_num_cells
       call clear_entries(mat_coeffs)
       call clear_entries(b_coeffs)
-
-      ! Calculate contribution from neighbours
       call create_cell_locator(index_p, loc_p)
+
+!!! ==== Transport equation ===>
+      ! Calculate contribution from neighbours
       call get_global_index(loc_p, global_index_p)
       call count_neighbours(loc_p, nnb)
 
@@ -127,6 +139,9 @@ contains
       adv_coeff_total = 0.0_ccs_real
       diff_coeff_total = 0.0_ccs_real
       
+      SchmidtNo = phi%Schmidt
+      phiP = phi%values_ro(index_p)
+
       do j = 1, nnb
         call create_neighbour_locator(loc_p, j, loc_nb)
         call get_boundary_status(loc_nb, is_boundary)
@@ -137,137 +152,144 @@ contains
 
         call get_face_area(loc_f, face_area)
         call get_local_index(loc_f, index_f)
-        SchmidtNo = phi%Schmidt
+        call get_face_interpolation(loc_f, interpol_factor)
         
-
+        ! Initialise accumulators
+        coeffs(:) = 0.0_ccs_real
+        hoe = 0.0_ccs_real
+        loe = 0.0_ccs_real
+        
         if (.not. is_boundary) then
-          call calc_diffusion_coeff(index_p, j, phi%enable_cell_corrections, visc(index_p), visc(index_nb), dens(index_p), dens(index_nb), SchmidtNo, diff_coeff)
+          phiF = phi%values_ro(index_nb)
 
-          ! XXX: Why won't Fortran interfaces distinguish on extended types...
-          ! TODO: This will be expensive (in a tight loop) - investigate moving to a type-bound
-          !       procedure (should also eliminate the type check).
+          if (phi%enable_cell_corrections) then
+            call get_centre(loc_p, x_p)
+            call get_centre(loc_nb, x_nb)
+            call get_centre(loc_f, x_f)
+
+            dx_orth = min(dot_product(x_f - x_p, face_normal), &
+                          dot_product(x_nb - x_f, face_normal))
+            x_nb_prime = x_f + dx_orth * face_normal
+            x_p_prime = x_f - dx_orth * face_normal
+
+            grad_phi_p = [ phi%x_gradients_ro(index_p), &
+                           phi%y_gradients_ro(index_p), &
+                           phi%z_gradients_ro(index_p) ]
+            grad_phi_nb = [ phi%x_gradients_ro(index_nb), &
+                            phi%y_gradients_ro(index_nb), &
+                            phi%z_gradients_ro(index_nb) ]
+          end if
+        else
+          call compute_boundary_coeffs(phi, component, loc_p, loc_f, face_normal, aPb, bP)
+
+          ! Use boundary condition to compute ghost neighbour value
+          phiF = aPb * phiP + bP
+        end if
+
+!!! ---- Diffusion coefficients --->
+        rvecs = 0.0_ccs_real
+        grads = 0.0_ccs_real
+        if (.not. is_boundary) then
+          call calc_diffusion_coeff(index_p, j, phi%enable_cell_corrections, &
+                                    visc(index_p), visc(index_nb), &
+                                    dens(index_p), dens(index_nb), &
+                                    SchmidtNo, diff_coeff)
+
+          if (phi%enable_cell_corrections) then
+            grads(:, 1) = grad_phi_p(:)
+            grads(:, 2) = grad_phi_nb(:)
+            rvecs(:, 1) = x_p_prime(:) - x_p(:)
+            rvecs(:, 2) = x_nb_prime(:) - x_nb(:)
+          end if
+        else
+          call calc_diffusion_coeff(index_p, j, .false., &
+                                    visc(index_p), 0.0_ccs_real, &
+                                    dens(index_p), 0.0_ccs_real, &
+                                    SchmidtNo, diff_coeff)
+          ! Correct boundary face distance to distance to immaginary boundary "node"
+          diff_coeff = diff_coeff / 2.0_ccs_real
+        end if
+        coeffs = diff_kernel%eval_coeffs(diff_coeff)
+        hoe = hoe + diff_kernel%eval_explicit(diff_coeff, interpol_factor, rvecs, grads)
+!!! <--- Diffusion coefficients ----
+
+!!! ---- Advection coefficients --->
+        if (.not. is_boundary) then
           if (index_nb < index_p) then
             sgn = -1.0_ccs_real
           else
             sgn = 1.0_ccs_real
           end if
-          select type (phi)
-          type is (central_field)
-            call calc_advection_coeff(phi, loc_f, sgn * mf(index_f), 0, adv_coeffaP, adv_coeffaF)
-          type is (upwind_field)
-            call calc_advection_coeff(phi, loc_f, sgn * mf(index_f), 0, adv_coeffaP, adv_coeffaF)
-          type is (gamma_field)
-            call calc_advection_coeff(phi, loc_f, sgn * mf(index_f), 0, loc_p, loc_nb, adv_coeffaP, adv_coeffaF)
-          type is (linear_upwind_field)
-            call calc_advection_coeff(phi, loc_f, sgn * mf(index_f), 0, loc_p, loc_nb, adv_coeffaP, adv_coeffaF)
-          class default
-            call error_abort("Invalid velocity field discretisation.")
-          end select
-
-
-          ! XXX: we are relying on div(u)=0 => a_P = -sum_nb a_nb
-          ! adv_coeff = adv_coeff * (sgn * mf(index_f) * face_area)
-
-          ! High-order, explicit
-          aF = adv_coeffaF
-          aP = adv_coeffaP
-          aP = (sgn * mf(index_f) * face_area) * aP
-          aF = (sgn * mf(index_f) * face_area) * aF
-          aP = aP - sgn * mf(index_f) * face_area
-          hoe = aP * phi%values_ro(index_p) + aF * phi%values_ro(index_nb)
+          index_bc = 0
 
           ! Excentricity correction (convective term) (Ferziger & Peric 4th ed, sec 9.7.1)
           call interpolate_field_to_face(phi, loc_f, face_value, face_correction_only)
           hoe = hoe + face_correction_only * (sgn * mf(index_f) * face_area)
 
           if (phi%enable_cell_corrections) then
-            call get_face_normal(loc_f, n)
-            call get_centre(loc_p, x_p)
-            call get_centre(loc_nb, x_nb)
-            call get_centre(loc_f, x_f)
-
-            dx_orth = min(dot_product(x_f - x_p, n), dot_product(x_nb - x_f, n))
-            x_nb_prime = x_f + dx_orth*n
-            x_p_prime = x_f - dx_orth*n
-
-
-            grad_phi_p = [ phi%x_gradients_ro(index_p), phi%y_gradients_ro(index_p), phi%z_gradients_ro(index_p) ]
-            grad_phi_nb = [ phi%x_gradients_ro(index_nb), phi%y_gradients_ro(index_nb), phi%z_gradients_ro(index_nb) ]
-
             ! call get_face_interpolation(loc_f, interpol_factor)
             ! x_f_prime = interpol_factor * x_p + (1.0_ccs_real - interpol_factor) * x_nb
             ! grad_phi_k_prime = interpol_factor * grad_phi_p + (1.0_ccs_real - interpol_factor) * grad_phi_nb
             !hoe = hoe + dot_product(grad_phi_k_prime, x_f - x_f_prime) * (sgn * mf(index_f) * face_area)
             !hoe = hoe + 0.5_ccs_real * (dot_product(grad_phi_p, x_p_prime - x_p) + dot_product(grad_phi_nb, x_nb_prime - x_nb)) * (sgn * mf(index_f) * face_area)
-
-
-            ! Non-orthogonality correction (diffusive flux) (Ferziger & Peric 4th ed, sec 9.7.2)
-            hoe = hoe + diff_coeff * (dot_product(grad_phi_nb, x_nb_prime - x_nb) - dot_product(grad_phi_p, x_p_prime - x_p))
           end if
+        else
+          sgn = 1.0_ccs_real
+          index_bc = index_nb
+        end if
+        select type (phi)
+        type is (central_field)
+          call calc_advection_coeff(phi, loc_f, sgn * mf(index_f), index_bc, aP, aF)
+        type is (upwind_field)                                     
+          call calc_advection_coeff(phi, loc_f, sgn * mf(index_f), index_bc, aP, aF)
+        type is (gamma_field)                                      
+          call calc_advection_coeff(phi, loc_f, sgn * mf(index_f), index_bc, loc_p, loc_nb, aP, aF)
+        type is (linear_upwind_field)                              
+          call calc_advection_coeff(phi, loc_f, sgn * mf(index_f), index_bc, loc_p, loc_nb, aP, aF)
+        class default
+          call error_abort("Invalid velocity field discretisation.")
+        end select
+        aP = (sgn * mf(index_f) * face_area) * aP
+        aF = (sgn * mf(index_f) * face_area) * aF
+        aP = aP - sgn * mf(index_f) * face_area
+        hoe = hoe + aP * phiP + aF * phiF
 
-          call set_entry(-hoe, b_coeffs)
+        !! Low-order advection contribution
+        if ((sgn * mf(index_f)) > 0.0_ccs_real) then
+          aP = sgn * mf(index_f) * face_area
+          aF = 0.0_ccs_real
+        else
+          aP = 0.0_ccs_real
+          aF = sgn * mf(index_f) * face_area
+        end if
+        aP = aP - sgn * mf(index_f) * face_area
+        loe = aP * phiP + aF * phiF
+!!! <--- Advection coefficients ----
 
-          ! Low-order
-          if ((sgn * mf(index_f)) > 0.0_ccs_real) then
-            aP = sgn * mf(index_f) * face_area
-            aF = 0.0_ccs_real
-          else
-            aP = 0.0_ccs_real
-            aF = sgn * mf(index_f) * face_area
-          end if
-          aP = aP - sgn * mf(index_f) * face_area
-
-          loe = aP * phi%values_ro(index_p) + aF * phi%values_ro(index_nb)
-          call set_entry(loe, b_coeffs) ! Explicit low-order term
-
+        adv_coeff_total = adv_coeff_total + aP
+        diff_coeff_total = diff_coeff_total + coeffs(1)
+        if (.not. is_boundary) then
           call get_global_index(loc_nb, global_index_nb)
           call set_col(global_index_nb, mat_coeffs)
-          call set_entry(aF + diff_coeff, mat_coeffs)
-
-          adv_coeff_total = adv_coeff_total + aP
-          diff_coeff_total = diff_coeff_total - diff_coeff
+          call set_entry(aF + coeffs(2), mat_coeffs)
         else
-          call compute_boundary_coeffs(phi, component, loc_p, loc_f, face_normal, aPb, bP)
-
-          call calc_diffusion_coeff(index_p, j, .false., visc(index_p), 0.0_ccs_real, dens(index_p), 0.0_ccs_real, SchmidtNo, diff_coeff)
-          ! Correct boundary face distance to distance to immaginary boundary "node"
-          diff_coeff = diff_coeff / 2.0_ccs_real
-          
-          select type (phi)
-          type is (central_field)
-            call calc_advection_coeff(phi, loc_f, mf(index_f), index_nb, adv_coeffaP, adv_coeffaF)
-          type is (upwind_field)
-            call calc_advection_coeff(phi, loc_f, mf(index_f), index_nb, adv_coeffaP, adv_coeffaF)
-          type is (gamma_field)
-            call calc_advection_coeff(phi, loc_f, mf(index_f), index_nb, loc_p, loc_nb, adv_coeffaP, adv_coeffaF)
-          type is  (linear_upwind_field)
-            call calc_advection_coeff(phi, loc_f, mf(index_f), index_nb, loc_p, loc_nb, adv_coeffaP, adv_coeffaF)
-          class default
-            call error_abort("Invalid velocity field discretisation.")
-          end select
-          aF = adv_coeffaF
-          aP = adv_coeffaP
-          aP = aP * (mf(index_f) * face_area)
-          aF = aF * (mf(index_f) * face_area)
-          aP = aP - mf(index_f) * face_area
-          call set_entry(-(aP * phi%values_ro(index_p) + aF * (aPb * phi%values_ro(index_p) + bP)), b_coeffs)
-          if (mf(index_f) > 0.0_ccs_real) then
-            aP = mf(index_f) * face_area
-            aF = 0.0_ccs_real
-          else
-            aP = 0.0_ccs_real
-            aF = mf(index_f) * face_area
-          end if
-          aP = aP - mf(index_f) * face_area
-
-          call set_entry(aP * phi%values_ro(index_p) + aF * (aPb * phi%values_ro(index_p) + bP), b_coeffs)
-
-          call set_entry(-(aF + diff_coeff) * bP, b_coeffs)
-
-          adv_coeff_total = adv_coeff_total + aP + aPb * aF
-          diff_coeff_total = diff_coeff_total - diff_coeff + aPb * diff_coeff
+          adv_coeff_total = adv_coeff_total + aPb * aF
+          diff_coeff_total = diff_coeff_total + aPb * coeffs(2)
+          call set_entry(-(aF + coeffs(2)) * bP, b_coeffs)
         end if
+        call set_entry(loe - hoe, b_coeffs)
       end do
+
+!!! ---- Transient coefficients --->
+!!! <--- Transient coefficients ----
+
+!!! ---- Source terms --->
+!!! <--- Source terms ----
+
+!!! ---- Underrelaxation --->
+!!! <--- Underrelaxation ----
+
+!!! <=== Transport equation ====
 
       call set_values(b_coeffs, b)
       call set_col(global_index_p, mat_coeffs)
@@ -492,7 +514,7 @@ contains
       diffusion_factor = visc_p / (dens_p * SchmidtNo)
     end if
     
-    coeff = -face_area * diffusion_factor / dxmag
+    coeff = face_area * diffusion_factor / dxmag
   end subroutine calc_diffusion_coeff
 
   !> Interpolate field to face center from cell center, applied gradient correction (if enabled in the field

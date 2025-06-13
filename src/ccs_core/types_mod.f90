@@ -298,8 +298,10 @@ module types
   ! Abstract kernel base class to specialised later
   type, abstract, public :: abstract_kernel
   contains
-     procedure(coeffs_interface), deferred :: coeffs
-     procedure(eval_interface), deferred :: eval
+    procedure(coeffs_interface), deferred :: eval_coeffs ! Returns the implicit contributions to the discretisation
+    procedure(eval_interface), deferred :: eval_explicit ! Returns the explicit contributions to the discretisation
+    procedure(width_interface), deferred :: get_width    ! Returns the stencil width
+    procedure(order_interface), deferred :: get_order    ! Returns the theorectical order of discretisation
   end type abstract_kernel
 
   !v Residuals type storing L2 and Linfty norms of the residuals for each equation
@@ -310,19 +312,38 @@ module types
 
   !> Abstract kernel interface
   abstract interface
-     pure function coeffs_interface(this) result(coeffs)
-        use kinds, only: ccs_real
-        import :: abstract_kernel
-        class(abstract_kernel), intent(in) :: this
-        real(ccs_real), allocatable :: coeffs(:)
-     end function coeffs_interface
+    pure function coeffs_interface(self, flux_coeff) result(coeffs)
+      import :: abstract_kernel
+      import :: ccs_real
+      class(abstract_kernel), intent(in) :: self
+      real(ccs_real), intent(in) :: flux_coeff
+      real(ccs_real), dimension(2) :: coeffs
+    end function coeffs_interface
 
-     subroutine eval_interface(this, result)
-        use kinds, only: ccs_real
-        import :: abstract_kernel
-        class(abstract_kernel), intent(in) :: this
-        real(ccs_real), intent(out) :: result
-     end subroutine eval_interface
+    pure function eval_interface(self, flux_coeff, lf, rvecs, grads) result(expl)
+      import :: abstract_kernel
+      import :: ccs_real
+      class(abstract_kernel), intent(in) :: self
+      real(ccs_real), intent(in) :: flux_coeff
+      real(ccs_real), intent(in) :: lf
+      real(ccs_real), dimension(3, 2), intent(in) :: rvecs
+      real(ccs_real), dimension(3, 2), intent(in) :: grads
+      real(ccs_real):: expl
+    end function eval_interface
+
+    pure function width_interface(self) result(width)
+      import :: abstract_kernel
+      import :: ccs_int
+      class(abstract_kernel), intent(in) :: self
+      integer(ccs_int) :: width
+    end function width_interface
+
+    pure function order_interface(self) result(order)
+      import :: abstract_kernel
+      import :: ccs_int
+      class(abstract_kernel), intent(in) :: self
+      integer(ccs_int) :: order
+    end function order_interface
   end interface
 
 end module types
