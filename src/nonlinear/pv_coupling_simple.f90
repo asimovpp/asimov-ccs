@@ -796,7 +796,6 @@ contains
     real(ccs_real), dimension(ndim) :: face_normal
     real(ccs_real) :: r
     real(ccs_real), dimension(2) :: coeffs
-    real(ccs_real) :: b
     real(ccs_real) :: coeff_f, coeff_p, coeff_nb
     real(ccs_real) :: aPb, bP
     logical :: is_boundary
@@ -912,7 +911,7 @@ contains
         coeffs = diff_kernel%eval_coeffs(coeff_f)
         rvecs = 0.0_ccs_real ! There's no orthogonality correction to apply
         grads = 0.0_ccs_real ! There's no orthogonality correction to apply
-        b = diff_kernel%eval_explicit(coeff_f, interpol_factor, rvecs, grads)
+        r = r + diff_kernel%eval_explicit(coeff_f, interpol_factor, rvecs, grads)
 
         coeff_p = coeff_p + coeffs(1)
         coeff_nb = coeffs(2)
