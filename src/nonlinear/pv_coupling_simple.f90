@@ -1261,8 +1261,8 @@ contains
     !! Get corrected mass-imbalance
     call update(b)
 
-    ! Stores L2**2 of residuals
-    call get_field_idx(flow, p_prime, ifield)
+    ! Stores residuals
+    call get_field_idx(flow, mf, ifield)
     call normalise_residuals(b, ifield, residuals)
 
   end subroutine update_face_velocity
