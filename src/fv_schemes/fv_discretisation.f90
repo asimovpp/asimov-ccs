@@ -31,7 +31,7 @@ contains
     associate (mflux => mf)
     end associate
 
-    if (bc == 0 .and. (.not. phi % enable_cell_corrections)) then
+    if (bc == 0 .and. (.not. phi%enable_cell_corrections)) then
       call get_face_interpolation(loc_f, interpolation_factor)
       interpolation_factor = 1.0_ccs_real - interpolation_factor
     else
@@ -104,16 +104,16 @@ contains
     integer(ccs_int) :: index_p, index_nb
 
     ! store values of phi filed in phi_data array
-    call get_vector_data(phi % values, phi_data)
+    call get_vector_data(phi%values, phi_data)
 
     ! store x-gradients of phi in dphidx array
-    call get_vector_data(phi % x_gradients, dphidx)
+    call get_vector_data(phi%x_gradients, dphidx)
 
     ! store y-gradients of phi in dphidx array
-    call get_vector_data(phi % y_gradients, dphidy)
+    call get_vector_data(phi%y_gradients, dphidy)
 
     ! store z-gradients of phi in dphidx array
-    call get_vector_data(phi % z_gradients, dphidz)
+    call get_vector_data(phi%z_gradients, dphidz)
 
     ! get the local index of current cell and neighbouring cell
     call get_local_index(loc_p, index_p)
@@ -201,10 +201,10 @@ contains
     end if
 
     ! Restore vectors
-    call restore_vector_data(phi % values, phi_data)
-    call restore_vector_data(phi % x_gradients, dphidx)
-    call restore_vector_data(phi % y_gradients, dphidy)
-    call restore_vector_data(phi % z_gradients, dphidz)
+    call restore_vector_data(phi%values, phi_data)
+    call restore_vector_data(phi%x_gradients, dphidx)
+    call restore_vector_data(phi%y_gradients, dphidy)
+    call restore_vector_data(phi%z_gradients, dphidz)
 
   end subroutine calc_advection_coeff_gamma
 
@@ -247,16 +247,16 @@ contains
     integer(ccs_int) :: index_p, index_nb
 
     ! store values of phi filed in phi_data array
-    call get_vector_data(phi % values, phi_data)
+    call get_vector_data(phi%values, phi_data)
 
     ! store x-gradients of phi in dphidx array
-    call get_vector_data(phi % x_gradients, dphidx)
+    call get_vector_data(phi%x_gradients, dphidx)
 
     ! store y-gradients of phi in dphidx array
-    call get_vector_data(phi % y_gradients, dphidy)
+    call get_vector_data(phi%y_gradients, dphidy)
 
     ! store z-gradients of phi in dphidx array
-    call get_vector_data(phi % z_gradients, dphidz)
+    call get_vector_data(phi%z_gradients, dphidz)
 
     ! get the local index of current cell and neighbouring cell
     call get_local_index(loc_p, index_p)
@@ -339,10 +339,10 @@ contains
     end if
 
     ! Restore vectors
-    call restore_vector_data(phi % values, phi_data)
-    call restore_vector_data(phi % x_gradients, dphidx)
-    call restore_vector_data(phi % y_gradients, dphidy)
-    call restore_vector_data(phi % z_gradients, dphidz)
+    call restore_vector_data(phi%values, phi_data)
+    call restore_vector_data(phi%x_gradients, dphidx)
+    call restore_vector_data(phi%y_gradients, dphidy)
+    call restore_vector_data(phi%z_gradients, dphidz)
 
   end subroutine calc_advection_coeff_luds
 

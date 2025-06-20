@@ -1,15 +1,19 @@
-
 program test_advection_kernel
     !! Test the advection kernel by running a refinement loop, computing the discretisation
     !!  error (difference between analytical and computed values), and checking the order of
     !!  convergence is the theoretical order for the scheme
 
+    use testing_lib 
+
     use kinds, only: ccs_real, ccs_int
+    use error_analysis, only: compute_order
     use fv_kernels
+
     implicit none
 
-
-    integer(ccs_int) :: i, num_iters=10
+    integer(ccs_int), parameter :: num_iters = 10
+    
+    integer(ccs_int) :: i
     real(ccs_real) :: phi_P, interpol_factor
     real(ccs_real) :: phi_N
     real(ccs_real) :: dx
@@ -21,25 +25,28 @@ program test_advection_kernel
     real(ccs_real), dimension(num_iters) :: refinements
     real(ccs_real) :: order
 
+    real(ccs_real), dimension(3, 2) :: rvecs, grads
 
     type(advection_kernel) :: advection
 
     ! Initialising values
     x_P = [0, 0, 0]
     phi_P = phi(x_P(1))
-    interpol_factor = 2_ccs_real / 3_ccs_real
+    interpol_factor = 2.0_ccs_real / 3.0_ccs_real
+    rvecs = 0.0_ccs_real
+    grads = 0.0_ccs_real
 
     ! Refinement loop
     do i = 1, num_iters
-        dx = 1.0_ccs_real / real(i)**2
-        x_N = x_P + [dx, 0, 0]
-        x_f = x_P + [dx/3, 0, 0]
+        dx = 1.0_ccs_real / real(i, ccs_real)**2
+        x_N = x_P + [dx, 0.0_ccs_real, 0.0_ccs_real]
+        x_f = x_P + [dx/3, 0.0_ccs_real, 0.0_ccs_real]
 
         phi_N = phi(dx)
         u_f = interpol_factor*u(x_P(1)) + (1-interpol_factor)*u(x_N(1))
 
-        call advection%eval([phi_P, phi_N], u_f, x_P, x_N, x_f, &
-                            is_boundary=.false., coeffs, rhs)
+        coeffs = advection %eval_coeffs(u_f)
+        rhs = advection%eval_explicit(u_f, interpol_factor, rvecs, grads)
 
         ! Compute discretisation error
         call get_error(coeffs, rhs, x_P, x_N, x_f, errors(i))
@@ -47,9 +54,9 @@ program test_advection_kernel
     end do
 
     ! Compute convergence order
-    call get_order(refinements, errors, order)
+    call compute_order(refinements, errors, order)
 
-    call assert_gt(order, advection%get_order()*0.95, "Convergence order not preserved by advection kernel")
+    call assert_gt(order, advection%get_order() * 0.95_ccs_real, "Convergence order not preserved by advection kernel")
 
 contains
 

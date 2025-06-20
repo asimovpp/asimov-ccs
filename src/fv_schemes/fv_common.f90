@@ -40,11 +40,11 @@ contains
     integer(ccs_int) :: n_int_cells
     real(ccs_real), dimension(:), pointer :: mf_data, viscosity_data, density_data
 
-    associate (mf_values => mf % values)
+    associate (mf_values => mf%values)
       call dprint("CF: get mf")
       call get_vector_data(mf_values, mf_data)
-      call get_vector_data(viscosity % values, viscosity_data)
-      call get_vector_data(density % values, density_data)
+      call get_vector_data(viscosity%values, viscosity_data)
+      call get_vector_data(density%values, density_data)
 
       ! Loop over cells computing advection and diffusion fluxes
       call get_max_faces(max_faces)
@@ -54,8 +54,8 @@ contains
 
       call dprint("CF: restore mf")
       call restore_vector_data(mf_values, mf_data)
-      call restore_vector_data(viscosity % values, viscosity_data)
-      call restore_vector_data(density % values, density_data)
+      call restore_vector_data(viscosity%values, viscosity_data)
+      call restore_vector_data(density%values, density_data)
     end associate
 
   end subroutine compute_fluxes
@@ -129,8 +129,8 @@ contains
       adv_coeff_total = 0.0_ccs_real
       diff_coeff_total = 0.0_ccs_real
 
-      SchmidtNo = phi % Schmidt
-      phiP = phi % values_ro(index_p)
+      SchmidtNo = phi%Schmidt
+      phiP = phi%values_ro(index_p)
 
       do j = 1, nnb
         call create_neighbour_locator(loc_p, j, loc_nb)
@@ -146,9 +146,9 @@ contains
         hoe = 0.0_ccs_real
 
         if (.not. is_boundary) then
-          phiF = phi % values_ro(index_nb)
+          phiF = phi%values_ro(index_nb)
 
-          if (phi % enable_cell_corrections) then
+          if (phi%enable_cell_corrections) then
             call get_centre(loc_p, x_p)
             call get_centre(loc_nb, x_nb)
             call get_centre(loc_f, x_f)
@@ -157,8 +157,8 @@ contains
             x_nb_prime = x_f + dx_orth * face_normal
             x_p_prime = x_f - dx_orth * face_normal
 
-            grad_phi_p = [phi % x_gradients_ro(index_p), phi % y_gradients_ro(index_p), phi % z_gradients_ro(index_p)]
-            grad_phi_nb = [phi % x_gradients_ro(index_nb), phi % y_gradients_ro(index_nb), phi % z_gradients_ro(index_nb)]
+            grad_phi_p = [phi%x_gradients_ro(index_p), phi%y_gradients_ro(index_p), phi%z_gradients_ro(index_p)]
+            grad_phi_nb = [phi%x_gradients_ro(index_nb), phi%y_gradients_ro(index_nb), phi%z_gradients_ro(index_nb)]
           end if
         else
           call compute_boundary_coeffs(phi, component, loc_p, loc_f, face_normal, aPb, bP)
@@ -171,7 +171,7 @@ contains
         if (.not. is_boundary) then
           call calc_diffusion_coeff(index_p, j, phi%enable_cell_corrections, visc(index_p), visc(index_nb), dens(index_p), dens(index_nb), SchmidtNo, diff_coeff)
 
-          if (phi % enable_cell_corrections) then
+          if (phi%enable_cell_corrections) then
             ! Non-orthogonality correction (diffusive flux) (Ferziger & Peric 4th ed, sec 9.7.2)
             hoe = hoe + diff_coeff * (dot_product(grad_phi_nb, x_nb_prime - x_nb) - dot_product(grad_phi_p, x_p_prime - x_p))
           end if
@@ -195,7 +195,7 @@ contains
           call interpolate_field_to_face(phi, loc_f, face_value, face_correction_only)
           hoe = hoe + face_correction_only * (sgn * mf(index_f) * face_area)
 
-          if (phi % enable_cell_corrections) then
+          if (phi%enable_cell_corrections) then
             ! call get_face_interpolation(loc_f, interpol_factor)
             ! x_f_prime = interpol_factor * x_p + (1.0_ccs_real - interpol_factor) * x_nb
             ! grad_phi_k_prime = interpol_factor * grad_phi_p + (1.0_ccs_real - interpol_factor) * grad_phi_nb
@@ -256,9 +256,9 @@ contains
       call set_values(mat_coeffs, M)
     end do
 
-    deallocate (mat_coeffs % global_row_indices)
-    deallocate (mat_coeffs % global_col_indices)
-    deallocate (mat_coeffs % values)
+    deallocate (mat_coeffs%global_row_indices)
+    deallocate (mat_coeffs%global_col_indices)
+    deallocate (mat_coeffs%values)
   end subroutine compute_coeffs
 
   !> Computes the value of the scalar field on the boundary
@@ -278,7 +278,7 @@ contains
     call compute_boundary_coeffs(phi, component, loc_p, loc_f, normal, a, b)
 
     call get_local_index(loc_p, index_p)
-    bc_value = 0.5_ccs_real * (phi % values_ro(index_p) + (b + a * phi % values_ro(index_p)))
+    bc_value = 0.5_ccs_real * (phi%values_ro(index_p) + (b + a * phi%values_ro(index_p)))
 
   end subroutine compute_boundary_values
 
@@ -310,14 +310,14 @@ contains
     real(ccs_real) :: bc_value
 
     call get_local_index(loc_p, index_p)
-    call create_neighbour_locator(loc_p, loc_f % cell_face_ctr, loc_nb)
+    call create_neighbour_locator(loc_p, loc_f%cell_face_ctr, loc_nb)
     call get_local_index(loc_nb, index_nb)
     call get_bc_index(phi, index_nb, index_bc)
 
-    select case (phi % bcs % bc_types(index_bc))
+    select case (phi%bcs%bc_types(index_bc))
     case (bc_type_dirichlet)
       a = -1.0_ccs_real
-      b = 2.0_ccs_real * phi % bcs % values(index_bc)
+      b = 2.0_ccs_real * phi%bcs%values(index_bc)
     case (bc_type_extrapolate)
       call get_distance(loc_p, loc_f, dx)
 
@@ -355,11 +355,11 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
       dxmag = norm2(dx)
 
       a = 1.0_ccs_real
-      b = (2.0_ccs_real * dxmag) * phi % bcs % values(index_bc)
+      b = (2.0_ccs_real * dxmag) * phi%bcs%values(index_bc)
     case (bc_type_profile)
       call get_centre(loc_f, x)
-      if (allocated(phi % bcs % profiles(index_bc) % centre)) then
-        call get_value_from_bc_profile(x, phi % bcs % profiles(index_bc), bc_value)
+      if (allocated(phi%bcs%profiles(index_bc)%centre)) then
+        call get_value_from_bc_profile(x, phi%bcs%profiles(index_bc), bc_value)
       else
         bc_value = 0.0_ccs_real
       end if
@@ -386,20 +386,20 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
     real(ccs_real) :: r
     real(ccs_real) :: coeff
 
-    r = norm2(x(:) - profile % centre(:))
+    r = norm2(x(:) - profile%centre(:))
 
-    n = size(profile % coordinates)
+    n = size(profile%coordinates)
 
-    bc_value = profile % values(n)
-    if (r .le. profile % coordinates(1)) then
-      bc_value = profile % values(1)
+    bc_value = profile%values(n)
+    if (r .le. profile%coordinates(1)) then
+      bc_value = profile%values(1)
       return
     end if
 
     do i = 1, n - 1
-      if (r .lt. profile % coordinates(i + 1)) then
-        coeff = (r - profile % coordinates(i)) / (profile % coordinates(i + 1) - profile % coordinates(i))
-        bc_value = (1 - coeff) * profile % values(i) + coeff * profile % values(i + 1)
+      if (r .lt. profile%coordinates(i + 1)) then
+        coeff = (r - profile%coordinates(i)) / (profile%coordinates(i + 1) - profile%coordinates(i))
+        bc_value = (1 - coeff) * profile%values(i) + coeff * profile%values(i + 1)
         return
       end if
     end do
@@ -494,14 +494,14 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
     real(ccs_real), dimension(ndim) :: x_nb, x_p, x_f, x_nb_prime, x_p_prime
     real(ccs_real) :: interpol_factor, dx_orth
 
-    associate (index_p => loc_f % index_p, &
-               j => loc_f % cell_face_ctr)
+    associate (index_p => loc_f%index_p, &
+               j => loc_f%cell_face_ctr)
 
       call create_cell_locator(index_p, loc_p)
       call create_neighbour_locator(loc_p, j, loc_nb)
       call get_local_index(loc_nb, index_nb)
 
-      if (phi % enable_cell_corrections) then
+      if (phi%enable_cell_corrections) then
         call get_face_normal(loc_f, n)
         call get_centre(loc_p, x_p)
         call get_centre(loc_nb, x_nb)
@@ -511,15 +511,15 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
         x_nb_prime = x_f + dx_orth * n
         x_p_prime = x_f - dx_orth * n
 
-        grad_phi_p = [phi % x_gradients_ro(index_p), phi % y_gradients_ro(index_p), phi % z_gradients_ro(index_p)]
-        grad_phi_nb = [phi % x_gradients_ro(index_nb), phi % y_gradients_ro(index_nb), phi % z_gradients_ro(index_nb)]
+        grad_phi_p = [phi%x_gradients_ro(index_p), phi%y_gradients_ro(index_p), phi%z_gradients_ro(index_p)]
+        grad_phi_nb = [phi%x_gradients_ro(index_nb), phi%y_gradients_ro(index_nb), phi%z_gradients_ro(index_nb)]
 
         face_correction = 0.5_ccs_real * (dot_product(grad_phi_p, x_p_prime - x_p) + dot_product(grad_phi_nb, x_nb_prime - x_nb))
-        face_value = 0.5_ccs_real * (phi % values_ro(index_p) + phi % values_ro(index_nb)) + face_correction
+        face_value = 0.5_ccs_real * (phi%values_ro(index_p) + phi%values_ro(index_nb)) + face_correction
       else
         call get_face_interpolation(loc_f, interpol_factor)
         face_correction = 0.0_ccs_real
-        face_value = (interpol_factor * phi % values_ro(index_p) + (1.0_ccs_real - interpol_factor) * phi % values_ro(index_nb))
+        face_value = (interpol_factor * phi%values_ro(index_p) + (1.0_ccs_real - interpol_factor) * phi%values_ro(index_nb))
       end if
 
       if (present(face_correction_only)) then
@@ -557,8 +557,8 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
 
     call get_boundary_status(loc_f, is_boundary)
 
-    associate (index_p => loc_f % index_p, &
-               j => loc_f % cell_face_ctr)
+    associate (index_p => loc_f%index_p, &
+               j => loc_f%cell_face_ctr)
 
       call create_cell_locator(index_p, loc_p)
       call create_neighbour_locator(loc_p, j, loc_nb)
@@ -625,8 +625,8 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
 
     call get_boundary_status(loc_f, is_boundary)
 
-    associate (index_p => loc_f % index_p, &
-               j => loc_f % cell_face_ctr)
+    associate (index_p => loc_f%index_p, &
+               j => loc_f%cell_face_ctr)
 
       call create_cell_locator(index_p, loc_p)
       call create_neighbour_locator(loc_p, j, loc_nb)
@@ -742,20 +742,20 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
       z_gradients(i) = grad_p(3)
     end do
 
-    call get_vector_data(phi % x_gradients, gradients_data)
+    call get_vector_data(phi%x_gradients, gradients_data)
     gradients_data(1:local_num_cells) = x_gradients(:)
-    call restore_vector_data(phi % x_gradients, gradients_data)
-    call update(phi % x_gradients) ! XXX: opportunity to overlap update with later compute (begin/compute/end)
+    call restore_vector_data(phi%x_gradients, gradients_data)
+    call update(phi%x_gradients) ! XXX: opportunity to overlap update with later compute (begin/compute/end)
 
-    call get_vector_data(phi % y_gradients, gradients_data)
+    call get_vector_data(phi%y_gradients, gradients_data)
     gradients_data(1:local_num_cells) = y_gradients(:)
-    call restore_vector_data(phi % y_gradients, gradients_data)
-    call update(phi % y_gradients) ! yyy: opportunity to overlap update with later compute (begin/compute/end)
+    call restore_vector_data(phi%y_gradients, gradients_data)
+    call update(phi%y_gradients) ! yyy: opportunity to overlap update with later compute (begin/compute/end)
 
-    call get_vector_data(phi % z_gradients, gradients_data)
+    call get_vector_data(phi%z_gradients, gradients_data)
     gradients_data(1:local_num_cells) = z_gradients(:)
-    call restore_vector_data(phi % z_gradients, gradients_data)
-    call update(phi % z_gradients) ! zzz: opportunity to overlap update with later compute (begin/compute/end)
+    call restore_vector_data(phi%z_gradients, gradients_data)
+    call update(phi%z_gradients) ! zzz: opportunity to overlap update with later compute (begin/compute/end)
 
     call timer_stop(timer_index)
 
@@ -807,15 +807,15 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
       call get_local_index(loc_nb, index_nb)
       if (.not. is_boundary) then
         interpol_factor = 0.5_ccs_real
-        phif = interpol_factor * phi % values_ro(index_p) + (1.0_ccs_real - interpol_factor) * phi % values_ro(index_nb)
+        phif = interpol_factor * phi%values_ro(index_p) + (1.0_ccs_real - interpol_factor) * phi%values_ro(index_nb)
 
-        if (phi % enable_cell_corrections) then
+        if (phi%enable_cell_corrections) then
           call get_face_normal(loc_f, n)
           call get_centre(loc_nb, x_nb)
           call get_centre(loc_f, x_f)
 
-          grad_phi_p = [phi % x_gradients_ro(index_p), phi % y_gradients_ro(index_p), phi % z_gradients_ro(index_p)]
-          grad_phi_nb = [phi % x_gradients_ro(index_nb), phi % y_gradients_ro(index_nb), phi % z_gradients_ro(index_nb)]
+          grad_phi_p = [phi%x_gradients_ro(index_p), phi%y_gradients_ro(index_p), phi%z_gradients_ro(index_p)]
+          grad_phi_nb = [phi%x_gradients_ro(index_nb), phi%y_gradients_ro(index_nb), phi%z_gradients_ro(index_nb)]
 
           dx_orth = min(dot_product(x_f - x_p, n), dot_product(x_nb - x_f, n))
           rnb_k_prime = x_f + dx_orth * n
