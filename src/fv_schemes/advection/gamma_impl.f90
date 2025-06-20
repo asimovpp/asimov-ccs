@@ -32,7 +32,7 @@ contains
     real(ccs_real) :: w, coeffF, coeffP, bm
     real(ccs_real), parameter :: zero = 0.0_ccs_real, one = 1.0_ccs_real
 
-    bm = self % beta_m
+    bm = self%beta_m
     posFlux = flux_coeff >= zero
 
     ! ---- pick UP-wind quantities depending on flow direction ---------------
@@ -104,13 +104,13 @@ contains
   module pure subroutine set_beta_m(self, new_bm)
     class(gamma_advection_kernel), intent(inout) :: self
     real(ccs_real), intent(in) :: new_bm
-    self % beta_m = max(0.10_ccs_real, min(0.50_ccs_real, new_bm))
+    self%beta_m = max(0.10_ccs_real, min(0.50_ccs_real, new_bm))
   end subroutine set_beta_m
 
   module pure function get_beta_m(self) result(bm)
     class(gamma_advection_kernel), intent(in) :: self
     real(ccs_real) :: bm
-    bm = self % beta_m
+    bm = self%beta_m
   end function get_beta_m
 
 end submodule gamma_advection
