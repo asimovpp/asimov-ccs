@@ -1,4 +1,5 @@
-auto
+
+
 *.pdf
 !dev_guide/logos/*.pdf
 *.aux
@@ -33,6 +34,11 @@ libccs.a
 *.xmf
 *.geo
 **/.DS_Store
-.vscode
-.idea
-.devcontainer
+
+### VisualStudioCode ###
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets

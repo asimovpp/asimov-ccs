@@ -1,4 +1,4 @@
-main: tgv
+main: ldc
 base: mpi_petsc
 options: 
   partitioning: partitioning_parhip
