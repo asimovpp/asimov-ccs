@@ -22,12 +22,22 @@ program test_advection_kernel
     real(ccs_real) :: rhs
     real(ccs_real) :: u_f
     real(ccs_real), dimension(num_iters) :: errors
+    real(ccs_real), dimension(num_iters) :: errors_upwind
+    real(ccs_real), dimension(num_iters) :: errors_luds
+    real(ccs_real), dimension(num_iters) :: errors_cd
+    real(ccs_real), dimension(num_iters) :: errors_gamma
+
     real(ccs_real), dimension(num_iters) :: refinements
     real(ccs_real) :: order
 
     real(ccs_real), dimension(3, 2) :: rvecs, grads
 
     type(advection_kernel) :: advection
+    type(upwind_advection_kernel) :: upwind_advection
+    type(luds_advection_kernel) :: luds_advection
+    type(cd_advection_kernel) :: cd_advection
+    type(gamma_advection_kernel) :: gamma_advection
+
 
     ! Initialising values
     x_P = [0, 0, 0]
@@ -50,13 +60,46 @@ program test_advection_kernel
 
         ! Compute discretisation error
         call get_error(coeffs, rhs, x_P, x_N, x_f, errors(i))
+
+        ! Upwind Kernel
+        coeffs = upwind_advection %eval_coeffs(u_f)
+        rhs = upwind_advection%eval_explicit(u_f, interpol_factor, rvecs, grads)
+        call get_error(coeffs, rhs, x_P, x_N, x_f, errors_upwind(i))
+
+        ! Linearise Upwind Kernel
+        coeffs = luds_advection %eval_coeffs(u_f)
+        rhs = luds_advection%eval_explicit(u_f, interpol_factor, rvecs, grads)
+        call get_error(coeffs, rhs, x_P, x_N, x_f, errors_luds(i))
+
+        ! Central Difference Kernel
+        coeffs = cd_advection %eval_coeffs(u_f)
+        rhs = cd_advection%eval_explicit(u_f, interpol_factor, rvecs, grads)
+        call get_error(coeffs, rhs, x_P, x_N, x_f, errors_cd(i))
+
+        ! Gamma Kernel
+        coeffs = gamma_advection %eval_coeffs(u_f)
+        rhs = gamma_advection%eval_explicit(u_f, interpol_factor, rvecs, grads)
+        call get_error(coeffs, rhs, x_P, x_N, x_f, errors_gamma(i))
+
+
         refinements(i) = dx
     end do
 
     ! Compute convergence order
     call compute_order(refinements, errors, order)
-
     call assert_gt(order, advection%get_order() * 0.95_ccs_real, "Convergence order not preserved by advection kernel")
+
+    call compute_order(refinements, errors_upwind, order)
+    call assert_gt(order, upwind_advection%get_order() * 0.95_ccs_real, "Convergence order not preserved by upwind advection kernel")
+
+    call compute_order(refinements, errors_luds, order)
+    call assert_gt(order, luds_advection%get_order() * 0.95_ccs_real, "Convergence order not preserved by linearised upwind advection kernel")
+
+    call compute_order(refinements, errors_cd, order)
+    call assert_gt(order, cd_advection%get_order() * 0.95_ccs_real, "Convergence order not preserved by central difference advection kernel")
+
+    call compute_order(refinements, errors_gamma, order)
+    call assert_gt(order, gamma_advection%get_order() * 0.95_ccs_real, "Convergence order not preserved by gamma advection kernel")
 
 contains
 
