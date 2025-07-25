@@ -18,13 +18,12 @@ contains
     coeffs = [1.0_ccs_real, 0.0_ccs_real]  ! Example coefficients
   end function advection_eval_coeffs
 
-  module pure function advection_eval_explicit(self, flux_coeff, lf, rvecs, grads, phi_coeffs) result(expl)
+  module pure function advection_eval_explicit(self, flux_coeff, lf, rvecs, grads) result(expl)
     class(advection_kernel), intent(in) :: self
     real(ccs_real), intent(in) :: flux_coeff
     real(ccs_real), intent(in) :: lf
     real(ccs_real), dimension(3, 2), intent(in) :: rvecs
     real(ccs_real), dimension(3, 2), intent(in) :: grads
-    real(ccs_real), dimension(2), intent(in), optional :: phi_coeffs
     real(ccs_real) :: expl
 
     ! Silence unused dummy arguments
@@ -33,7 +32,6 @@ contains
     associate(foo=>lf); end associate
     associate(foo=>rvecs); end associate
     associate(foo=>grads); end associate
-    associate(foo=>phi_coeffs); end associate
       
     expl = 0.0_ccs_real  ! Example explicit term
   end function advection_eval_explicit

@@ -15,13 +15,12 @@ contains
     coeffs(2) = max(flux_coeff, 0.0_ccs_real)   ! owner
   end function advect_luds_eval_coeffs
 
-  module pure function advect_luds_eval_explicit(self, flux_coeff, lf, rvecs, grads, phi_coeffs) result(expl)
+  module pure function advect_luds_eval_explicit(self, flux_coeff, lf, rvecs, grads) result(expl)
     class(luds_advection_kernel), intent(in) :: self
     real(ccs_real), intent(in) :: flux_coeff      ! ρ u A
     real(ccs_real), intent(in) :: lf              ! unused here
     real(ccs_real), dimension(3, 2), intent(in) :: rvecs        ! r_Pf , r_Ff
     real(ccs_real), dimension(3, 2), intent(in) :: grads        ! ∇φ_P , ∇φ_F
-    real(ccs_real), dimension(2), intent(in), optional :: phi_coeffs     ! [ φ_P , φ_F ]
     real(ccs_real) :: expl                                     ! high-order – UD
 
   !! ---------- up-wind / down-wind bookkeeping ---------------------------
@@ -30,6 +29,11 @@ contains
     real(ccs_real), dimension(3) :: gradP, d_pf, d_up
     real(ccs_real) :: dphi, ddphi, phiPt, phiLUDS, phiUp
     real(ccs_real), parameter :: one = 1.0_ccs_real
+    real(ccs_real), dimension(2) :: phi_coeffs       ! [ φ_P , φ_F ]
+
+
+    phi_coeffs = self%eval_coeffs(flux_coeff)
+
 
     ! Silence unused-variable warnings (if you compile with -Werror)
     associate (foo => self, bar => lf); end associate

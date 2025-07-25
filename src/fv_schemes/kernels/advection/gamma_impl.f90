@@ -15,13 +15,12 @@ contains
     coeffs(2) = max(flux_coeff, 0.0_ccs_real)    ! owner    P
   end function advect_gamma_eval_coeffs
 
-  module pure function advect_gamma_eval_explicit(self, flux_coeff, lf, rvecs, grads, phi_coeffs) result(expl)
+  module pure function advect_gamma_eval_explicit(self, flux_coeff, lf, rvecs, grads) result(expl)
     class(gamma_advection_kernel), intent(in) :: self
     real(ccs_real), intent(in) :: flux_coeff        ! ρ u A
     real(ccs_real), intent(in) :: lf                ! face-interp factor (0→P,1→F)
     real(ccs_real), dimension(3, 2), intent(in) :: rvecs          ! x_Pf , x_Ff
     real(ccs_real), dimension(3, 2), intent(in) :: grads          ! ∇φ_P , ∇φ_F
-    real(ccs_real), dimension(2), intent(in), optional :: phi_coeffs       ! [ φ_P , φ_F ]
     real(ccs_real) :: expl                                         ! deferred flux
 
     ! ---- local aliases ------------------------------------------------------
@@ -30,7 +29,10 @@ contains
     real(ccs_real), dimension(3) :: gradP, dPF, d_up
     real(ccs_real) :: dphi, ddphi, phiPt, gamma_m
     real(ccs_real) :: w, coeffF, coeffP, bm
+    real(ccs_real), dimension(2) :: phi_coeffs       ! [ φ_P , φ_F ]
     real(ccs_real), parameter :: zero = 0.0_ccs_real, one = 1.0_ccs_real
+
+    phi_coeffs = self%eval_coeffs(flux_coeff)
 
     bm = self%beta_m
     posFlux = flux_coeff >= zero
