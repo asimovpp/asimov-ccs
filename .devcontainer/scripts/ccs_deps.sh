@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-
+set -x
 # Setting up ownership
 sudo chown vscode:vscode /workspaces
 cd /workspaces || exit
@@ -14,5 +14,7 @@ poetry install
 poetry run ccs-install --env gnu_devcontainer
 
 # fix up
-eval $(poetry run ccs-setup --env gnu_devcontainer)
+poetry run ccs-setup --env gnu_devcontainer > temp.sh
+source temp.sh
 mv /workspaces/ccs-libs/rcmf90-gnu ${RCM_F90}
+rm temp.sh

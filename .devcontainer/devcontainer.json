@@ -41,9 +41,7 @@
 			"version": "latest"
 		}
 	},
-	"onCreateCommand": "bash .devcontainer/scripts/ccs_deps.sh",
-	"postAttachCommand": "bash .devcontainer/scripts/ccs_env.sh"
-
+	"onCreateCommand": "zsh .devcontainer/scripts/ccs_deps.sh"
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	// "forwardPorts": [],
