@@ -33,6 +33,7 @@ contains
     real(ccs_real) :: expl
 
     associate (foo => self, bar => rvecs, baz => grads, lux => lf); end associate
+    associate (foo => flux_coeff); end associate
     expl = 0.0_ccs_real          ! nothing is deferred in a plain CD scheme
   end function advect_cd_eval_explicit
 
