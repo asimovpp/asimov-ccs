@@ -18,7 +18,7 @@ program ldc
   use meshing, only: nullify_mesh_object
   use parallel_types, only: parallel_environment
   use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, timer_print, timer_print_all
-  use utils, only: dealloc_fluid_fields
+  use fields, only: dealloc_fluid_fields
 
   implicit none
 

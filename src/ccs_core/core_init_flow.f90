@@ -4,11 +4,11 @@ submodule(core) core_init_flow
   
   use kinds, only: ccs_int, ccs_real
 
-  use fields, only: get_field_is_face_based
   use kinds, only: ccs_real, ccs_int
   use types, only: fluid, field, cell_locator, face_locator, neighbour_locator, vector_values
 
-  use utils, only: update, get_field, set_mode, set_row, set_entry, set_values
+  use utils, only: update, set_mode, set_row, set_entry, set_values
+  use fields, only: get_field, get_field_is_face_based
 
   use meshing, only: create_cell_locator, get_global_index, count_neighbours, create_neighbour_locator, &
                        get_local_index, create_face_locator, get_face_normal, get_centre, get_face_area, &

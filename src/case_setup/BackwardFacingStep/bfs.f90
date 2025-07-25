@@ -13,7 +13,7 @@ program bfs
                       cleanup_parallel_environment, timer, &
                       is_root
   use parallel_types, only: parallel_environment
-  use utils, only: get_field, dealloc_fluid_fields
+  use fields, only: get_field, dealloc_fluid_fields
   use boundary_conditions, only: set_bc_profile
   use meshing, only: nullify_mesh_object
   use utils, only: str

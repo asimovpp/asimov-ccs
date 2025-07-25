@@ -231,7 +231,7 @@ contains
 
     use types, only: field
     use parallel, only: is_root
-    use utils, only: get_field
+    use fields, only: get_field
     
     class(parallel_environment), intent(in) :: par_env !< The parallel environemnt
     type(fluid), intent(in) :: flow_fields             !< The flow field structure

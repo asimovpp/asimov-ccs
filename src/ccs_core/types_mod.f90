@@ -304,6 +304,12 @@ module types
     procedure(order_interface), deferred :: get_order    ! Returns the theorectical order of discretisation
   end type abstract_kernel
 
+  !v Residuals type storing L2 and Linfty norms of the residuals for each equation
+  type, public :: ccs_residuals
+    real(ccs_real), dimension(:), allocatable :: L2
+    real(ccs_real), dimension(:), allocatable :: Linfty
+  end type ccs_residuals
+
   !> Abstract kernel interface
   abstract interface
     pure function coeffs_interface(self, flux_coeff) result(coeffs)

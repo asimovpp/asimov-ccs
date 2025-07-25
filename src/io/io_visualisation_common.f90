@@ -13,7 +13,7 @@ submodule(io_visualisation) io_visualisation_common
 
   use core, only: ccs_options, build_mesh_2d, build_mesh_3d, read_input_mesh
   use types, only: field
-  use utils, only: get_field
+  use fields, only: get_field
   
   implicit none
 
