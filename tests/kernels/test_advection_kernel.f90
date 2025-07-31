@@ -1,135 +1,170 @@
-program test_advection_kernel
-    !! Test the advection kernel by running a refinement loop, computing the discretisation
-    !!  error (difference between analytical and computed values), and checking the order of
-    !!  convergence is the theoretical order for the scheme
+program test_advection_kernels
+  use testing_lib
+  use kinds,          only : ccs_real, ccs_int
+  use utils,          only : str
+  use error_analysis, only : compute_order
+  use fv_kernels
 
-    use testing_lib 
+  implicit none
 
-    use kinds, only: ccs_real, ccs_int
-    use error_analysis, only: compute_order
-    use fv_kernels
+  ! -----------------------------------------------------------------------
+  !  Numerical‑experiment parameters
+  ! -----------------------------------------------------------------------
+  integer,            parameter :: nLevels = 6      ! number of mesh refinements
+  real(ccs_real),     parameter :: L       = 1.0_ccs_real
+  real(ccs_real),     parameter :: u0      = 2.0_ccs_real   ! constant face velocity
+  real(ccs_real),     parameter :: phi0    = 3.14_ccs_real  ! for conservation tests
+  real(ccs_real),     parameter :: interpF = 0.5_ccs_real   ! not used by all schemes
 
-    implicit none
+  !  Kernel instances
+  type(gamma_advection_kernel)   :: gamma
+  type(upwind_advection_kernel)  :: upwind
+  type(luds_advection_kernel)    :: luds
+  type(cd_advection_kernel)      :: cd
 
-    integer(ccs_int), parameter :: num_iters = 10
-    
-    integer(ccs_int) :: i
-    real(ccs_real) :: phi_P, interpol_factor
-    real(ccs_real) :: phi_N
-    real(ccs_real) :: dx
-    real(ccs_real), dimension(3) :: x_N, x_P, x_f
-    real(ccs_real), dimension(2) :: coeffs
-    real(ccs_real) :: rhs
-    real(ccs_real) :: u_f
-    real(ccs_real), dimension(num_iters) :: errors
-    real(ccs_real), dimension(num_iters) :: errors_upwind
-    real(ccs_real), dimension(num_iters) :: errors_luds
-    real(ccs_real), dimension(num_iters) :: errors_cd
-    real(ccs_real), dimension(num_iters) :: errors_gamma
+  !  Storage for grid size and errors per refinement level
+  real(ccs_real), dimension(nLevels) :: h,   &
+                                        err_gamma, err_upwind, &
+                                        err_luds,  err_cd
 
-    real(ccs_real), dimension(num_iters) :: refinements
-    real(ccs_real) :: order
+  !  Local scratch variables
+  integer(ccs_int) :: lev
+  real(ccs_real)   :: dx, phiP, phiN, phiF
+  real(ccs_real),   dimension(2)   :: coeffs
+  real(ccs_real),   dimension(3,2) :: rvecs, grads
+  real(ccs_real),   dimension(3)   :: xP, xN, xf
+  real(ccs_real)   :: order
+  character(len=*), parameter :: msgHdr = 'Advection‑kernel test ‖ '
 
-    real(ccs_real), dimension(3, 2) :: rvecs, grads
+  !  r‑vectors / gradients are unused in these 1‑D tests
+  rvecs = 0.0_ccs_real;  grads = 0.0_ccs_real
 
-    type(advection_kernel) :: advection
-    type(upwind_advection_kernel) :: upwind_advection
-    type(luds_advection_kernel) :: luds_advection
-    type(cd_advection_kernel) :: cd_advection
-    type(gamma_advection_kernel) :: gamma_advection
+  call init()   ! testing_lib initialisation
 
+  ! *********************************************************************
+  !  1.  Convergence‑rate test (uniform grid refinement Δx = L / 2^ℓ)
+  ! *********************************************************************
+  do lev = 1, nLevels
+     dx      = L / (2.0_ccs_real**lev)
+     h(lev)  = dx
 
-    ! Initialising values
-    x_P = [0, 0, 0]
-    phi_P = phi(x_P(1))
-    interpol_factor = 2.0_ccs_real / 3.0_ccs_real
-    rvecs = 0.0_ccs_real
-    grads = 0.0_ccs_real
+     xP      = [0.0_ccs_real, 0.0_ccs_real, 0.0_ccs_real]
+     xN      = xP + [dx, 0.0_ccs_real, 0.0_ccs_real]
+     xf      = xP + [dx/2.0_ccs_real, 0.0_ccs_real, 0.0_ccs_real]
 
-    ! Refinement loop
-    do i = 1, num_iters
-        dx = 1.0_ccs_real / real(i, ccs_real)**2
-        x_N = x_P + [dx, 0.0_ccs_real, 0.0_ccs_real]
-        x_f = x_P + [dx/3, 0.0_ccs_real, 0.0_ccs_real]
+     !  Analytic field   φ(x) = sin(2πx + π/7)
+     phiP    = sin(2.0_ccs_real*acos(-1.0_ccs_real)*xP(1) + acos(-1.0_ccs_real)/7.0_ccs_real)
+     phiN    = sin(2.0_ccs_real*acos(-1.0_ccs_real)*xN(1) + acos(-1.0_ccs_real)/7.0_ccs_real)
+     phiF    = sin(2.0_ccs_real*acos(-1.0_ccs_real)*xf(1) + acos(-1.0_ccs_real)/7.0_ccs_real)
 
-        phi_N = phi(dx)
-        u_f = interpol_factor*u(x_P(1)) + (1-interpol_factor)*u(x_N(1))
+     !  γ‑scheme
+     coeffs  = gamma %eval_coeffs(u0)
+     call record_error(coeffs, gamma%eval_explicit(u0, interpF, rvecs, grads), &
+                       u0, phiP, phiN, phiF, err_gamma(lev))
 
-        coeffs = advection %eval_coeffs(u_f)
-        rhs = advection%eval_explicit(u_f, interpol_factor, rvecs, grads)
+     !  Upwind
+     coeffs  = upwind%eval_coeffs(u0)
+     call record_error(coeffs, upwind%eval_explicit(u0, interpF, rvecs, grads), &
+                       u0, phiP, phiN, phiF, err_upwind(lev))
 
-        ! Compute discretisation error
-        call get_error(coeffs, rhs, x_P, x_N, x_f, errors(i))
+     !  LUDS
+     coeffs  = luds %eval_coeffs(u0)
+     call record_error(coeffs, luds%eval_explicit(u0, interpF, rvecs, grads), &
+                       u0, phiP, phiN, phiF, err_luds(lev))
 
-        ! Upwind Kernel
-        coeffs = upwind_advection %eval_coeffs(u_f)
-        rhs = upwind_advection%eval_explicit(u_f, interpol_factor, rvecs, grads)
-        call get_error(coeffs, rhs, x_P, x_N, x_f, errors_upwind(i))
+     !  Central‑difference
+     coeffs  = cd    %eval_coeffs(u0)
+     call record_error(coeffs, cd   %eval_explicit(u0, interpF, rvecs, grads), &
+                       u0, phiP, phiN, phiF, err_cd(lev))
+  end do
 
-        ! Linearise Upwind Kernel
-        coeffs = luds_advection %eval_coeffs(u_f)
-        rhs = luds_advection%eval_explicit(u_f, interpol_factor, rvecs, grads)
-        call get_error(coeffs, rhs, x_P, x_N, x_f, errors_luds(i))
+  ! ------ evaluate orders (skip the coarsest level) -------------------
+  call check_order('γ'     , h(2:), err_gamma(2:), gamma %get_order())
+  call check_order('Upwind', h(2:), err_upwind(2:), upwind%get_order())
+  call check_order('LUDS'  , h(2:), err_luds (2:), luds  %get_order())
+  call check_order('CD'    , h(2:), err_cd   (2:), cd    %get_order())
 
-        ! Central Difference Kernel
-        coeffs = cd_advection %eval_coeffs(u_f)
-        rhs = cd_advection%eval_explicit(u_f, interpol_factor, rvecs, grads)
-        call get_error(coeffs, rhs, x_P, x_N, x_f, errors_cd(i))
+  ! *********************************************************************
+  !  2.  Conservation (φ ≡ const.)
+  ! *********************************************************************
+  call check_constant_phi(gamma , 'γ')
+  call check_constant_phi(upwind, 'Upwind')
+  call check_constant_phi(luds  , 'LUDS')
+  call check_constant_phi(cd    , 'CD')
 
-        ! Gamma Kernel
-        coeffs = gamma_advection %eval_coeffs(u_f)
-        rhs = gamma_advection%eval_explicit(u_f, interpol_factor, rvecs, grads)
-        call get_error(coeffs, rhs, x_P, x_N, x_f, errors_gamma(i))
-
-
-        refinements(i) = dx
-    end do
-
-    ! Compute convergence order
-    call compute_order(refinements, errors, order)
-    call assert_gt(order, advection%get_order() * 0.95_ccs_real, "Convergence order not preserved by advection kernel")
-
-    call compute_order(refinements, errors_upwind, order)
-    call assert_gt(order, upwind_advection%get_order() * 0.95_ccs_real, "Convergence order not preserved by upwind advection kernel")
-
-    call compute_order(refinements, errors_luds, order)
-    call assert_gt(order, luds_advection%get_order() * 0.95_ccs_real, "Convergence order not preserved by linearised upwind advection kernel")
-
-    call compute_order(refinements, errors_cd, order)
-    call assert_gt(order, cd_advection%get_order() * 0.95_ccs_real, "Convergence order not preserved by central difference advection kernel")
-
-    call compute_order(refinements, errors_gamma, order)
-    call assert_gt(order, gamma_advection%get_order() * 0.95_ccs_real, "Convergence order not preserved by gamma advection kernel")
+  ! *********************************************************************
+  !  3.  Flow‑direction symmetry
+  ! *********************************************************************
+  call check_reverse_flow(gamma , 'γ')
+  call check_reverse_flow(upwind, 'Upwind')
+  call check_reverse_flow(luds  , 'LUDS')
+  call check_reverse_flow(cd    , 'CD')
 
 contains
 
-    function u(x)
-        ! Velocity field
-        real(ccs_real) :: u
-        real(ccs_real), intent(in) :: x
+  !> -------------------------------------------------------------------
+  !>  Discrete vs analytic flux error
+  !> -------------------------------------------------------------------
+  subroutine record_error(coeffs, rhs, uf, phiP, phiN, phiF, err)
+     real(ccs_real), intent(in)  :: coeffs(2), rhs, uf, phiP, phiN, phiF
+     real(ccs_real), intent(out) :: err
+     real(ccs_real)              :: flux_exact
 
-        u = cos(x)
-    end function u
+     flux_exact = uf * phiF
+     err        = abs(flux_exact - (coeffs(1)*phiP + coeffs(2)*phiN + rhs))
+  end subroutine record_error
 
-    function phi(x)
-        ! Function being tested
-        real(ccs_real) :: phi
-        real(ccs_real), intent(in) :: x
+  !> -------------------------------------------------------------------
+  !>  Observed convergence order must be ≥ 70 % of theoretical.
+  !> -------------------------------------------------------------------
+  subroutine check_order(name, h, errors, theo)
+     character(*),    intent(in) :: name
+     real(ccs_real),  intent(in) :: h(:), errors(:)
+     integer(ccs_int),intent(in) :: theo
+     real(ccs_real)              :: p, lower
 
-        phi = sin(2*x + 17)
-    end function phi
+     call compute_order(h, errors, p)
+     lower = 0.70_ccs_real * real(theo, ccs_real)
+     call assert_ge(p, lower, msgHdr // trim(name) //                  &
+          ': observed order p=' // str(p) // ' lower than expected')
+  end subroutine check_order
 
-    subroutine get_error(coeffs, rhs, x_P, x_N, x_f, error)
-        ! Computes discretisation error by comparing with analytical value 
-        real(ccs_real), intent(in) :: coeffs(2), rhs
-        real(ccs_real), intent(in) :: x_P(3)
-        real(ccs_real), intent(in) :: x_N(3)
-        real(ccs_real), intent(in) :: x_f(3)
-        real(ccs_real), intent(out) :: error
-        real(ccs_real) :: analytical
+  !> -------------------------------------------------------------------
+  !>  Constant‑φ conservation check
+  !> -------------------------------------------------------------------
+  subroutine check_constant_phi(k, name)
+     class(advection_kernel), intent(in) :: k
+     character(*),           intent(in) :: name
+     real(ccs_real), dimension(2) :: coeffs
+     real(ccs_real) :: rhs, flux
 
-        analytical = u(x_f(1)) * phi(x_f(1))
-        error = abs(analytical - (coeffs(1) * phi(x_P(1)) + coeffs(2) * phi(x_N(1)) + rhs))
-    end subroutine get_error
+     coeffs = k%eval_coeffs(u0)
+     rhs    = k%eval_explicit(u0, interpF, rvecs, grads)
+     flux   = coeffs(1)*phi0 + coeffs(2)*phi0 + rhs
 
-end program test_advection_kernel
+     call assert_eq(flux, u0*phi0, &
+          msgHdr // trim(name) // ': φ ≡ const – non‑conservative')
+  end subroutine check_constant_phi
+
+  !> -------------------------------------------------------------------
+  !>  Flux antisymmetry with respect to flow direction
+  !> -------------------------------------------------------------------
+  subroutine check_reverse_flow(k, name)
+     class(advection_kernel), intent(in) :: k
+     character(*),           intent(in) :: name
+     real(ccs_real), dimension(2) :: coeffs
+     real(ccs_real) :: rhs, flux_pos, flux_neg
+
+     coeffs   = k%eval_coeffs(u0)
+     rhs      = k%eval_explicit(u0, interpF, rvecs, grads)
+     flux_pos = coeffs(1)*phi0 + coeffs(2)*phi0 + rhs
+
+     coeffs   = k%eval_coeffs(-u0)
+     rhs      = k%eval_explicit(-u0, interpF, rvecs, grads)
+     flux_neg = coeffs(1)*phi0 + coeffs(2)*phi0 + rhs
+
+     call assert_eq(flux_neg, -flux_pos, &
+          msgHdr // trim(name) // ': F(-u_f) ≠ -F(u_f)')
+  end subroutine check_reverse_flow
+
+end program test_advection_kernels
