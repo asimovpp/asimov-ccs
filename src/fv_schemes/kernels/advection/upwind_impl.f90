@@ -7,20 +7,18 @@ contains
     class(upwind_advection_kernel), intent(in) :: self
     real(ccs_real), intent(in) :: flux_coeff
     real(ccs_real), dimension(2) :: coeffs
-    real(ccs_real) :: a_P  !< advection coefficient for current cell
-    real(ccs_real) :: a_F  !< advection coefficient for neighbour cell
 
     ! Silence unused compiler warnings
     associate (foo => self); end associate
 
     ! Calculate coefficients
-    a_P = max(flux_coeff, 0.0_ccs_real)
-    a_F = max(-flux_coeff, 0.0_ccs_real)
-    coeffs = [a_F, a_P]
+    coeffs(1) = min( flux_coeff, 0.0_ccs_real)   ! neighbour F  (negative if flow P←F)
+    coeffs(2) = max( flux_coeff, 0.0_ccs_real)   ! owner    P  (positive if flow P→F)
   end function advect_upwind_eval_coeffs
 
-  module pure function advect_upwind_eval_explicit(self, flux_coeff, lf, rvecs, grads) result(expl)
+  module pure function advect_upwind_eval_explicit(self, phi, flux_coeff, lf, rvecs, grads) result(expl)
     class(upwind_advection_kernel), intent(in) :: self
+    real(ccs_real), dimension(2), intent(in) :: phi
     real(ccs_real), intent(in) :: flux_coeff
     real(ccs_real), intent(in) :: lf
     real(ccs_real), dimension(3, 2), intent(in) :: rvecs
@@ -30,6 +28,7 @@ contains
 
     ! Silence unused compiler warnings
     associate (foo => self, bar => rvecs, baz => grads, lux => lf, psi => flux_coeff); end associate
+    associate (foo => phi); end associate
 
     ! Calculate explicit term
     expl = 0.0_ccs_real

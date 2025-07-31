@@ -27,6 +27,7 @@ program test_diffusion_kernel
   real(ccs_real) :: order
 
   real(ccs_real), dimension(3, 2) :: rvecs, grads
+  real(ccs_real), dimension(2) :: phi_const
 
   type(diffusion_kernel) :: diffusion
 
@@ -36,6 +37,7 @@ program test_diffusion_kernel
   interpol_factor = 0.5_ccs_real
   rvecs = 0.0_ccs_real
   grads = 0.0_ccs_real
+  phi_const = [0.0_ccs_real, 0.0_ccs_real]
 
   ! Refinement loop
   do i = 1, num_iters
@@ -49,7 +51,7 @@ program test_diffusion_kernel
 
     flux_coeff = mu_f / dx
     coeffs = diffusion%eval_coeffs(flux_coeff)
-    rhs = diffusion%eval_explicit(flux_coeff, interpol_factor, rvecs, grads)
+    rhs = diffusion%eval_explicit(phi_const, flux_coeff, interpol_factor, rvecs, grads)
 
     ! Compute discretisation error
     call get_error(coeffs, rhs, x_P, x_N, x_f, errors(i))

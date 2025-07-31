@@ -107,6 +107,8 @@ contains
     real(ccs_real) :: SchmidtNo
 
     real(ccs_real) :: phiP, phiF ! current field at central/neighbour cells
+    real(ccs_real), dimension(2) :: phi_vals
+
 
     real(ccs_real), dimension(3, 2) :: grads, rvecs ! Cell gradients and relative vectors
 
@@ -208,8 +210,10 @@ contains
           ! Correct boundary face distance to distance to immaginary boundary "node"
           diff_coeff = diff_coeff / 2.0_ccs_real
         end if
+      
+        phi_vals = [phiP, phiF] 
         coeffs = diff_kernel%eval_coeffs(diff_coeff)
-        hoe = hoe + diff_kernel%eval_explicit(diff_coeff, interpol_factor, rvecs, grads)
+        hoe = hoe + diff_kernel%eval_explicit(phi_vals, diff_coeff, interpol_factor, rvecs, grads)
 !!! <--- Diffusion coefficients ----
 
 !!! ---- Advection coefficients --->

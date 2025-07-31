@@ -1,5 +1,5 @@
 submodule(fv_kernels) advection_common
-  use kinds, only: ccs_real
+  use kinds, only: ccs_real, ccs_int
   implicit none
 
 contains
@@ -18,8 +18,9 @@ contains
     coeffs = [1.0_ccs_real, 0.0_ccs_real]  ! Example coefficients
   end function advection_eval_coeffs
 
-  module pure function advection_eval_explicit(self, flux_coeff, lf, rvecs, grads) result(expl)
+  module pure function advection_eval_explicit(self, phi, flux_coeff, lf, rvecs, grads) result(expl)
     class(advection_kernel), intent(in) :: self
+    real(ccs_real), dimension(2), intent(in) :: phi
     real(ccs_real), intent(in) :: flux_coeff
     real(ccs_real), intent(in) :: lf
     real(ccs_real), dimension(3, 2), intent(in) :: rvecs
@@ -28,6 +29,7 @@ contains
 
     ! Silence unused dummy arguments
     associate(foo=>self); end associate
+    associate(foo=>phi); end associate
     associate(foo=>flux_coeff); end associate
     associate(foo=>lf); end associate
     associate(foo=>rvecs); end associate

@@ -21,8 +21,9 @@ module fv_kernels
       real(ccs_real), dimension(2) :: coeffs
     end function advection_eval_coeffs
 
-    module pure function advection_eval_explicit(self, flux_coeff, lf, rvecs, grads) result(expl)
+    module pure function advection_eval_explicit(self, phi, flux_coeff, lf, rvecs, grads) result(expl)
       class(advection_kernel), intent(in) :: self
+      real(ccs_real), dimension(2), intent(in) :: phi
       real(ccs_real), intent(in) :: flux_coeff
       real(ccs_real), intent(in) :: lf
       real(ccs_real), dimension(3, 2), intent(in) :: rvecs
@@ -60,8 +61,9 @@ module fv_kernels
       real(ccs_real), dimension(2) :: coeffs
     end function advect_upwind_eval_coeffs
 
-    module pure function advect_upwind_eval_explicit(self, flux_coeff, lf, rvecs, grads) result(expl)
+    module pure function advect_upwind_eval_explicit(self, phi, flux_coeff, lf, rvecs, grads) result(expl)
       class(upwind_advection_kernel), intent(in) :: self
+      real(ccs_real), dimension(2), intent(in) :: phi
       real(ccs_real), intent(in) :: flux_coeff
       real(ccs_real), intent(in) :: lf
       real(ccs_real), dimension(3, 2), intent(in) :: rvecs
@@ -104,8 +106,9 @@ module fv_kernels
       real(ccs_real), dimension(2) :: coeffs
     end function advect_cd_eval_coeffs
 
-    module pure function advect_cd_eval_explicit(self, flux_coeff, lf, rvecs, grads) result(expl)
+    module pure function advect_cd_eval_explicit(self, phi, flux_coeff, lf, rvecs, grads) result(expl)
       class(cd_advection_kernel), intent(in) :: self
+      real(ccs_real), dimension(2), intent(in) :: phi
       real(ccs_real), intent(in) :: flux_coeff
       real(ccs_real), intent(in) :: lf
       real(ccs_real), dimension(3, 2), intent(in) :: rvecs
@@ -159,8 +162,9 @@ module fv_kernels
       real(ccs_real), dimension(2) :: coeffs
     end function advect_gamma_eval_coeffs
 
-    module pure function advect_gamma_eval_explicit(self, flux_coeff, lf, rvecs, grads) result(expl)
+    module pure function advect_gamma_eval_explicit(self, phi, flux_coeff, lf, rvecs, grads) result(expl)
       class(gamma_advection_kernel), intent(in) :: self
+      real(ccs_real), dimension(2), intent(in) :: phi
       real(ccs_real), intent(in) :: flux_coeff
       real(ccs_real), intent(in) :: lf
       real(ccs_real), dimension(3, 2), intent(in) :: rvecs
@@ -209,8 +213,9 @@ module fv_kernels
       real(ccs_real), dimension(2) :: coeffs
     end function advect_luds_eval_coeffs
 
-    module pure function advect_luds_eval_explicit(self, flux_coeff, lf, rvecs, grads) result(expl)
+    module pure function advect_luds_eval_explicit(self, phi, flux_coeff, lf, rvecs, grads) result(expl)
       class(luds_advection_kernel), intent(in) :: self
+      real(ccs_real), dimension(2), intent(in) :: phi
       real(ccs_real), intent(in) :: flux_coeff
       real(ccs_real), intent(in) :: lf
       real(ccs_real), dimension(3, 2), intent(in) :: rvecs
@@ -245,8 +250,9 @@ module fv_kernels
       real(ccs_real), dimension(2) :: coeffs
     end function diffusion_coeffs
 
-    module pure function diffusion_eval(self, flux_coeff, lf, rvecs, grads) result(expl)
+    module pure function diffusion_eval(self, phi, flux_coeff, lf, rvecs, grads) result(expl)
       class(diffusion_kernel), intent(in) :: self
+      real(ccs_real), dimension(2), intent(in) :: phi
       real(ccs_real), intent(in) :: flux_coeff
       real(ccs_real), intent(in) :: lf
       real(ccs_real), dimension(3, 2), intent(in) :: rvecs

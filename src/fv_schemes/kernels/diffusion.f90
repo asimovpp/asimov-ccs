@@ -27,9 +27,10 @@ contains
   end function diffusion_coeffs
 
   ! Computes the explicit contribution of the diffusion term,
-  module pure function diffusion_eval(self, flux_coeff, lf, rvecs, grads) result(expl)
+  module pure function diffusion_eval(self, phi, flux_coeff, lf, rvecs, grads) result(expl)
 
     class(diffusion_kernel), intent(in) :: self          !< The diffusion kernel object
+    real(ccs_real), dimension(2), intent(in) :: phi
     real(ccs_real), intent(in) :: flux_coeff             !< The flux coefficient: Gamma / dx * A
     real(ccs_real), intent(in) :: lf                     !< Cell-face linear interpolatino coefficient
     real(ccs_real), dimension(3, 2), intent(in) :: rvecs !< Cell-face vectors [r_{Pf}, r_{Ff}]
@@ -37,7 +38,7 @@ contains
     real(ccs_real):: expl                                !< The resulting explicit contribution
 
     ! Silence unused compiler warnings
-    associate(foo => self, bar => lf)
+    associate(foo => self, bar => lf, baz => phi)
     end associate
 
     ! Non-orthogonality correction (diffusive flux) (Ferziger & Peric 4th ed, sec 9.7.2)

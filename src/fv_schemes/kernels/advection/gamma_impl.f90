@@ -11,77 +11,56 @@ contains
 ! Silence unused-variable warnings (if you compile with -Werror)
     associate (foo => self); end associate
 
-    coeffs(1) = max(-flux_coeff, 0.0_ccs_real)   ! neighbour F
-    coeffs(2) = max(flux_coeff, 0.0_ccs_real)    ! owner    P
+    coeffs(1) = min( flux_coeff, 0.0_ccs_real)   ! neighbour F  (negative if flow P←F)
+    coeffs(2) = max( flux_coeff, 0.0_ccs_real)   ! owner    P  (positive if flow P→F)
   end function advect_gamma_eval_coeffs
 
-  module pure function advect_gamma_eval_explicit(self, flux_coeff, lf, rvecs, grads) result(expl)
+  module pure function advect_gamma_eval_explicit(self, phi, flux_coeff, lf, rvecs, grads) result(expl)
     class(gamma_advection_kernel), intent(in) :: self
+    real(ccs_real), dimension(2), intent(in) :: phi
     real(ccs_real), intent(in) :: flux_coeff        ! ρ u A
     real(ccs_real), intent(in) :: lf                ! face-interp factor (0→P,1→F)
     real(ccs_real), dimension(3, 2), intent(in) :: rvecs          ! x_Pf , x_Ff
     real(ccs_real), dimension(3, 2), intent(in) :: grads          ! ∇φ_P , ∇φ_F
     real(ccs_real) :: expl                                         ! deferred flux
 
-    ! ---- local aliases ------------------------------------------------------
-    logical :: posFlux
-    real(ccs_real) :: phiP, phiF, phiUp, phiGamma
-    real(ccs_real), dimension(3) :: gradP, dPF, d_up
-    real(ccs_real) :: dphi, ddphi, phiPt, gamma_m
-    real(ccs_real) :: w, coeffF, coeffP, bm
-    real(ccs_real), dimension(2) :: phi_coeffs       ! [ φ_P , φ_F ]
-    real(ccs_real), parameter :: zero = 0.0_ccs_real, one = 1.0_ccs_real
-
-    phi_coeffs = self%eval_coeffs(flux_coeff)
-
-    bm = self%beta_m
-    posFlux = flux_coeff >= zero
-
-    ! ---- pick UP-wind quantities depending on flow direction ---------------
-    if (posFlux) then                           ! flow P → F
-      phiP = phi_coeffs(1)          ! up-wind value
-      phiF = phi_coeffs(2)
-      gradP = grads(:, 1)
-      dPF = rvecs(:, 2) - rvecs(:, 1)          ! x_F − x_P
-      d_up = -rvecs(:, 1)                      ! x_f − x_P
-      w = lf                               ! interpolation weight from P
-    else                                        ! flow F → P
-      phiP = phi_coeffs(2)
-      phiF = phi_coeffs(1)
-      gradP = grads(:, 2)
-      dPF = rvecs(:, 1) - rvecs(:, 2)          ! x_P − x_F
-      d_up = rvecs(:, 2)                      ! x_f − x_F
-      w = one - lf                         ! weight from up-wind cell
-    end if
-
-    ! ---- normalised variable φ̃ --------------------------------------------
-    dphi = phiF - phiP
-    ddphi = 2.0_ccs_real * dot_product(gradP, dPF)
-
-    if (abs(ddphi) < 1.0e-30_ccs_real) then
-      phiPt = zero
-    else
-      phiPt = one - dphi / ddphi
-    end if
-
-    ! ---- choose interpolation weights according to Gamma NVD ---------------
-    if (phiPt <= zero .or. phiPt >= one) then          ! → revert to UD
-      coeffF = zero
-      coeffP = one
-    else if (phiPt > bm) then                          ! pure CDS
-      coeffF = one - w
-      coeffP = w
-    else                                               ! bounded Gamma blend
-      gamma_m = phiPt / bm
-      coeffF = gamma_m * (one - w)
-      coeffP = one - coeffF
-    end if
-
-    ! ---- face values and deferred correction -------------------------------
-    phiGamma = coeffP * phiP + coeffF * phiF
-    phiUp = phiP                                  ! 1st-order up-wind value
-
-    expl = flux_coeff * (phiGamma - phiUp)
+  ! ---------------- parameters & helpers ---------------------------
+  real(ccs_real)            :: bm, w, phiUp, phiDn, phiPt
+  real(ccs_real)            :: phi_CDS, gamma_m
+  real(ccs_real), dimension(3) :: gradUp, d_PF, d_up
+  logical                   :: pos
+  !
+  bm  = self%beta_m
+  pos = flux_coeff >= 0.0_ccs_real
+  if (pos) then                 ! P → F
+    phiUp  = phi(1);  phiDn = phi(2)
+    gradUp = grads(:,1)
+    d_PF   = rvecs(:,2) - rvecs(:,1)
+    d_up   = -rvecs(:,1)
+    w      = lf
+  else                          ! F → P
+    phiUp  = phi(2);  phiDn = phi(1)
+    gradUp = grads(:,2)
+    d_PF   = rvecs(:,1) - rvecs(:,2)
+    d_up   =  rvecs(:,2)
+    w      = 1.0_ccs_real - lf
+  end if
+  ! normalised variable
+  if (abs(dot_product(gradUp,d_PF)) < 1.0e-16_ccs_real) then
+     phiPt = 0.0_ccs_real
+  else
+     phiPt = 1.0_ccs_real - (phiDn - phiUp)/(2.0_ccs_real*dot_product(gradUp,d_PF))
+  end if
+  ! Gamma NVD
+  if (phiPt <= 0.0_ccs_real .or. phiPt >= 1.0_ccs_real) then          ! → UD
+     phi_CDS = phiUp
+  else if (phiPt > bm) then                          ! pure CDS
+     phi_CDS = (1.0_ccs_real-w)*phiDn + w*phiUp
+  else                                               ! blended
+     gamma_m = phiPt/bm
+     phi_CDS = gamma_m*((1.0_ccs_real-w)*phiDn) + (1.0_ccs_real-gamma_m*w)*phiUp
+  end if
+  expl = flux_coeff * (phi_CDS - phiUp)
   end function advect_gamma_eval_explicit
 
   module pure function get_gamma_width(self) result(width)

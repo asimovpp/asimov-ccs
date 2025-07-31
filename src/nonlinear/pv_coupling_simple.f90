@@ -788,6 +788,7 @@ contains
     integer(ccs_int) :: timer_coeffs
 
     type(diffusion_kernel) :: diff_kernel
+    real(ccs_real), dimension(2) :: phi_dummy
     real(ccs_real), dimension(3, 2) :: rvecs
     real(ccs_real), dimension(3, 2) :: grads
 
@@ -870,7 +871,8 @@ contains
         coeffs = diff_kernel%eval_coeffs(coeff_f)
         rvecs = 0.0_ccs_real ! There's no orthogonality correction to apply
         grads = 0.0_ccs_real ! There's no orthogonality correction to apply
-        r = r + diff_kernel%eval_explicit(coeff_f, interpol_factor, rvecs, grads)
+        phi_dummy = [0.0_ccs_real, 1.0_ccs_real]
+        r = r + diff_kernel%eval_explicit(phi_dummy, coeff_f, interpol_factor, rvecs, grads)
 
         coeff_p = coeff_p + coeffs(1)
         coeff_nb = coeffs(2)
