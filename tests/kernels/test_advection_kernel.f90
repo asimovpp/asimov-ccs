@@ -35,9 +35,6 @@ program test_advection_kernels
   real(ccs_real),  dimension(2)   :: phiCell
   character(len=*), parameter :: hdr = 'Advection‑kernel test ‖ '
 
-  !---------------------------------------------------------------------------
-  call init()                     ! seed the PRNG & MPI via testing_lib
-
   ! ========================== 1. ACCURACY STUDY =============================
   do lev = 1, nLevels
      dx     = L / real(2**lev, ccs_real)
@@ -87,6 +84,7 @@ program test_advection_kernels
   call check_reverse_flow(upwind, 'Upwind')
   call check_reverse_flow(luds  , 'LUDS')
   call check_reverse_flow(cd    , 'CD')
+
 
 contains
   !---------------------------------------------------------------------
