@@ -35,7 +35,7 @@ program test_advection_kernels
   real(ccs_real),  dimension(2)   :: phiCell
   character(len=*), parameter :: hdr = 'Advection‑kernel test ‖ '
 
-  ! ========================== 1. ACCURACY STUDY =============================
+  ! ========================== ACCURACY CHECK =============================
   do lev = 1, nLevels
      dx     = L / real(2**lev, ccs_real)
      h(lev) = dx
@@ -67,19 +67,18 @@ program test_advection_kernels
      call kernel_error(cd    , phiCell, phiFace, err_cd   (lev))
   end do
 
-  ! ---- evaluate observed orders (skip coarse level) ------------------------
   call check_order('Γ'     , h(2:), err_gamma(2:), gamma %get_order())
   call check_order('Upwind', h(2:), err_upwind(2:), upwind%get_order())
   call check_order('LUDS'  , h(2:), err_luds (2:), luds  %get_order())
   call check_order('CD'    , h(2:), err_cd   (2:), cd    %get_order())
 
-  ! =========================== 2. CONSERVATION ===============================
+  ! =========================== CONSERVATION ===============================
   call check_constant_phi(gamma , 'Γ')
   call check_constant_phi(upwind, 'Upwind')
   call check_constant_phi(luds  , 'LUDS')
   call check_constant_phi(cd    , 'CD')
 
-  ! ==================== 3. FLOW‑DIRECTION SYMMETRY ===========================
+  ! ==================== FLOW‑DIRECTION SYMMETRY ===========================
   call check_reverse_flow(gamma , 'Γ')
   call check_reverse_flow(upwind, 'Upwind')
   call check_reverse_flow(luds  , 'LUDS')
@@ -87,7 +86,6 @@ program test_advection_kernels
 
 
 contains
-  !---------------------------------------------------------------------
   pure subroutine sample_field(x, phi, dphidx)
     real(ccs_real), intent(in)  :: x
     real(ccs_real), intent(out) :: phi, dphidx
@@ -96,7 +94,6 @@ contains
     dphidx = twopi * cos(twopi*x + acos(-1.0_ccs_real)/7.0_ccs_real)
   end subroutine sample_field
 
-  !---------------------------------------------------------------------
   subroutine kernel_error(k, phiCell, phiFace, err)
     class(advection_kernel), intent(in) :: k
     real(ccs_real), dimension(2), intent(in) :: phiCell   ! [P , F]
@@ -112,7 +109,6 @@ contains
     err        = abs(flux_exact - flux_disc)
   end subroutine kernel_error
 
-  !---------------------------------------------------------------------
   subroutine check_order(name, h, errors, theo)
     character(*), intent(in) :: name
     real(ccs_real), intent(in) :: h(:), errors(:)
@@ -123,10 +119,9 @@ contains
     call compute_order(h, errors, p)
     thresh = 0.70_ccs_real * real(theo,ccs_real)
     call assert_ge(p, thresh, hdr//trim(name)//': order '//str(p)//' < '//str(thresh), outval=ok)
-    if (.not. ok) write(*,*) '  ORDER  failure –', trim(name), ': p =', p
+    if (.not. ok) write(*,*) '  ORDER  failure - ', trim(name), ': p =', p
   end subroutine check_order
 
-  !---------------------------------------------------------------------
   subroutine check_constant_phi(k, name)
     class(advection_kernel), intent(in) :: k
     character(*),           intent(in) :: name
@@ -143,11 +138,10 @@ contains
     rhs      = k%eval_explicit(phi_const, u0, interpF, rvecs, grads_zero)
     flux     = coeffs(1)*phi0 + coeffs(2)*phi0 + rhs
 
-    call assert_eq(flux, u0*phi0, hdr//trim(name)//': constant‑φ flux', outval=ok)
-    if (.not. ok) write(*,*) '  CONSERVATION failure –', trim(name)
+    call assert_eq(flux, u0*phi0, hdr//trim(name)//': constant-φ flux', outval=ok)
+    if (.not. ok) write(*,*) '  CONSERVATION failure - ', trim(name)
   end subroutine check_constant_phi
 
-  !---------------------------------------------------------------------
   subroutine check_reverse_flow(k, name)
     class(advection_kernel), intent(in) :: k
     character(*),           intent(in) :: name
@@ -171,7 +165,7 @@ contains
     flux_neg = coeffs(1)*phi0 + coeffs(2)*phi0 + rhs
 
     call assert_eq(flux_neg, -flux_pos, hdr//trim(name)//': antisymmetry', outval=ok)
-    if (.not. ok) write(*,*) '  ANTISYMMETRY failure –', trim(name)
+    if (.not. ok) write(*,*) '  ANTISYMMETRY failure - ', trim(name)
   end subroutine check_reverse_flow
 
 end program test_advection_kernels

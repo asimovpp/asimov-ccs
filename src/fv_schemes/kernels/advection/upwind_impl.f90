@@ -1,4 +1,4 @@
-submodule(fv_kernels) upwind_advection
+submodule(upwind_kernel) upwind_impl
   implicit none
 
 contains
@@ -12,8 +12,8 @@ contains
     associate (foo => self); end associate
 
     ! Calculate coefficients
-    coeffs(1) = min( flux_coeff, 0.0_ccs_real)   ! neighbour F  (negative if flow P←F)
-    coeffs(2) = max( flux_coeff, 0.0_ccs_real)   ! owner    P  (positive if flow P→F)
+    coeffs(1) = min(flux_coeff, 0.0_ccs_real)   ! neighbour F  (negative if flow P←F)
+    coeffs(2) = max(flux_coeff, 0.0_ccs_real)   ! owner    P  (positive if flow P→F)
   end function advect_upwind_eval_coeffs
 
   module pure function advect_upwind_eval_explicit(self, phi, flux_coeff, lf, rvecs, grads) result(expl)
@@ -55,4 +55,4 @@ contains
     order = 1
   end function get_upwind_order
 
-end submodule upwind_advection
+end submodule upwind_impl
