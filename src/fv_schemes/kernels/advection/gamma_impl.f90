@@ -29,7 +29,7 @@ contains
     real(ccs_real), dimension(3) :: gradUp, d_PF, d_up
     logical :: pos
     !
-    bm = self % beta_m
+    bm = self%beta_m
     pos = flux_coeff >= 0.0_ccs_real
     if (pos) then                 ! P → F
       phiUp = phi(1); phiDn = phi(2)
@@ -82,13 +82,13 @@ contains
   module pure subroutine set_beta_m(self, new_bm)
     class(gamma_advection_kernel), intent(inout) :: self
     real(ccs_real), intent(in) :: new_bm
-    self % beta_m = max(0.10_ccs_real, min(0.50_ccs_real, new_bm))
+    self%beta_m = max(0.10_ccs_real, min(0.50_ccs_real, new_bm))
   end subroutine set_beta_m
 
   module pure function get_beta_m(self) result(bm)
     class(gamma_advection_kernel), intent(in) :: self
     real(ccs_real) :: bm
-    bm = self % beta_m
+    bm = self%beta_m
   end function get_beta_m
 
 end submodule gamma_impl

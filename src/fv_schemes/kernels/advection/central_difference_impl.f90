@@ -19,8 +19,8 @@ contains
     real(ccs_real), dimension(2) :: coeffs
 
     ! Central interpolation : φ_f = ½(φ_P + φ_F)
-    coeffs(1) = self % get_interpolation_factor() * flux_coeff          ! ← neighbour-side contribution
-    coeffs(2) = (1 - self % get_interpolation_factor()) * flux_coeff    ! ← owner-side contribution
+    coeffs(1) = self%get_interpolation_factor() * flux_coeff          ! ← neighbour-side contribution
+    coeffs(2) = (1 - self%get_interpolation_factor()) * flux_coeff    ! ← owner-side contribution
   end function advect_cd_eval_coeffs
 
 !> Explicit (deferred) part — zero for a pure CD scheme
@@ -64,14 +64,14 @@ contains
   module pure subroutine set_interpolation_factor(self, interpol_fact)
     class(cd_advection_kernel), intent(inout) :: self
     real(ccs_real), intent(in) :: interpol_fact
-    self % m_interpol_factor = interpol_fact
+    self%m_interpol_factor = interpol_fact
   end subroutine set_interpolation_factor
 
 ! Getter
   module pure function get_interpolation_factor(self) result(interpol_fact)
     class(cd_advection_kernel), intent(in) :: self
     real(ccs_real) :: interpol_fact
-    interpol_fact = self % m_interpol_factor
+    interpol_fact = self%m_interpol_factor
   end function get_interpolation_factor
 
 end submodule cd_kernel_impl
