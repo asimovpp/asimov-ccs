@@ -67,19 +67,19 @@ program test_advection_kernels
      call kernel_error(cd    , phiCell, phiFace, err_cd   (lev))
   end do
 
-  call check_order('Γ'     , h(2:), err_gamma(2:), gamma %get_order())
+  call check_order('Gamma'     , h(2:), err_gamma(2:), gamma %get_order())
   call check_order('Upwind', h(2:), err_upwind(2:), upwind%get_order())
   call check_order('LUDS'  , h(2:), err_luds (2:), luds  %get_order())
   call check_order('CD'    , h(2:), err_cd   (2:), cd    %get_order())
 
   ! =========================== CONSERVATION ===============================
-  call check_constant_phi(gamma , 'Γ')
+  call check_constant_phi(gamma , 'Gamma')
   call check_constant_phi(upwind, 'Upwind')
   call check_constant_phi(luds  , 'LUDS')
   call check_constant_phi(cd    , 'CD')
 
   ! ==================== FLOW‑DIRECTION SYMMETRY ===========================
-  call check_reverse_flow(gamma , 'Γ')
+  call check_reverse_flow(gamma , 'Gamma')
   call check_reverse_flow(upwind, 'Upwind')
   call check_reverse_flow(luds  , 'LUDS')
   call check_reverse_flow(cd    , 'CD')
@@ -117,7 +117,7 @@ contains
     logical :: ok
 
     call compute_order(h, errors, p)
-    thresh = 0.70_ccs_real * real(theo,ccs_real)
+    thresh = 0.95_ccs_real * real(theo,ccs_real)
     call assert_ge(p, thresh, hdr//trim(name)//': order '//str(p)//' < '//str(thresh), outval=ok)
     if (.not. ok) write(*,*) '  ORDER  failure - ', trim(name), ': p =', p
   end subroutine check_order
@@ -138,7 +138,7 @@ contains
     rhs      = k%eval_explicit(phi_const, u0, interpF, rvecs, grads_zero)
     flux     = coeffs(1)*phi0 + coeffs(2)*phi0 + rhs
 
-    call assert_eq(flux, u0*phi0, hdr//trim(name)//': constant-φ flux', outval=ok)
+    call assert_eq(flux, u0*phi0, hdr//trim(name)//': constant-phi flux', outval=ok)
     if (.not. ok) write(*,*) '  CONSERVATION failure - ', trim(name)
   end subroutine check_constant_phi
 
