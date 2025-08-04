@@ -15,12 +15,13 @@ contains
 !!
   module pure function advect_cd_eval_coeffs(self, flux_coeff) result(coeffs)
     class(cd_advection_kernel), intent(in) :: self
-    real(ccs_real), intent(in) :: flux_coeff   ! ṁ_f = ρ u_f A_f
-    real(ccs_real), dimension(2) :: coeffs
+    real(ccs_real), intent(in)              :: flux_coeff   ! ṁ_f
+    real(ccs_real), dimension(2)            :: coeffs       ! (F , P)
 
-    ! Central interpolation : φ_f = ½(φ_P + φ_F)
-    coeffs(1) = self%get_interpolation_factor() * flux_coeff          ! ← neighbour-side contribution
-    coeffs(2) = (1 - self%get_interpolation_factor()) * flux_coeff    ! ← owner-side contribution
+    associate (foo => self); end associate
+
+    coeffs(1) = min(flux_coeff, 0.0_ccs_real)   ! neighbour F
+    coeffs(2) = max(flux_coeff, 0.0_ccs_real)   ! owner    P
   end function advect_cd_eval_coeffs
 
 !> Explicit (deferred) part — zero for a pure CD scheme
@@ -33,10 +34,26 @@ contains
     real(ccs_real), dimension(3, 2), intent(in) :: grads
     real(ccs_real) :: expl
 
-    associate (foo => self, bar => rvecs, baz => grads, lux => lf); end associate
-    associate (foo => phi); end associate
-    associate (foo => flux_coeff); end associate
-    expl = 0.0_ccs_real          ! nothing is deferred in a plain CD scheme
+    real(ccs_real), dimension(2) :: coeffs
+    real(ccs_real)               :: wP, wF, lambda_eff
+    real(ccs_real)               :: phi_up, phi_dn, phi_cds
+
+    associate (foo => rvecs); end associate
+    associate (foo => grads); end associate
+
+    coeffs = self%eval_coeffs(flux_coeff)
+    wP     = 0.5_ccs_real * ( 1.0_ccs_real + sign(1.0_ccs_real, flux_coeff))      ! 1 for +flow, 0 for –flow
+    wF     = 1.0_ccs_real - wP                    ! complementary
+
+    phi_up = wP*phi(1) + wF*phi(2)
+    phi_dn = wF*phi(1) + wP*phi(2)                ! opposite cell
+
+    ! --- effective interpolation factor -----------------------------
+    lambda_eff = wP*lf + wF*(1.0_ccs_real - lf)   ! λ  or 1–λ
+
+    ! --- CDS face value and deferred term ---------------------------
+    phi_cds = phi_up + lambda_eff*(phi_dn - phi_up)
+    expl    = flux_coeff * (phi_cds - phi_up)
   end function advect_cd_eval_explicit
 
 !> Stencil width (1 face on either side of the owner cell)
