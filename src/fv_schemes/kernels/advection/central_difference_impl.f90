@@ -22,26 +22,24 @@ contains
     real(ccs_real), dimension(3, 2), intent(in) :: grads
     real(ccs_real) :: expl
 
+    real(ccs_real) :: phi_up, phi_cd
     real(ccs_real), dimension(2) :: coeffs
-    real(ccs_real) :: wP, wF, lambda_eff
-    real(ccs_real) :: phi_up, phi_dn, phi_cds
 
     associate (foo => rvecs); end associate
     associate (foo => grads); end associate
 
-    coeffs = self%eval_coeffs(flux_coeff)
-    wP = 0.5_ccs_real * (1.0_ccs_real + sign(1.0_ccs_real, flux_coeff))      ! 1 for +flow, 0 for –flow
-    wF = 1.0_ccs_real - wP                    ! complementary
+    coeffs = self % eval_coeffs(flux_coeff)
+    if (coeffs(2) > 0.0_ccs_real) then          ! positive flux P is up-wind
+      phi_up = phi(1)
+    else                                        ! negative flux F is up-wind
+      phi_up = phi(2)
+    end if
 
-    phi_up = wP * phi(1) + wF * phi(2)
-    phi_dn = wF * phi(1) + wP * phi(2)                ! opposite cell
+    ! --- central-difference face value
+    phi_cd = (1.0_ccs_real - lf) * phi(1) + lf * phi(2)
 
-    ! --- effective interpolation factor -----------------------------
-    lambda_eff = wP * lf + wF * (1.0_ccs_real - lf)   ! λ  or 1–λ
-
-    ! --- CDS face value and deferred term ---------------------------
-    phi_cds = phi_up + lambda_eff * (phi_dn - phi_up)
-    expl = flux_coeff * (phi_cds - phi_up)
+    ! --- deferred correction term
+    expl = flux_coeff * (phi_cd - phi_up)
   end function advect_cd_eval_explicit
 
   module pure function get_cd_width(self) result(width)
