@@ -6,14 +6,12 @@ contains
   module pure function advect_upwind_eval_coeffs(self, flux_coeff) result(coeffs)
     class(upwind_advection_kernel), intent(in) :: self
     real(ccs_real), intent(in) :: flux_coeff
-    real(ccs_real), dimension(2) :: coeffs
+    real(ccs_real), dimension(2) :: coeffs       ! (P, F)
 
-    ! Silence unused compiler warnings
     associate (foo => self); end associate
 
-    ! Calculate coefficients
-    coeffs(1) = min(flux_coeff, 0.0_ccs_real)   ! neighbour F  (negative if flow P←F)
-    coeffs(2) = max(flux_coeff, 0.0_ccs_real)   ! owner    P  (positive if flow P→F)
+    coeffs(1) = max(flux_coeff, 0.0_ccs_real)   ! owner    P
+    coeffs(2) = min(flux_coeff, 0.0_ccs_real)   ! neighbour F
   end function advect_upwind_eval_coeffs
 
   module pure function advect_upwind_eval_explicit(self, phi, flux_coeff, lf, rvecs, grads) result(expl)

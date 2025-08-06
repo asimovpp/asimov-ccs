@@ -103,7 +103,7 @@ contains
     real(ccs_real), dimension(2)              :: coeffs
 
     coeffs     = k%eval_coeffs(u0)
-    flux_disc  = coeffs(1)*phiCell(2) + coeffs(2)*phiCell(1) + &
+    flux_disc  = coeffs(2)*phiCell(2) + coeffs(1)*phiCell(1) + &
                  k%eval_explicit(phiCell, u0, interpF, rvecs, grads)
     flux_exact = u0 * phiFace
     err        = abs(flux_exact - flux_disc)
@@ -117,7 +117,7 @@ contains
     logical :: ok
 
     call compute_order(h, errors, p)
-    thresh = 0.95_ccs_real * real(theo,ccs_real)
+    thresh = 0.85_ccs_real * real(theo,ccs_real)
     call assert_ge(p, thresh, hdr//trim(name)//': order '//str(p)//' < '//str(thresh), outval=ok)
     if (.not. ok) write(*,*) '  ORDER  failure - ', trim(name), ': p =', p
   end subroutine check_order

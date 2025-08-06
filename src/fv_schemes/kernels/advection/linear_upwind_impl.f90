@@ -6,12 +6,12 @@ contains
   module pure function advect_luds_eval_coeffs(self, flux_coeff) result(coeffs)
     class(luds_advection_kernel), intent(in) :: self
     real(ccs_real), intent(in) :: flux_coeff   ! ρ u A with sign
-    real(ccs_real), dimension(2) :: coeffs       ! (F, P)
+    real(ccs_real), dimension(2) :: coeffs       ! (P, F)
 
     associate (foo => self); end associate
 
-    coeffs(1) = min(flux_coeff, 0.0_ccs_real)   ! neighbour F  (negative if flow P←F)
-    coeffs(2) = max(flux_coeff, 0.0_ccs_real)   ! owner    P  (positive if flow P→F)
+    coeffs(1) = max(flux_coeff, 0.0_ccs_real)   ! owner    P
+    coeffs(2) = min(flux_coeff, 0.0_ccs_real)   ! neighbour F
   end function advect_luds_eval_coeffs
 
   module pure function advect_luds_eval_explicit(self, phi, flux_coeff, lf, rvecs, grads) result(expl)
@@ -25,25 +25,24 @@ contains
 
     ! ---------------- bookkeeping ------------------------------------
     logical :: pos
-    real(ccs_real) :: phiUp, phiHO
-    real(ccs_real), dimension(3) :: gradUp, d_up
+    real(ccs_real) :: phi_lud
+    real(ccs_real), dimension(3) :: grad_up, d_up
 
     associate (foo => self); end associate
+    associate (foo => phi); end associate
     associate (foo => lf); end associate
 
     pos = flux_coeff >= 0.0_ccs_real
-    if (pos) then                      ! flow P → F
-      phiUp = phi(1)
-      gradUp = grads(:, 1)
-      d_up = -rvecs(:, 1)            ! x_f − x_P
+    if (pos) then                       ! flow P → F
+      grad_up = grads(:, 1)
+      d_up = -rvecs(:, 1)               ! x_f − x_P
     else                                ! flow F → P
-      phiUp = phi(2)
-      gradUp = grads(:, 2)
-      d_up = rvecs(:, 2)            ! x_f − x_F
+      grad_up = grads(:, 2)
+      d_up = rvecs(:, 2)                ! x_f − x_F
     end if
 
-    phiHO = phiUp + dot_product(gradUp, d_up)   ! linear reconstruction
-    expl = flux_coeff * (phiHO - phiUp)        ! deferred correction
+    phi_lud = dot_product(grad_up, d_up)   ! linear reconstruction
+    expl = flux_coeff * phi_lud         ! deferred correction
   end function advect_luds_eval_explicit
 
   module pure function get_luds_width(self) result(width)
