@@ -35,7 +35,7 @@ contains
     pos = flux_coeff >= 0.0_ccs_real
     if (pos) then                       ! flow P → F
       grad_up = grads(:, 1)
-      d_up = -rvecs(:, 1)               ! x_f − x_P
+      d_up = rvecs(:, 1)               ! x_f − x_P
     else                                ! flow F → P
       grad_up = grads(:, 2)
       d_up = rvecs(:, 2)                ! x_f − x_F
