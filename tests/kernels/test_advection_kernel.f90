@@ -117,7 +117,7 @@ contains
     logical :: ok
 
     call compute_order(h, errors, p)
-    thresh = 0.85_ccs_real * real(theo,ccs_real)
+    thresh = 0.89_ccs_real * real(theo,ccs_real)
     call assert_ge(p, thresh, hdr//trim(name)//': order '//str(p)//' < '//str(thresh), outval=ok)
     if (.not. ok) write(*,*) '  ORDER  failure - ', trim(name), ': p =', p
   end subroutine check_order
