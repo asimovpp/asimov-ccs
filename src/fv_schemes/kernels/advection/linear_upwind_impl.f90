@@ -42,6 +42,9 @@ contains
     end if
 
     phi_lud = dot_product(grad_up, d_up)   ! linear reconstruction
+
+    ! LUDS computes face value as upwind + linear extrapolation, therefore
+    ! the deferred correction (f_LUDS - f_U) reduces to the linear extrapolation.
     expl = flux_coeff * phi_lud         ! deferred correction
   end function advect_luds_eval_explicit
 
