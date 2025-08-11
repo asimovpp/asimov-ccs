@@ -18,7 +18,7 @@ contains
     class(gamma_advection_kernel), intent(in) :: self
     real(ccs_real), dimension(2), intent(in) :: phi ! φ_F , φ_P
     real(ccs_real), intent(in) :: flux_coeff        ! ρ u A
-    real(ccs_real), intent(in) :: lf                ! face-interp factor (0→P,1→F)
+    real(ccs_real), intent(in) :: lf                ! face-interp factor (1→P,0→F)
     real(ccs_real), dimension(3, 2), intent(in) :: rvecs          ! x_Pf , x_Ff
     real(ccs_real), dimension(3, 2), intent(in) :: grads          ! ∇φ_P , ∇φ_F
     real(ccs_real) :: expl                                         ! deferred flux
@@ -44,7 +44,7 @@ contains
     end if
 
     ! Central difference
-    phi_cd = (1.0_ccs_real - lf) * phi(1) + lf * phi(2)
+    phi_cd = lf * phi(1) + (1.0_ccs_real - lf) * phi(2)
 
     ! normalised variable
     if (abs(dot_product(grad_up, d_PF)) < 100.0_ccs_real * tiny(1.0_ccs_real)) then
