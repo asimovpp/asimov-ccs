@@ -29,7 +29,7 @@ contains
     real(ccs_real), dimension(3) :: grad_up, d_PF
     logical :: pos
     !
-    bm = self % beta_m
+    bm = self%beta_m
     pos = flux_coeff >= 0.0_ccs_real
     if (pos) then                 ! P → F
       phi_up = phi(1)
