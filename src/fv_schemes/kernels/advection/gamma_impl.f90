@@ -27,44 +27,79 @@ contains
     real(ccs_real) :: bm, phi_up, phi_dn, phi_pt, phi_g
     real(ccs_real) :: phi_cd, gamma_m
     real(ccs_real), dimension(3) :: grad_up, d_PF
-    logical :: pos
     !
     bm = self%beta_m
-    pos = flux_coeff >= 0.0_ccs_real
-    if (pos) then                 ! P → F
-      phi_up = phi(1)
-      phi_dn = phi(2)
-      grad_up = grads(:, 1)
-      d_PF =  rvecs(:, 1) - rvecs(:, 2)
-    else                          ! F → P
-      phi_up = phi(2)
-      phi_dn = phi(1)
-      grad_up = grads(:, 2)
-      d_PF = rvecs(:, 2) - rvecs(:, 1) 
-    end if
+    call get_flow_orientation(flux_coeff, phi, grads, rvecs, phi_up, phi_dn, grad_up, d_PF)
 
     ! Central difference
     phi_cd = lf * phi(1) + (1.0_ccs_real - lf) * phi(2)
 
     ! normalised variable
-    if (abs(dot_product(grad_up, d_PF)) < 100.0_ccs_real * tiny(1.0_ccs_real)) then
-      phi_pt = 0.0_ccs_real
-    else
-      phi_pt = 1.0_ccs_real - (phi_dn - phi_up) / (2.0_ccs_real * dot_product(grad_up, d_PF))
-    end if
+    phi_pt = compute_nvd(phi_up, phi_dn, grad_up, d_PF)
 
     ! Gamma NVD
-    if (phi_pt <= 0.0_ccs_real .or. phi_pt >= 1.0_ccs_real) then          ! → UD
-      gamma_m = 0.0_ccs_real
-    else if (phi_pt > bm) then                          ! pure CDS
-      gamma_m = 1.0_ccs_real
-    else                                               ! blended
-      gamma_m = phi_pt / bm
-    end if
+    gamma_m = compute_gamma(phi_pt, bm)
     phi_g = gamma_m * phi_cd + (1.0_ccs_real - gamma_m) * phi_up
 
     expl = flux_coeff * (phi_g - phi_up)
   end function advect_gamma_eval_explicit
+
+  pure subroutine get_flow_orientation(flux_coeff, phi, grads, rvecs, phi_C, phi_D, grad_C, d)
+    real(ccs_real), intent(in) :: flux_coeff
+    real(ccs_real), dimension(2), intent(in) :: phi
+    real(ccs_real), dimension(3, 2), intent(in) :: grads
+    real(ccs_real), dimension(3, 2), intent(in) :: rvecs
+    real(ccs_real), intent(out) :: phi_C
+    real(ccs_real), intent(out) :: phi_D
+    real(ccs_real), dimension(3), intent(out) :: grad_C
+    real(ccs_real), dimension(3), intent(out) :: d
+
+    if (flux_coeff >= 0.0_ccs_real) then
+      phi_C = phi(1)
+      phi_D = phi(2)
+      grad_C = grads(:, 1)
+      d = rvecs(:, 1) - rvecs(:, 2)
+    else                       
+      phi_C = phi(2)
+      phi_D = phi(1)
+      grad_C = grads(:, 2)
+      d = rvecs(:, 2) - rvecs(:, 1) 
+    end if
+  end subroutine get_flow_orientation
+
+  real(ccs_real) pure function compute_nvd(phi_C, phi_D, grad_C, d)
+    real(ccs_real), intent(in) :: phi_C, phi_D
+    real(ccs_real), dimension(3), intent(in) :: grad_C
+    real(ccs_real), dimension(3), intent(in) :: d
+
+    real(ccs_real) :: d_grad_C
+
+    d_grad_C = dot_product(grad_C, d)
+
+    if (abs(d_grad_C) < 100.0_ccs_real * tiny(1.0_ccs_real)) then
+      compute_nvd = 0.0_ccs_real
+    else
+      compute_nvd = 1.0_ccs_real - (phi_D - phi_C) / (2.0_ccs_real * d_grad_C)
+    end if
+    
+  end function compute_nvd
+
+  real(ccs_real) pure function compute_gamma(phi_nvd, beta)
+    real(ccs_real), intent(in) :: phi_nvd
+    real(ccs_real), intent(in) :: beta
+    
+    if (phi_nvd <= 0.0_ccs_real .or. phi_nvd >= 1.0_ccs_real) then
+      ! Upwind
+      compute_gamma = 0.0_ccs_real
+    else if (phi_nvd > beta) then
+      ! Central
+      compute_gamma = 1.0_ccs_real
+    else
+      ! Blended
+      compute_gamma = phi_nvd / beta
+    end if
+
+  end function compute_gamma
 
   module pure function get_gamma_width(self) result(width)
     class(gamma_advection_kernel), intent(in) :: self
