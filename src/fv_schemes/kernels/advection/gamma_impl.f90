@@ -24,9 +24,9 @@ contains
     real(ccs_real) :: expl                                         ! deferred flux
 
     ! ---------------- parameters & helpers ---------------------------
-    real(ccs_real) :: bm, phi_up, phi_dn, phi_pt
+    real(ccs_real) :: bm, phi_up, phi_dn, phi_pt, phi_g
     real(ccs_real) :: phi_cd, gamma_m
-    real(ccs_real), dimension(3) :: grad_up, d_PF, d_up
+    real(ccs_real), dimension(3) :: grad_up, d_PF
     logical :: pos
     !
     bm = self % beta_m
@@ -35,15 +35,16 @@ contains
       phi_up = phi(1)
       phi_dn = phi(2)
       grad_up = grads(:, 1)
-      d_PF = rvecs(:, 2) - rvecs(:, 1)
-      d_up = -rvecs(:, 1)
+      d_PF =  rvecs(:, 1) - rvecs(:, 2)
     else                          ! F → P
       phi_up = phi(2)
       phi_dn = phi(1)
       grad_up = grads(:, 2)
-      d_PF = rvecs(:, 1) - rvecs(:, 2)
-      d_up = rvecs(:, 2)
+      d_PF = rvecs(:, 2) - rvecs(:, 1) 
     end if
+
+    ! Central difference
+    phi_cd = (1.0_ccs_real - lf) * phi(1) + lf * phi(2)
 
     ! normalised variable
     if (abs(dot_product(grad_up, d_PF)) < 100.0_ccs_real * tiny(1.0_ccs_real)) then
@@ -54,15 +55,15 @@ contains
 
     ! Gamma NVD
     if (phi_pt <= 0.0_ccs_real .or. phi_pt >= 1.0_ccs_real) then          ! → UD
-      phi_cd = phi_up
+      gamma_m = 0.0_ccs_real
     else if (phi_pt > bm) then                          ! pure CDS
-      phi_cd = (1.0_ccs_real - lf) * phi(1) + lf * phi(2)
+      gamma_m = 1.0_ccs_real
     else                                               ! blended
       gamma_m = phi_pt / bm
-      phi_cd =  gamma_m * (1.0_ccs_real - lf) * phi(1) + (1.0_ccs_real - gamma_m * (1.0_ccs_real - lf)) * phi(2)
     end if
+    phi_g = gamma_m * phi_cd + (1.0_ccs_real - gamma_m) * phi_up
 
-    expl = flux_coeff * (phi_cd - phi_up)
+    expl = flux_coeff * (phi_g - phi_up)
   end function advect_gamma_eval_explicit
 
   module pure function get_gamma_width(self) result(width)
