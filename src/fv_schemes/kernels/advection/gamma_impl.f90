@@ -26,23 +26,21 @@ contains
     ! ---------------- parameters & helpers ---------------------------
     real(ccs_real) :: bm, phi_up, phi_dn, phi_pt
     real(ccs_real) :: phi_cd, gamma_m
-    real(ccs_real), dimension(3) :: grad_up, d_PF, d_up
+    real(ccs_real), dimension(3) :: grad_up, d_PF
     logical :: pos
     !
-    bm = self % beta_m
+    bm = self%beta_m
     pos = flux_coeff >= 0.0_ccs_real
     if (pos) then                 ! P → F
       phi_up = phi(1)
       phi_dn = phi(2)
       grad_up = grads(:, 1)
       d_PF = rvecs(:, 2) - rvecs(:, 1)
-      d_up = -rvecs(:, 1)
     else                          ! F → P
       phi_up = phi(2)
       phi_dn = phi(1)
       grad_up = grads(:, 2)
       d_PF = rvecs(:, 1) - rvecs(:, 2)
-      d_up = rvecs(:, 2)
     end if
 
     ! normalised variable
