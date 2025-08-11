@@ -32,7 +32,7 @@ contains
     flux_up = coeffs(1) * phi(1) + coeffs(2) * phi(2)
 
     ! --- central-difference face value
-    phi_cd = (1.0_ccs_real - lf) * phi(1) + lf * phi(2)
+    phi_cd = lf * phi(1) + (1.0_ccs_real - lf) * phi(2)
 
     ! --- deferred correction term
     expl = flux_coeff * phi_cd - flux_up
