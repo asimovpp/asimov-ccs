@@ -8,11 +8,11 @@ program test_advection_kernels
   implicit none
 
   !---------------------------- configuration --------------------------------
-  integer,        parameter :: nLevels = 6           ! refinements (Δx = L/2^ℓ)
+  integer,        parameter :: nLevels = 6             ! refinements (Δx = L/2^ℓ)
   real(ccs_real), parameter :: L       = 1.0_ccs_real
   real(ccs_real), parameter :: u0      = 2.0_ccs_real  ! constant face velocity
   real(ccs_real), parameter :: phi0    = 3.14_ccs_real ! for const‑φ test
-  real(ccs_real), parameter :: interpF = 0.5_ccs_real  ! generic λ_f
+  real(ccs_real), parameter :: interpF = 0.5_ccs_real  ! generic l_f
 
   ! kernel instances
   type(gamma_advection_kernel)   :: gamma
@@ -34,16 +34,21 @@ program test_advection_kernels
   real(ccs_real),  dimension(3,2) :: rvecs, grads
   real(ccs_real),  dimension(2)   :: phiCell
   character(len=*), parameter :: hdr = 'Advection‑kernel test ‖ '
+  real(ccs_real), parameter :: pi = acos(-1.0_ccs_real)
 
+  logical :: test_pass
+
+  test_pass = .true.
+  xFace = [pi / 7.0_ccs_real, 0.0_ccs_real, 0.0_ccs_real] ! Arbitrary
+  
   ! ========================== ACCURACY CHECK =============================
   do lev = 1, nLevels
      dx     = L / real(2**lev, ccs_real)
      h(lev) = dx
 
      ! cell centres and face --------------------------------------------------
-     xP = [0.0_ccs_real, 0.0_ccs_real, 0.0_ccs_real]
-     xF = [dx,          0.0_ccs_real, 0.0_ccs_real]
-     xFace = [dx/2.0_ccs_real, 0.0_ccs_real, 0.0_ccs_real]
+     xP = xFace - [dx / 2, 0.0_ccs_real, 0.0_ccs_real]
+     xF = xFace + [dx / 2, 0.0_ccs_real, 0.0_ccs_real]
 
      ! analytic scalar and gradient ------------------------------------------
      call sample_field(xP(1), phiP, gradP(1))
@@ -52,13 +57,13 @@ program test_advection_kernels
      gradP(2:3) = 0.0_ccs_real;  gradF(2:3) = 0.0_ccs_real
 
      ! geometry from face to centres (consistent with kernel impl.)
-     rvecs(:,1) = xP - xFace         ! face → owner P
-     rvecs(:,2) = xF - xFace         ! face → neighbour F
+     rvecs(:,1) = xFace - xP ! face → owner P
+     rvecs(:,2) = xFace - xF ! face → neighbour F
 
-     grads(:,1) = gradP           ! ∇φ_P
-     grads(:,2) = gradF           ! ∇φ_F
+     grads(:,1) = gradP      ! ∇φ_P
+     grads(:,2) = gradF      ! ∇φ_F
 
-     phiCell = [phiP, phiF]       ! [P , F]
+     phiCell = [phiP, phiF]  ! [P , F]
 
      ! ---------------- kernels ----------------------------------------------
      call kernel_error(gamma , phiCell, phiFace, err_gamma(lev))
@@ -67,10 +72,10 @@ program test_advection_kernels
      call kernel_error(cd    , phiCell, phiFace, err_cd   (lev))
   end do
 
-  call check_order('Gamma'     , h(2:), err_gamma(2:), gamma %get_order())
+  call check_order('Gamma' , h(2:), err_gamma(2:), gamma%get_order())
   call check_order('Upwind', h(2:), err_upwind(2:), upwind%get_order())
-  call check_order('LUDS'  , h(2:), err_luds (2:), luds  %get_order())
-  call check_order('CD'    , h(2:), err_cd   (2:), cd    %get_order())
+  call check_order('LUDS'  , h(2:), err_luds (2:), luds%get_order())
+  call check_order('CD'    , h(2:), err_cd   (2:), cd%get_order())
 
   ! =========================== CONSERVATION ===============================
   call check_constant_phi(gamma , 'Gamma')
@@ -84,14 +89,25 @@ program test_advection_kernels
   call check_reverse_flow(luds  , 'LUDS')
   call check_reverse_flow(cd    , 'CD')
 
-
+  if (.not. test_pass) then
+    print *, "Advection kernel test FAILED"
+    error stop
+  end if
+  
 contains
+  pure real(ccs_real) function eval_phi(x) result(phi)
+    real(ccs_real), intent(in) :: x
+
+    phi = exp(pi * x)
+  end function eval_phi
+  
   pure subroutine sample_field(x, phi, dphidx)
     real(ccs_real), intent(in)  :: x
     real(ccs_real), intent(out) :: phi, dphidx
-    real(ccs_real), parameter   :: twopi = 2.0_ccs_real * acos(-1.0_ccs_real)
-    phi    = sin(twopi*x + acos(-1.0_ccs_real)/7.0_ccs_real)
-    dphidx = twopi * cos(twopi*x + acos(-1.0_ccs_real)/7.0_ccs_real)
+
+    phi = eval_phi(x)
+    !!!dphidx = pi * phi
+    dphidx = (eval_phi(x + dx / 2) - eval_phi(x - dx / 2)) / dx
   end subroutine sample_field
 
   subroutine kernel_error(k, phiCell, phiFace, err)
@@ -119,7 +135,11 @@ contains
     call compute_order(h, errors, p)
     thresh = 0.89_ccs_real * real(theo,ccs_real)
     call assert_ge(p, thresh, hdr//trim(name)//': order '//str(p)//' < '//str(thresh), outval=ok)
-    if (.not. ok) write(*,*) '  ORDER  failure - ', trim(name), ': p =', p
+    if (.not. ok) then
+      print *, '  ORDER  failure - ', trim(name), ': p =', p
+      test_pass = .false.
+    end if
+
   end subroutine check_order
 
   subroutine check_constant_phi(k, name)
@@ -131,7 +151,6 @@ contains
     real(ccs_real), dimension(2) :: phi_const
     real(ccs_real), dimension(3,2) :: grads_zero
 
-
     coeffs   = k%eval_coeffs(u0)
     phi_const = [phi0, phi0]
     grads_zero = 0.0_ccs_real
@@ -139,7 +158,11 @@ contains
     flux     = coeffs(1)*phi0 + coeffs(2)*phi0 + rhs
 
     call assert_eq(flux, u0*phi0, hdr//trim(name)//': constant-phi flux', outval=ok)
-    if (.not. ok) write(*,*) '  CONSERVATION failure - ', trim(name)
+    if (.not. ok) then
+      print *, '  CONSERVATION failure - ', trim(name)
+      test_pass = .false.
+    end if
+    
   end subroutine check_constant_phi
 
   subroutine check_reverse_flow(k, name)
@@ -148,24 +171,39 @@ contains
     real(ccs_real), dimension(2) :: coeffs
     real(ccs_real) :: rhs, flux_pos, flux_neg
     logical :: ok
-    real(ccs_real), dimension(2) :: phi_const
-    real(ccs_real), dimension(3,2) :: grads_zero
+    real(ccs_real), dimension(2) :: phi
+    real(ccs_real), dimension(3,2) :: grads
+    real(ccs_real) :: phi_face
 
-    phi_const  = [phi0, phi0]
-    grads_zero = 0.0_ccs_real
+    select type(k)
+    type is(upwind_advection_kernel)
+      ! Upwind is only symmetric for constant fields
+      phi = [phi0, phi0]
+    class default
+      phi  = [phi0, 2 * phi0]
+    end select
+    phi_face = (phi(1) + phi(2)) / 2
+
+    grads = 0.0_ccs_real
+    grads(1, 1) = (phi_face - phi(1)) / rvecs(1, 1)
+    grads(1, 2) = (phi_face - phi(2)) / rvecs(1, 2)
 
     ! positive velocity
     coeffs   = k%eval_coeffs(u0)
-    rhs      = k%eval_explicit(phi_const, u0, interpF, rvecs, grads_zero)
-    flux_pos = coeffs(1)*phi0 + coeffs(2)*phi0 + rhs
+    rhs      = k%eval_explicit(phi, u0, interpF, rvecs, grads)
+    flux_pos = coeffs(1)*phi(1) + coeffs(2)*phi(2) + rhs
 
     ! negative velocity
     coeffs   = k%eval_coeffs(-u0)
-    rhs      = k%eval_explicit(phi_const, -u0, interpF, rvecs, grads_zero)
-    flux_neg = coeffs(1)*phi0 + coeffs(2)*phi0 + rhs
+    rhs      = k%eval_explicit(phi, -u0, interpF, rvecs, grads)
+    flux_neg = coeffs(1)*phi(1) + coeffs(2)*phi(2) + rhs
 
     call assert_eq(flux_neg, -flux_pos, hdr//trim(name)//': antisymmetry', outval=ok)
-    if (.not. ok) write(*,*) '  ANTISYMMETRY failure - ', trim(name)
+    if (.not. ok) then
+      print *, '  ANTISYMMETRY failure - ', trim(name), " +u: ", flux_pos, " -u: ", flux_neg
+      test_pass = .false.
+    end if
+    
   end subroutine check_reverse_flow
 
 end program test_advection_kernels

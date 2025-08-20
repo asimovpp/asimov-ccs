@@ -28,7 +28,7 @@ contains
     associate (foo => rvecs); end associate
     associate (foo => grads); end associate
 
-    coeffs = self % eval_coeffs(flux_coeff)
+    coeffs = self%eval_coeffs(flux_coeff)
     flux_up = coeffs(1) * phi(1) + coeffs(2) * phi(2)
 
     ! --- central-difference face value
@@ -46,7 +46,7 @@ contains
     width = 1
   end function get_cd_width
 
-!> Formal order of accuracy
+  !> Formal order of accuracy
   module pure function get_cd_order(self) result(order)
     class(cd_advection_kernel), intent(in) :: self
     integer(ccs_int) :: order
