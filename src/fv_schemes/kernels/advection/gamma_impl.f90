@@ -115,7 +115,7 @@ contains
     integer(ccs_int) :: order
     associate (foo => self); end associate
 
-    order = 2
+    order = 1 ! XXX: Gamma decays to first order to suppress oscillations
   end function get_gamma_order
 
   module pure subroutine set_beta_m(self, new_bm)
