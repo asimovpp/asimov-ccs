@@ -320,16 +320,18 @@ module types
       real(ccs_real), dimension(2) :: coeffs
     end function coeffs_interface
 
-    pure function eval_interface(self, flux_coeff, lf, rvecs, grads) result(expl)
+    pure function eval_interface(self, phi, flux_coeff, lf, rvecs, grads) result(expl)
       import :: abstract_kernel
       import :: ccs_real
       class(abstract_kernel), intent(in) :: self
+      real(ccs_real), dimension(2), intent(in) :: phi
       real(ccs_real), intent(in) :: flux_coeff
       real(ccs_real), intent(in) :: lf
       real(ccs_real), dimension(3, 2), intent(in) :: rvecs
       real(ccs_real), dimension(3, 2), intent(in) :: grads
       real(ccs_real):: expl
     end function eval_interface
+
 
     pure function width_interface(self) result(width)
       import :: abstract_kernel

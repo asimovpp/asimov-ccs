@@ -1,4 +1,5 @@
 auto
+
 *.pdf
 !dev_guide/logos/*.pdf
 *.aux
@@ -35,4 +36,5 @@ libccs.a
 **/.DS_Store
 .vscode
 .devcontainer
+
 .idea
