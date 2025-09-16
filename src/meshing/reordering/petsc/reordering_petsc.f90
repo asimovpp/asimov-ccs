@@ -70,7 +70,7 @@ contains
     call MatSeqAIJSetPreallocation(M, max_nb, PETSC_NULL_INTEGER_ARRAY, ierr)
 #else
     call MatSeqAIJSetPreallocation(M, max_nb, PETSC_NULL_INTEGER, ierr)
-#enfif
+#endif
 
     do i = 1, local_num_cells
       row(:) = 0.0
