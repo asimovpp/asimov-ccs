@@ -17,9 +17,16 @@ contains
   module subroutine get_reordering(new_indices)
 #include "petsc/finclude/petscmat.h"
 
-    use petsc, only: PETSC_DETERMINE, PETSC_NULL_INTEGER, INSERT_VALUES
+    use petsc, only: PETSC_DETERMINE, INSERT_VALUES
     use petscmat
-    use petscis, only: tIS, ISGetIndicesF90, ISRestoreIndicesF90, ISDestroy
+    use petscis, only: tIS, ISDestroy
+#ifdef PETSC_VERSION_GE(3,23,0)
+    use petsc, only: PETSC_NULL_INTEGER_ARRAY
+    use petscis, only: ISGetIndices, ISRestoreIndices
+#else
+    use petsc, only: PETSC_NULL_INTEGER
+    use petscis, only: ISGetIndicesF90, ISRestoreIndicesF90
+#endif
 
     integer(ccs_int), dimension(:), allocatable, intent(out) :: new_indices !< new indices in "to(from)" format
 
@@ -59,7 +66,11 @@ contains
     call MatSetFromOptions(M, ierr)
     call MatSetSizes(M, local_num_cells, local_num_cells, &
                      PETSC_DETERMINE, PETSC_DETERMINE, ierr)
+#if PETSC_VERSION_GE(3,23,0)
+    call MatSeqAIJSetPreallocation(M, max_nb, PETSC_NULL_INTEGER_ARRAY, ierr)
+#else
     call MatSeqAIJSetPreallocation(M, max_nb, PETSC_NULL_INTEGER, ierr)
+#enfif
 
     do i = 1, local_num_cells
       row(:) = 0.0
@@ -82,7 +93,12 @@ contains
         end if
       end do
       idx = idx - 1 ! F->C
+
+#if PETSC_VERSION_GE(3,23,0)
+      call MatSetValues(M, 1, [i - 1], max_nb, idx, row, INSERT_VALUES, ierr)
+#else
       call MatSetValues(M, 1, i - 1, max_nb, idx, row, INSERT_VALUES, ierr)
+#endif
     end do
     call MatAssemblyBegin(M, MAT_FINAL_ASSEMBLY, ierr)
     call MatAssemblyEnd(M, MAT_FINAL_ASSEMBLY, ierr)
@@ -98,7 +114,11 @@ contains
     ! Fill local indices in original ordering -> destination, i.e. to(i) => new index of cell i.
     allocate (new_indices(local_num_cells))
 
+#if PETSC_VERSION_GE(3,23,0)
+    call ISGetIndices(rperm, row_indices, ierr)
+#else
     call ISGetIndicesF90(rperm, row_indices, ierr)
+#endif
     if (local_num_cells >= 1) then
       do i = 1, local_num_cells
         idx_new = row_indices(i) + 1 ! C->F
@@ -106,7 +126,11 @@ contains
       end do
     end if
 
+#if PETSC_VERSION_GE(3,23,0)
+    call ISRestoreIndices(rperm, row_indices, ierr)
+#else
     call ISRestoreIndicesF90(rperm, row_indices, ierr)
+#endif
     call ISDestroy(rperm, ierr)
   end subroutine get_reordering
 
