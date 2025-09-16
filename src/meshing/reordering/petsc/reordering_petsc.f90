@@ -20,7 +20,7 @@ contains
     use petsc, only: PETSC_DETERMINE, INSERT_VALUES
     use petscmat
     use petscis, only: tIS, ISDestroy
-#ifdef PETSC_VERSION_GE(3,23,0)
+#if PETSC_VERSION_GE(3,23,0)
     use petsc, only: PETSC_NULL_INTEGER_ARRAY
     use petscis, only: ISGetIndices, ISRestoreIndices
 #else
