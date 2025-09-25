@@ -212,6 +212,8 @@ contains
       
     end do
 
+    close(io_unit)
+
   end subroutine
 
 
