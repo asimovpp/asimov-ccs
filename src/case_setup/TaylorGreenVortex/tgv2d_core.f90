@@ -94,7 +94,7 @@ contains
     error_Linf = tgv2d_error_Linf_global
 
     call timer_print_all(par_env)
-    !call timer_export_csv(par_env)
+    call timer_export_csv(par_env)
 
     ! Clean-up
     call reset_timestepping()
@@ -115,6 +115,7 @@ contains
     character(len=*), intent(in) :: field_name
     real(ccs_real), intent(inout) :: init_val
     real(ccs_real), dimension(ndim) :: x_p
+    real(ccs_real) :: rho
 
     select case (field_name)
     case ("u")
@@ -123,6 +124,10 @@ contains
     case ("v")
       call get_centre(loc_p, x_p)
       init_val = -cos(x_p(1)) * sin(x_p(2))
+    case ("p")
+      call get_centre(loc_p, x_p)
+      rho = 1.0_ccs_real ! XXX: implicitly 1 throughout
+      init_val = +(rho / 4.0_ccs_real) * (cos(2 * x_p(1)) + cos(2 * x_p(2)))
     case default
       init_val = init_val + 0.0_ccs_real ! Keep the default value
     end select
