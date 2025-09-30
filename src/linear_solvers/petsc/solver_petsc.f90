@@ -26,12 +26,13 @@ contains
     class(linear_solver), allocatable, intent(inout) :: solver  !< The linear solver returned allocated.
 
     integer(ccs_err) :: ierr ! Error code
+    logical :: first_creation
 
-    if (allocated(solver)) then
-      return
+    first_creation = .false.
+    if (.not. allocated(solver)) then
+      allocate (linear_solver_petsc :: solver)
+      first_creation = .true.
     end if
-
-    allocate (linear_solver_petsc :: solver)
 
     select type (solver)
     type is (linear_solver_petsc)
@@ -48,13 +49,15 @@ contains
           select type (M)
           type is (matrix_petsc)
 
-            call KSPCreate(comm, ksp, ierr)
-            if (ierr /= 0) then
-              call error_abort("Error in creating solver KSP")
+            if (first_creation) then
+              call KSPCreate(comm, ksp, ierr)
+              if (ierr /= 0) then
+                call error_abort("Error in creating solver KSP")
+              end if
+              call KSPSetOperators(ksp, M%M, M%M, ierr)
+              call KSPSetFromOptions(ksp, ierr)
+              call KSPSetInitialGuessNonzero(ksp, PETSC_TRUE, ierr)
             end if
-            call KSPSetOperators(ksp, M%M, M%M, ierr)
-            call KSPSetFromOptions(ksp, ierr)
-            call KSPSetInitialGuessNonzero(ksp, PETSC_TRUE, ierr)
 
           class default
             call error_abort("ERROR: Trying to use non-PETSc matrix with PETSc solver.")
