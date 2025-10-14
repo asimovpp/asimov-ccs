@@ -6,9 +6,11 @@
 module kinds
 
   use iso_fortran_env
+  use mpi
 
 #ifdef ACCS_PETSC
 #include <petsc/finclude/petscsys.h>
+!  #include <petsc/finclude/petscmath.h>
 #endif
 
   implicit none
@@ -27,6 +29,8 @@ module kinds
   integer, public, parameter :: ccs_int = kind(i)        !< Integer kind to be used in ASiMoV-CCS
   integer, public, parameter :: ccs_long = kind(1_int64) !< Long integer kind to be used in ASiMoV-CCS
   integer, public, parameter :: ccs_err = kind(ierr)     !< Error kind to be used in ASiMoV-CCS
+
+  integer, public, parameter :: MPI_REAL_PRECISION = MPI_REAL
 
   private
 
