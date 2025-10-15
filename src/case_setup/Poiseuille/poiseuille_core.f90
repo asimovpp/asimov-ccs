@@ -9,6 +9,7 @@ module poiseuille_core
   use ccs_base, only: mesh
   use constants, only: ccs_string_len, ndim
   use kinds, only: ccs_real, ccs_int, ccs_long
+  use kinds, only: MPI_REAL_PRECISION
   use types, only: field, fluid, ccs_mesh, bc_profile
   use parallel, only: timer, is_root
   use parallel_types, only: parallel_environment
@@ -273,8 +274,8 @@ module poiseuille_core
 
     select type (par_env)
     type is (parallel_environment_mpi)
-      call MPI_AllReduce(error_L2_local, error_L2, size(error_L2), MPI_DOUBLE_PRECISION, MPI_SUM, par_env%comm, ierr)
-      call MPI_AllReduce(error_Linf_local, error_Linf, size(error_Linf), MPI_DOUBLE_PRECISION, MPI_MAX, par_env%comm, ierr)
+      call MPI_AllReduce(error_L2_local, error_L2, size(error_L2), MPI_REAL_PRECISION, MPI_SUM, par_env%comm, ierr)
+      call MPI_AllReduce(error_Linf_local, error_Linf, size(error_Linf), MPI_REAL_PRECISION, MPI_MAX, par_env%comm, ierr)
     class default
       call error_abort("ERROR: Unknown type")
     end select

@@ -10,7 +10,7 @@ module kinds
 
 #ifdef ACCS_PETSC
 #include <petsc/finclude/petscsys.h>
-!  #include <petsc/finclude/petscmath.h>
+#include <petscconf.h>
 #endif
 
   implicit none
@@ -30,7 +30,13 @@ module kinds
   integer, public, parameter :: ccs_long = kind(1_int64) !< Long integer kind to be used in ASiMoV-CCS
   integer, public, parameter :: ccs_err = kind(ierr)     !< Error kind to be used in ASiMoV-CCS
 
+#if defined(PETSC_USE_REAL_SINGLE)
   integer, public, parameter :: MPI_REAL_PRECISION = MPI_REAL
+  character(len=6), public, parameter :: CCS_PRECISION_STR = 'single' 
+#else
+  integer, public, parameter :: MPI_REAL_PRECISION = MPI_DOUBLE_PRECISION
+  character(len=6), public, parameter :: CCS_PRECISION_STR = 'double' 
+#endif
 
   private
 
