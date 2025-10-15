@@ -165,7 +165,7 @@ contains
 
     select type(par_env)
     type is (parallel_environment_mpi)
-      call MPI_Allreduce(time, max_time, 1, CCS_MPI_PRECISION, MPI_MAX, par_env%comm, ierr)
+      call MPI_Allreduce(time, max_time, 1, MPI_DOUBLE_PRECISION, MPI_MAX, par_env%comm, ierr)
     end select
 
     if (is_root(par_env)) then
