@@ -154,7 +154,7 @@ contains
   !> Print time on rank 0
   subroutine timer_print(par_env, timer_index)
 
-    use kinds, only: MPI_REAL_PRECISION
+    use kinds, only: CCS_MPI_PRECISION
 
     class(parallel_environment), intent(in) :: par_env
     integer(ccs_int), intent(in) :: timer_index
@@ -165,7 +165,7 @@ contains
 
     select type(par_env)
     type is (parallel_environment_mpi)
-      call MPI_Allreduce(time, max_time, 1, MPI_REAL_PRECISION, MPI_MAX, par_env%comm, ierr)
+      call MPI_Allreduce(time, max_time, 1, CCS_MPI_PRECISION, MPI_MAX, par_env%comm, ierr)
     end select
 
     if (is_root(par_env)) then

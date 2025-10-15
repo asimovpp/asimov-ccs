@@ -17,7 +17,7 @@ module residuals
   use vec, only: vec_aypx
   use meshing, only: get_global_num_cells
   use timestepping, only: get_current_step, get_current_time
-  use kinds, only: MPI_REAL_PRECISION
+  use kinds, only: CCS_MPI_PRECISION
 
 contains
 
@@ -127,11 +127,11 @@ contains
     type is (parallel_environment_mpi)
       do ifield = 1, nfields
         ! Computes RMS from L2 squared
-        call MPI_ALLREDUCE(MPI_IN_PLACE, residuals%L2(ifield), 1, MPI_REAL_PRECISION, MPI_SUM, par_env%comm, ierr)
+        call MPI_ALLREDUCE(MPI_IN_PLACE, residuals%L2(ifield), 1, CCS_MPI_PRECISION, MPI_SUM, par_env%comm, ierr)
         residuals%L2(ifield) = sqrt(residuals%L2(ifield) / real(global_num_cells, kind=ccs_real))
 
         ! Linf
-        call MPI_ALLREDUCE(MPI_IN_PLACE, residuals%Linfty(ifield), 1, MPI_REAL_PRECISION, MPI_MAX, par_env%comm, ierr)
+        call MPI_ALLREDUCE(MPI_IN_PLACE, residuals%Linfty(ifield), 1, CCS_MPI_PRECISION, MPI_MAX, par_env%comm, ierr)
       end do
     class default
       call error_abort("invalid parallel environment")

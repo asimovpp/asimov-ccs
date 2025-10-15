@@ -31,10 +31,10 @@ module kinds
   integer, public, parameter :: ccs_err = kind(ierr)     !< Error kind to be used in ASiMoV-CCS
 
 #if defined(PETSC_USE_REAL_SINGLE)
-  integer, public, parameter :: MPI_REAL_PRECISION = MPI_REAL
+  integer, public, parameter :: CCS_MPI_PRECISION = MPI_REAL
   character(len=6), public, parameter :: CCS_PRECISION_STR = 'single' 
 #else
-  integer, public, parameter :: MPI_REAL_PRECISION = MPI_DOUBLE_PRECISION
+  integer, public, parameter :: CCS_MPI_PRECISION = MPI_DOUBLE_PRECISION
   character(len=6), public, parameter :: CCS_PRECISION_STR = 'double' 
 #endif
 
