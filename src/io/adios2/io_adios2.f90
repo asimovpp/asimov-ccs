@@ -777,9 +777,13 @@ contains
     select type (io_proc)
     type is (adios2_io_process)
 
-      call adios2_define_variable(adios2_var, io_proc%io_task, var_name, adios2_type_real, &
-                                  1, global_shape, global_start, count, &
-                                  adios2_constant_dims, ierr)
+      call adios2_inquire_variable(adios2_var, io_proc%io_task, var_name, ierr)
+
+      if (.not. adios2_var%valid) then
+        call adios2_define_variable(adios2_var, io_proc%io_task, var_name, adios2_type_real, &
+                                    1, global_shape, global_start, count, &
+                                    adios2_constant_dims, ierr)
+      end if
       call adios2_put(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
 
     class default
