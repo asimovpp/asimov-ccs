@@ -154,8 +154,6 @@ contains
   !> Print time on rank 0
   subroutine timer_print(par_env, timer_index)
 
-    use kinds, only: CCS_MPI_PRECISION
-
     class(parallel_environment), intent(in) :: par_env
     integer(ccs_int), intent(in) :: timer_index
     double precision :: time, total_time, max_time
