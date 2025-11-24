@@ -323,6 +323,13 @@ contains
     integer(MPI_ADDRESS_KIND) :: mybytes
     integer(MPI_ADDRESS_KIND) :: delta
 
+    if (any(shape < 0)) then
+       call error_abort("Allocated shape must be positive")
+    end if
+    if (elem_bytes < 0) then
+       call error_abort("Per element size [bytes] must be positive")
+    end if
+    
     ! Determine how many bytes to allocate
     nbytes = product(int(shape, MPI_ADDRESS_KIND)) * int(elem_bytes, MPI_ADDRESS_KIND)
 
