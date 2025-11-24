@@ -109,12 +109,15 @@ contains
     type is (parallel_environment_mpi)
       allocate_byte_size = shared_alloc_size([length], disp_unit, shared_env, .true.)
       call mpi_win_allocate_shared(allocate_byte_size, disp_unit, MPI_INFO_NULL, shared_env%comm, c_array_ptr, window, ierr)
+      call error_handling(ierr, "mpi", shared_env)
 
       call mpi_win_shared_query(window, 0, byte_size, disp_unit, c_array_ptr, ierr)
+      call error_handling(ierr, "mpi", shared_env)
 
       call c_f_pointer(c_array_ptr, array, shape=[length])
 
       call mpi_barrier(shared_env%comm, ierr)
+      call error_handling(ierr, "mpi", shared_env)
 
     class default
       call error_abort("Unsupported parallel environment")
@@ -143,12 +146,15 @@ contains
     type is (parallel_environment_mpi)
       allocate_byte_size = shared_alloc_size([length], disp_unit, shared_env, .true.)
       call mpi_win_allocate_shared(allocate_byte_size, disp_unit, MPI_INFO_NULL, shared_env%comm, c_array_ptr, window, ierr)
+      call error_handling(ierr, "mpi", shared_env)
 
       call mpi_win_shared_query(window, 0, byte_size, disp_unit, c_array_ptr, ierr)
+      call error_handling(ierr, "mpi", shared_env)
 
       call c_f_pointer(c_array_ptr, array, shape=[length])
 
       call mpi_barrier(shared_env%comm, ierr)
+      call error_handling(ierr, "mpi", shared_env)
 
     class default
       call error_abort("Unsupported parallel environment")
@@ -177,12 +183,15 @@ contains
     type is (parallel_environment_mpi)
       allocate_byte_size = shared_alloc_size(length, disp_unit, shared_env, .true.)
       call mpi_win_allocate_shared(allocate_byte_size, disp_unit, MPI_INFO_NULL, shared_env%comm, c_array_ptr, window, ierr)
+      call error_handling(ierr, "mpi", shared_env)
 
       call mpi_win_shared_query(window, 0, byte_size, disp_unit, c_array_ptr, ierr)
+      call error_handling(ierr, "mpi", shared_env)
 
       call c_f_pointer(c_array_ptr, array, shape=length)
 
       call mpi_barrier(shared_env%comm, ierr)
+      call error_handling(ierr, "mpi", shared_env)
 
     class default
       call error_abort("Unsupported parallel environment")
@@ -212,12 +221,15 @@ contains
     type is (parallel_environment_mpi)
       allocate_byte_size = shared_alloc_size([length], disp_unit, shared_env, .true.)
       call mpi_win_allocate_shared(allocate_byte_size, disp_unit, MPI_INFO_NULL, shared_env%comm, c_array_ptr, window, ierr)
+      call error_handling(ierr, "mpi", shared_env)
 
       call mpi_win_shared_query(window, 0, byte_size, disp_unit, c_array_ptr, ierr)
+      call error_handling(ierr, "mpi", shared_env)
 
       call c_f_pointer(c_array_ptr, array, shape=[length])
 
       call mpi_barrier(shared_env%comm, ierr)
+      call error_handling(ierr, "mpi", shared_env)
 
     class default
       call error_abort("Unsupported parallel environment")
@@ -247,12 +259,15 @@ contains
     type is (parallel_environment_mpi)
       allocate_byte_size = shared_alloc_size(length, disp_unit, shared_env, .true.)
       call mpi_win_allocate_shared(allocate_byte_size, disp_unit, MPI_INFO_NULL, shared_env%comm, c_array_ptr, window, ierr)
+      call error_handling(ierr, "mpi", shared_env)
 
       call mpi_win_shared_query(window, 0, byte_size, disp_unit, c_array_ptr, ierr)
+      call error_handling(ierr, "mpi", shared_env)
 
       call c_f_pointer(c_array_ptr, array, shape=length)
 
       call mpi_barrier(shared_env%comm, ierr)
+      call error_handling(ierr, "mpi", shared_env)
 
     class default
       call error_abort("Unsupported parallel environment")
@@ -282,12 +297,15 @@ contains
     type is (parallel_environment_mpi)
       allocate_byte_size = shared_alloc_size([length], disp_unit, shared_env, .true.)
       call mpi_win_allocate_shared(allocate_byte_size, disp_unit, MPI_INFO_NULL, shared_env%comm, c_array_ptr, window, ierr)
+      call error_handling(ierr, "mpi", shared_env)
 
       call mpi_win_shared_query(window, 0, byte_size, disp_unit, c_array_ptr, ierr)
+      call error_handling(ierr, "mpi", shared_env)
 
       call c_f_pointer(c_array_ptr, array, shape=length)
 
       call mpi_barrier(shared_env%comm, ierr)
+      call error_handling(ierr, "mpi", shared_env)
 
     class default
       call error_abort("Unsupported parallel environment")
@@ -344,6 +362,7 @@ contains
     end associate
 
     call mpi_win_free(window, ierr)
+    call error_handling(ierr, "mpi", shared_env)
 
     nullify(array)
 
@@ -360,6 +379,7 @@ contains
     end associate
 
     call mpi_win_free(window, ierr)
+    call error_handling(ierr, "mpi", shared_env)
 
     nullify(array)
 
@@ -377,6 +397,7 @@ contains
     end associate
 
     call mpi_win_free(window, ierr)
+    call error_handling(ierr, "mpi", shared_env)
 
     nullify(array)
 
@@ -394,6 +415,7 @@ contains
     end associate
 
     call mpi_win_free(window, ierr)
+    call error_handling(ierr, "mpi", shared_env)
 
     nullify(array)
 
@@ -410,6 +432,7 @@ contains
     end associate
 
     call mpi_win_free(window, ierr)
+    call error_handling(ierr, "mpi", shared_env)
 
     nullify(array)
 
@@ -528,7 +551,7 @@ contains
 
   end subroutine
 
-    !> Query whether a STOP file exists and broadcast result to all processes
+  !> Query whether a STOP file exists and broadcast result to all processes
   module function query_stop_run(par_env) result(stop_run)
 
     class(parallel_environment), intent(in) :: par_env !< parallel_environment_mpi
@@ -547,6 +570,7 @@ contains
       end if
 
       call MPI_Bcast(stop_run, 1, MPI_LOGICAL, par_env%root, par_env%comm, ierr)
+      call error_handling(ierr, "mpi", par_env)
 
     class default
       call error_abort("Unsupported parallel environment")
