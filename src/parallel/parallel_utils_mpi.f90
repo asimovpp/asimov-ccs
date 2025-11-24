@@ -315,6 +315,9 @@ contains
   end subroutine
 
   integer(MPI_ADDRESS_KIND) function shared_alloc_size(shape, elem_bytes, shared_env, root_alloc) result(nbytes)
+
+    use iso_fortran_env, only: int64
+    
     integer(ccs_int), dimension(:), intent(in) :: shape      !< What is the shape we are allocating
     integer(ccs_int), intent(in) :: elem_bytes               !< Size of elements (in bytes)
     type(parallel_environment_mpi), intent(in) :: shared_env !< The shared memory environment
@@ -331,7 +334,7 @@ contains
     end if
     
     ! Determine how many bytes to allocate
-    nbytes = product(int(shape, MPI_ADDRESS_KIND)) * int(elem_bytes, MPI_ADDRESS_KIND)
+    nbytes = product(int(shape, int64)) * int(elem_bytes, int64)
 
     ! Determine how to distribute the allocation
     if (root_alloc) then
