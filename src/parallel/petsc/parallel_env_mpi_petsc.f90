@@ -83,9 +83,7 @@ contains
     call PetscOptionsSetValue(PETSC_NULL_OPTIONS,"-no_signal_handler","true",ierr) ! This should prevent PETSc swallowing tracebacks
     call PetscInitialize(PETSC_NULL_CHARACTER, ierr)
 
-    if (ierr /= 0) then
-      call error_handling(ierr, "petsc", par_env)
-    end if
+    call error_handling(ierr, "petsc", par_env)
 
   end subroutine
 
@@ -98,9 +96,7 @@ contains
 
     call PetscFinalize(ierr) ! Finalises MPI
 
-    if (ierr /= 0) then
-      call error_handling(ierr, "petsc", par_env)
-    end if
+    call error_handling(ierr, "petsc", par_env)
 
   end subroutine
 
