@@ -9,6 +9,7 @@ module kinds
 
 #ifdef ACCS_PETSC
 #include <petsc/finclude/petscsys.h>
+use petscsys
 #endif
 
   implicit none
