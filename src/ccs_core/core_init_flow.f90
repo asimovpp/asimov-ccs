@@ -80,10 +80,9 @@ submodule(core) core_init_flow
     ! Local variables
     class(field), pointer :: current_field
     integer(ccs_int) :: n_local, i_field
-    integer(ccs_int) :: index_p, global_index_p
+    integer(ccs_int) :: index_p
     real(ccs_real) :: init_val
     type(cell_locator) :: loc_p
-    type(vector_values):: values
     real(ccs_real), dimension(:), pointer :: field_data
     logical :: is_face_field
 
@@ -107,9 +106,6 @@ submodule(core) core_init_flow
         call get_init_default(current_field%name, init_val)
         call get_init_flow(loc_p, current_field%name, init_val)
         field_data(index_p) = init_val
-
-        call set_row(global_index_p, values)
-        call set_entry(init_val, values)
       end do
 
       call restore_vector_data(current_field%values, field_data)
