@@ -27,6 +27,10 @@ parser.add_argument("-f", "--file", help="Input data file name",
 parser.add_argument("-p", "--prefix", help="Output prefix",
         type=str)
 
+# Convert version strings to major/minor/patch values
+def ver2int(ver):
+    return [int(v) for v in ver.split('.')]
+
 def plot_field(field, fig, axs, index, nlevels, name):
     cf = axs[index].contourf(field, levels=nlevels)
     axs[index].set_title(name)
@@ -47,7 +51,18 @@ def read_hdf5(fname):
 
     return u, v, p
 
-def read_adios2(fname):
+def read_adios2_new(fname):
+    from adios2 import FileReader
+
+    with FileReader(fname) as s:
+
+        p = s.read("/p", step_selection=[0, 1])
+        u = s.read("/u", step_selection=[0, 1])
+        v = s.read("/v", step_selection=[0, 1])
+
+    return u, v, p
+
+def read_adios2_old(fname):
     with adios2.open(fname, "r") as data:
         for fstep in data: # Expecting only one step
 
@@ -59,6 +74,17 @@ def read_adios2(fname):
             break
 
     return u, v, p
+
+def read_adios2(fname):
+
+    # Dispatch on ADIOS2 version to handle change in Python API - appears to occur around v2.10
+    major, minor, patch = ver2int(adios2.__version__)
+    if minor >= 10:
+        reader = read_adios2_new
+    else:
+        reader = read_adios2_old
+
+    return reader(fname)
 
 def reshape_data(var, cps):
    
