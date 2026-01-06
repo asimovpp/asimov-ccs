@@ -79,7 +79,7 @@ variables:
   n_variables: 5
   variable_1:
     name: u
-    type: upwind
+    type: central
     solve: on
   variable_2:
     name: v
@@ -87,7 +87,7 @@ variables:
     solve: on
   variable_3:
     name: w
-    type: central
+    type: upwind
     solve: on
   variable_4:
     name: p
