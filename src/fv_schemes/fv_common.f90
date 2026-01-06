@@ -3,7 +3,7 @@
 !  An implementation of the finite volume method
 submodule(fv) fv_common
 #include "ccs_macros.inc"
-  use constants, only: add_mode, insert_mode
+  use constants, only: insert_mode, add_mode
   use types, only: vector_values, matrix_values_spec, matrix_values, neighbour_locator, bc_profile, field
   use vec, only: get_vector_data, restore_vector_data, &
                  get_vector_data_readonly, restore_vector_data_readonly, &
@@ -12,6 +12,8 @@ submodule(fv) fv_common
   use mat, only: create_matrix_values, set_matrix_values_spec_nrows, set_matrix_values_spec_ncols
   use utils, only: clear_entries, set_entry, set_row, set_col, set_values, set_mode, update
   use utils, only: debug_print, exit_print, str
+  use fv_equations, only: momentum_equation
+  use fv_kernels, only: advection_kernel, create_advection_kernel
   use meshing, only: count_neighbours, get_boundary_status, create_neighbour_locator, &
                      get_local_index, get_global_index, get_volume, get_distance, &
                      create_face_locator, get_face_area, get_face_normal, create_cell_locator, &
@@ -26,7 +28,8 @@ submodule(fv) fv_common
 
 contains
 
-  !> Computes fluxes and assign to matrix and RHS
+  !> Computes fluxes and assign to matrix and RHS.
+  !> Uses the mesh-wide maximum neighbour face count to size owner+neighbour stencil buffers.
   module subroutine compute_fluxes(phi, mf, viscosity, density, component, M, vec)
     class(field), intent(inout) :: phi
     class(field), intent(inout) :: mf
@@ -36,8 +39,8 @@ contains
     class(ccs_matrix), intent(inout) :: M
     class(ccs_vector), intent(inout) :: vec
 
-    integer(ccs_int) :: max_faces
-    integer(ccs_int) :: n_int_cells
+    integer(ccs_int) :: max_nb_faces !< Maximum neighbour faces per cell (mesh-wide upper bound)
+    integer(ccs_int) :: n_stencil_cells !< Owner cell plus its maximum neighbour faces
     real(ccs_real), dimension(:), pointer :: mf_data, viscosity_data, density_data
 
     associate (mf_values => mf%values)
@@ -47,10 +50,10 @@ contains
       call get_vector_data(density%values, density_data)
 
       ! Loop over cells computing advection and diffusion fluxes
-      call get_max_faces(max_faces)
-      n_int_cells = max_faces + 1 ! 1 neighbour per face + central cell
+      call get_max_faces(max_nb_faces)
+      n_stencil_cells = max_nb_faces + 1 ! 1 neighbour per face + central cell
       call dprint("CF: compute coeffs")
-      call compute_coeffs(phi, mf_data, viscosity_data, density_data, component, n_int_cells, M, vec)
+      call compute_coeffs(phi, mf_data, viscosity_data, density_data, component, n_stencil_cells, M, vec)
 
       call dprint("CF: restore mf")
       call restore_vector_data(mf_values, mf_data)
@@ -61,67 +64,45 @@ contains
   end subroutine compute_fluxes
 
   !> Computes the matrix coefficient for cells in the interior of the mesh
-  subroutine compute_coeffs(phi, mf, visc, dens, component, n_int_cells, M, b)
+  subroutine compute_coeffs(phi, mf, visc, dens, component, n_stencil_cells, M, b)
 
-    use fv_kernels, only: diffusion_kernel
-    
-    class(field), intent(inout) :: phi                !< scalar field structure
-    real(ccs_real), dimension(:), intent(in) :: mf !< mass flux array defined at faces
-    real(ccs_real), dimension(:), intent(in) :: visc !< viscosity
-    real(ccs_real), dimension(:), intent(in) :: dens !< density
-    integer(ccs_int), intent(in) :: component      !< integer indicating direction of velocity field component
-    integer(ccs_int), intent(in) :: n_int_cells    !< number of cells in the interior of the mesh
-    class(ccs_matrix), intent(inout) :: M          !< equation system matrix
-    class(ccs_vector), intent(inout) :: b          !< RHS vector
+    class(field), intent(inout) :: phi !< scalar field structure
+    real(ccs_real), dimension(:), target, intent(in) :: mf   !< mass flux array defined at faces
+    real(ccs_real), dimension(:), target, intent(in) :: visc !< viscosity
+    real(ccs_real), dimension(:), target, intent(in) :: dens !< density
+    integer(ccs_int), intent(in) :: component                !< integer indicating direction of velocity field component
+    integer(ccs_int), intent(in) :: n_stencil_cells          !< Owner cell plus the maximum neighbour faces
+    class(ccs_matrix), intent(inout) :: M                    !< equation system matrix
+    class(ccs_vector), intent(inout) :: b                    !< RHS vector
 
     type(matrix_values_spec) :: mat_val_spec
     type(matrix_values) :: mat_coeffs
     type(vector_values) :: b_coeffs
     type(cell_locator) :: loc_p
-    type(neighbour_locator) :: loc_nb
-    type(face_locator) :: loc_f
+    type(momentum_equation) :: mom_eq
     integer(ccs_int) :: local_num_cells
-    integer(ccs_int) :: global_index_p, global_index_nb, index_p, index_nb
-    integer(ccs_int) :: index_bc ! The boundary index (0 for interior)
-    integer(ccs_int) :: j
-    integer(ccs_int) :: nnb
-    real(ccs_real) :: face_area
-    real(ccs_real) :: diff_coeff, diff_coeff_total
-    real(ccs_real) :: adv_coeff_total
-    real(ccs_real), dimension(ndim) :: face_normal
-    real(ccs_real), dimension(ndim) :: grad_phi_p
-    real(ccs_real), dimension(ndim) :: grad_phi_nb
-    real(ccs_real), dimension(ndim) :: x_nb, x_p, x_f, x_nb_prime, x_p_prime
-    real(ccs_real) :: face_value, face_correction_only
+    integer(ccs_int) :: index_p
+    integer(ccs_int) :: max_nb_faces
+    integer(ccs_int) :: max_kernel_width
+    integer(ccs_int) :: n_cells_eff
+    class(advection_kernel), allocatable :: kernel
 
-    logical :: is_boundary
+    max_nb_faces = max(0_ccs_int, n_stencil_cells - 1_ccs_int)
 
-    integer(ccs_int) :: index_f
+    kernel = create_advection_kernel(phi)
+    max_kernel_width = max(mom_eq%diff_kernel%get_width(), kernel%get_width())
+    n_cells_eff = 1_ccs_int + max_nb_faces * max_kernel_width
 
-    real(ccs_real) :: sgn ! Sign indicating face orientation
-    real(ccs_real) :: aP, aF, bP, aPb
-    real(ccs_real), dimension(2) :: coeffs
-    real(ccs_real) :: hoe ! High-order explicit flux
-    real(ccs_real) :: loe ! Low-order explicit flux
-    real(ccs_real) :: dx_orth ! distance between cell centers projected to the face othogonal (used for corrections)
-    real(ccs_real) :: SchmidtNo
-
-    real(ccs_real) :: phiP, phiF ! current field at central/neighbour cells
-    real(ccs_real), dimension(2) :: phi_vals
-
-
-    real(ccs_real), dimension(3, 2) :: grads, rvecs ! Cell gradients and relative vectors
-
-    type(diffusion_kernel) :: diff_kernel
-    real(ccs_real) :: interpol_factor
-    
     call set_matrix_values_spec_nrows(1_ccs_int, mat_val_spec)
-    call set_matrix_values_spec_ncols(n_int_cells, mat_val_spec)
+    call set_matrix_values_spec_ncols(n_cells_eff, mat_val_spec)
     call create_matrix_values(mat_val_spec, mat_coeffs)
     call set_mode(add_mode, mat_coeffs)
 
-    call create_vector_values(n_int_cells, b_coeffs)
+    call create_vector_values(n_cells_eff, b_coeffs)
     call set_mode(add_mode, b_coeffs)
+
+    call mom_eq%set_advection(kernel)
+    call mom_eq%init(max_nb_faces, mf, visc, dens, component)
 
     call get_local_num_cells(local_num_cells)
     do index_p = 1, local_num_cells
@@ -129,180 +110,19 @@ contains
       call clear_entries(b_coeffs)
       call create_cell_locator(index_p, loc_p)
 
-!!! ==== Transport equation ===>
-      ! Calculate contribution from neighbours
-      call get_global_index(loc_p, global_index_p)
-      call count_neighbours(loc_p, nnb)
-
-      call set_row(global_index_p, mat_coeffs)
-      call set_row(global_index_p, b_coeffs)
-
-      adv_coeff_total = 0.0_ccs_real
-      diff_coeff_total = 0.0_ccs_real
-
-      SchmidtNo = phi%Schmidt
-      phiP = phi%values_ro(index_p)
-
-      do j = 1, nnb
-        call create_neighbour_locator(loc_p, j, loc_nb)
-        call get_boundary_status(loc_nb, is_boundary)
-        call create_face_locator(index_p, j, loc_f)
-        call get_face_normal(loc_f, face_normal)
-
-        call get_local_index(loc_nb, index_nb)
-
-        call get_face_area(loc_f, face_area)
-        call get_local_index(loc_f, index_f)
-        call get_face_interpolation(loc_f, interpol_factor)
-        
-        ! Initialise accumulators
-        coeffs(:) = 0.0_ccs_real
-        hoe = 0.0_ccs_real
-        loe = 0.0_ccs_real
-        
-        if (.not. is_boundary) then
-          phiF = phi%values_ro(index_nb)
-
-          if (phi%enable_cell_corrections) then
-            call get_centre(loc_p, x_p)
-            call get_centre(loc_nb, x_nb)
-            call get_centre(loc_f, x_f)
-
-            dx_orth = min(dot_product(x_f - x_p, face_normal), &
-                          dot_product(x_nb - x_f, face_normal))
-            x_nb_prime = x_f + dx_orth * face_normal
-            x_p_prime = x_f - dx_orth * face_normal
-
-            grad_phi_p = [ phi%x_gradients_ro(index_p), &
-                           phi%y_gradients_ro(index_p), &
-                           phi%z_gradients_ro(index_p) ]
-            grad_phi_nb = [ phi%x_gradients_ro(index_nb), &
-                            phi%y_gradients_ro(index_nb), &
-                            phi%z_gradients_ro(index_nb) ]
-          end if
-        else
-          call compute_boundary_coeffs(phi, component, loc_p, loc_f, face_normal, aPb, bP)
-
-          ! Use boundary condition to compute ghost neighbour value
-          phiF = aPb * phiP + bP
-        end if
-
-!!! ---- Diffusion coefficients --->
-        rvecs = 0.0_ccs_real
-        grads = 0.0_ccs_real
-        if (.not. is_boundary) then
-          call calc_diffusion_coeff(index_p, j, phi%enable_cell_corrections, &
-                                    visc(index_p), visc(index_nb), &
-                                    dens(index_p), dens(index_nb), &
-                                    SchmidtNo, diff_coeff)
-
-          if (phi%enable_cell_corrections) then
-            grads(:, 1) = grad_phi_p(:)
-            grads(:, 2) = grad_phi_nb(:)
-            rvecs(:, 1) = x_p_prime(:) - x_p(:)
-            rvecs(:, 2) = x_nb_prime(:) - x_nb(:)
-          end if
-        else
-          call calc_diffusion_coeff(index_p, j, .false., &
-                                    visc(index_p), 0.0_ccs_real, &
-                                    dens(index_p), 0.0_ccs_real, &
-                                    SchmidtNo, diff_coeff)
-          ! Correct boundary face distance to distance to immaginary boundary "node"
-          diff_coeff = diff_coeff / 2.0_ccs_real
-        end if
-      
-        phi_vals = [phiP, phiF] 
-        coeffs = diff_kernel%eval_coeffs(diff_coeff)
-        hoe = hoe + diff_kernel%eval_explicit(phi_vals, diff_coeff, interpol_factor, rvecs, grads)
-!!! <--- Diffusion coefficients ----
-
-!!! ---- Advection coefficients --->
-        if (.not. is_boundary) then
-          if (index_nb < index_p) then
-            sgn = -1.0_ccs_real
-          else
-            sgn = 1.0_ccs_real
-          end if
-          index_bc = 0
-
-          ! Excentricity correction (convective term) (Ferziger & Peric 4th ed, sec 9.7.1)
-          call interpolate_field_to_face(phi, loc_f, face_value, face_correction_only)
-          hoe = hoe + face_correction_only * (sgn * mf(index_f) * face_area)
-
-          if (phi%enable_cell_corrections) then
-            ! call get_face_interpolation(loc_f, interpol_factor)
-            ! x_f_prime = interpol_factor * x_p + (1.0_ccs_real - interpol_factor) * x_nb
-            ! grad_phi_k_prime = interpol_factor * grad_phi_p + (1.0_ccs_real - interpol_factor) * grad_phi_nb
-            !hoe = hoe + dot_product(grad_phi_k_prime, x_f - x_f_prime) * (sgn * mf(index_f) * face_area)
-            !hoe = hoe + 0.5_ccs_real * (dot_product(grad_phi_p, x_p_prime - x_p) + dot_product(grad_phi_nb, x_nb_prime - x_nb)) * (sgn * mf(index_f) * face_area)
-          end if
-        else
-          sgn = 1.0_ccs_real
-          index_bc = index_nb
-        end if
-        select type (phi)
-        type is (central_field)
-          call calc_advection_coeff(phi, loc_f, sgn * mf(index_f), index_bc, aP, aF)
-        type is (upwind_field)
-          call calc_advection_coeff(phi, loc_f, sgn * mf(index_f), index_bc, aP, aF)
-        type is (gamma_field)
-          call calc_advection_coeff(phi, loc_f, sgn * mf(index_f), index_bc, loc_p, loc_nb, aP, aF)
-        type is (linear_upwind_field)
-          call calc_advection_coeff(phi, loc_f, sgn * mf(index_f), index_bc, loc_p, loc_nb, aP, aF)
-        class default
-          call error_abort("Invalid velocity field discretisation.")
-        end select
-        aP = (sgn * mf(index_f) * face_area) * aP
-        aF = (sgn * mf(index_f) * face_area) * aF
-        aP = aP - sgn * mf(index_f) * face_area
-        hoe = hoe + aP * phiP + aF * phiF
-
-        !! Low-order advection contribution
-        if ((sgn * mf(index_f)) > 0.0_ccs_real) then
-          aP = sgn * mf(index_f) * face_area
-          aF = 0.0_ccs_real
-        else
-          aP = 0.0_ccs_real
-          aF = sgn * mf(index_f) * face_area
-        end if
-        aP = aP - sgn * mf(index_f) * face_area
-        loe = aP * phiP + aF * phiF
-!!! <--- Advection coefficients ----
-
-        adv_coeff_total = adv_coeff_total + aP
-        diff_coeff_total = diff_coeff_total + coeffs(1)
-        if (.not. is_boundary) then
-          call get_global_index(loc_nb, global_index_nb)
-          call set_col(global_index_nb, mat_coeffs)
-          call set_entry(aF + coeffs(2), mat_coeffs)
-        else
-          adv_coeff_total = adv_coeff_total + aPb * aF
-          diff_coeff_total = diff_coeff_total + aPb * coeffs(2)
-          call set_entry(-(aF + coeffs(2)) * bP, b_coeffs)
-        end if
-        call set_entry(loe - hoe, b_coeffs)
-      end do
-
-!!! ---- Transient coefficients --->
-!!! <--- Transient coefficients ----
-
-!!! ---- Source terms --->
-!!! <--- Source terms ----
-
-!!! ---- Underrelaxation --->
-!!! <--- Underrelaxation ----
-
-!!! <=== Transport equation ====
+      call mom_eq%gather(phi, loc_p)
+      call mom_eq%apply(mat_coeffs, b_coeffs)
 
       call set_values(b_coeffs, b)
-      call set_col(global_index_p, mat_coeffs)
-      call set_entry((adv_coeff_total + diff_coeff_total), mat_coeffs)
       call set_values(mat_coeffs, M)
     end do
 
-    deallocate (mat_coeffs%global_row_indices)
-    deallocate (mat_coeffs%global_col_indices)
-    deallocate (mat_coeffs%values)
+    call update(M)
+    call update(b)
+
+    deallocate(mat_coeffs%global_row_indices)
+    deallocate(mat_coeffs%global_col_indices)
+    deallocate(mat_coeffs%values)
   end subroutine compute_coeffs
 
   !> Computes the value of the scalar field on the boundary
