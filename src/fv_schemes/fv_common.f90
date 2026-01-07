@@ -749,8 +749,6 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
     class(ccs_vector), intent(inout) :: S   !< The source field
     class(ccs_vector), intent(inout) :: rhs !< The righthand side vector
 
-    ! Ensure RHS is in "clean" state
-    ! call update(rhs)
     call axpy(1.0_ccs_real, S, rhs)
     call update(rhs)
 
