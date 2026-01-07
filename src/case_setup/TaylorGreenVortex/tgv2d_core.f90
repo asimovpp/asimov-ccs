@@ -1,9 +1,8 @@
 module tgv2d_core
 #include "ccs_macros.inc"
 
-  use petscvec
-  use petscsys
-
+  use mpi
+  
   use core
   use ccs_base, only: mesh
   use constants, only: ccs_string_len

@@ -80,10 +80,10 @@ submodule(core) core_init_flow
     ! Local variables
     class(field), pointer :: current_field
     integer(ccs_int) :: n_local, i_field
-    integer(ccs_int) :: index_p, global_index_p
+    integer(ccs_int) :: index_p
     real(ccs_real) :: init_val
     type(cell_locator) :: loc_p
-    type(vector_values):: values
+    real(ccs_real), dimension(:), pointer :: field_data
     logical :: is_face_field
 
     call get_local_num_cells(n_local)
@@ -98,21 +98,17 @@ submodule(core) core_init_flow
         continue
       end if
 
-      call create_vector_values(n_local, values)
-      call set_mode(insert_mode, values)
+      call get_vector_data(current_field%values, field_data)
 
       do index_p = 1, n_local
         call create_cell_locator(index_p, loc_p)
-        call get_global_index(loc_p, global_index_p)
 
         call get_init_default(current_field%name, init_val)
         call get_init_flow(loc_p, current_field%name, init_val)
-
-        call set_row(global_index_p, values)
-        call set_entry(init_val, values)
+        field_data(index_p) = init_val
       end do
 
-      call set_values(values, current_field%values)
+      call restore_vector_data(current_field%values, field_data)
 
       call update(current_field%values)
 
