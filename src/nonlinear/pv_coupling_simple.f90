@@ -897,14 +897,6 @@ contains
     ! First zero RHS
     call zero(b)
 
-    ! Update vectors to make sure all data is up to date
-    ! call update(u%values)
-    ! call update(v%values)
-    ! call update(w%values)
-    ! call update(p%values)
-    ! call update(p%x_gradients)
-    ! call update(p%y_gradients)
-    ! call update(p%z_gradients)
  
     call get_vector_data_readonly(p%x_gradients, dpdx_data)
     call get_vector_data_readonly(p%y_gradients, dpdy_data)
@@ -965,14 +957,6 @@ contains
 
     call restore_vector_data(mf%values, mf_data)
 
-    ! Update vectors on exit (just in case)
-    ! call update(u%values)
-    ! call update(v%values)
-    ! call update(w%values)
-    ! call update(p%values)
-    ! call update(p%x_gradients)
-    ! call update(p%y_gradients)
-    ! call update(p%z_gradients)
 
     call update(b)
     call update(mf%values)
@@ -1080,9 +1064,6 @@ contains
     call set_mode(insert_mode, vec_values)
     call zero(b)
 
-    ! Update vector to make sure data is up to date
-    ! call update(p_prime%values)
-
     call get_vector_data_readonly(invA, invA_data)
 
     call get_vector_data(mf%values, mf_data)
@@ -1132,8 +1113,6 @@ contains
     call restore_vector_data(mf%values, mf_data)
 
     call update(mf%values)
-    ! Update vector on exit (just in case)
-    !call update(p_prime%values)
 
     !! Get corrected mass-imbalance
     call update(b)
