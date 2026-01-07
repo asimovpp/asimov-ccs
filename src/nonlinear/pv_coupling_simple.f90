@@ -901,11 +901,11 @@ contains
     ! call update(u%values)
     ! call update(v%values)
     ! call update(w%values)
-    ! call update(p%values)
+    call update(p%values)
     ! call update(p%x_gradients)
     ! call update(p%y_gradients)
     ! call update(p%z_gradients)
-
+ 
     call get_vector_data_readonly(p%x_gradients, dpdx_data)
     call get_vector_data_readonly(p%y_gradients, dpdy_data)
     call get_vector_data_readonly(p%z_gradients, dpdz_data)
