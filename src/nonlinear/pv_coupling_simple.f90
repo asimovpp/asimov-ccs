@@ -901,7 +901,7 @@ contains
     ! call update(u%values)
     ! call update(v%values)
     ! call update(w%values)
-    call update(p%values)
+    ! call update(p%values)
     ! call update(p%x_gradients)
     ! call update(p%y_gradients)
     ! call update(p%z_gradients)
@@ -993,6 +993,7 @@ contains
 
     call axpy(run_options%solve%pressure_relax, p_prime%values, p%values)
 
+    call update(p%values)
     call update_gradient(p)
 
   end subroutine update_pressure
