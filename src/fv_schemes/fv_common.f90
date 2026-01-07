@@ -523,7 +523,7 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
           dxmag = 2.0_ccs_real * dx_orth
 
           ! eq 9.66
-   flux_corr = (p(index_nb) - p(index_p)) + (dot_product(grad_phi_nb, rnb_k_prime - x_nb) - dot_product(grad_phi_p, rp_prime - x_p))
+          flux_corr = (p(index_nb) - p(index_p)) + (dot_product(grad_phi_nb, rnb_k_prime - x_nb) - dot_product(grad_phi_p, rp_prime - x_p))
 
           ! interpolated pressure gradient at the face (i.e.)
           flux_corr = flux_corr - 0.5_ccs_real * dot_product((grad_phi_p + grad_phi_nb), x_nb - x_p)
@@ -533,7 +533,7 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
           call get_distance(loc_p, loc_nb, dx)
           dxmag = norm2(dx)
           flux_corr = -(p(index_nb) - p(index_p)) / dxmag
-     flux_corr = flux_corr + dot_product(interpol_factor * grad_phi_p + (1.0_ccs_real - interpol_factor) * grad_phi_nb, face_normal)
+          flux_corr = flux_corr + dot_product(interpol_factor * grad_phi_p + (1.0_ccs_real - interpol_factor) * grad_phi_nb, face_normal)
         end if
 
         call get_volume(loc_p, Vp)
@@ -750,7 +750,7 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
     class(ccs_vector), intent(inout) :: rhs !< The righthand side vector
 
     ! Ensure RHS is in "clean" state
-    call update(rhs)
+    ! call update(rhs)
     call axpy(1.0_ccs_real, S, rhs)
     call update(rhs)
 

@@ -860,7 +860,6 @@ contains
     integer(ccs_int) :: nnb             ! Cell neighbour count
 
     real(ccs_real), dimension(:), pointer :: mf_data      ! Data array for the mass flux
-    real(ccs_real), dimension(:), pointer :: p_data       ! Data array for pressure
     real(ccs_real), dimension(:), pointer :: dpdx_data    ! Data array for pressure x gradient
     real(ccs_real), dimension(:), pointer :: dpdy_data    ! Data array for pressure y gradient
     real(ccs_real), dimension(:), pointer :: dpdz_data    ! Data array for pressure z gradient
@@ -899,15 +898,14 @@ contains
     call zero(b)
 
     ! Update vectors to make sure all data is up to date
-    call update(u%values)
-    call update(v%values)
-    call update(w%values)
-    call update(p%values)
-    call update(p%x_gradients)
-    call update(p%y_gradients)
-    call update(p%z_gradients)
+    ! call update(u%values)
+    ! call update(v%values)
+    ! call update(w%values)
+    ! call update(p%values)
+    ! call update(p%x_gradients)
+    ! call update(p%y_gradients)
+    ! call update(p%z_gradients)
 
-    call get_vector_data_readonly(p%values, p_data)
     call get_vector_data_readonly(p%x_gradients, dpdx_data)
     call get_vector_data_readonly(p%y_gradients, dpdy_data)
     call get_vector_data_readonly(p%z_gradients, dpdz_data)
@@ -940,14 +938,14 @@ contains
           else
             ! Compute mass flux through face
             mf_data(index_f) = calc_mass_flux(u, v, w, &
-                                              p_data, dpdx_data, dpdy_data, dpdz_data, &
+                                              p%values_ro, dpdx_data, dpdy_data, dpdz_data, &
                                               invA_data, &
                                               loc_f, p%enable_cell_corrections)
           end if
         else
           ! Compute mass flux through face
           mf_data(index_f) = calc_mass_flux(u, v, w, &
-                                            p_data, dpdx_data, dpdy_data, dpdz_data, &
+                                            p%values_ro, dpdx_data, dpdy_data, dpdz_data, &
                                             invA_data, &
                                             loc_f, .false.)
         end if
@@ -960,7 +958,6 @@ contains
       call set_values(vec_values, b)
     end do
 
-    call restore_vector_data_readonly(p%values, p_data)
     call restore_vector_data_readonly(p%x_gradients, dpdx_data)
     call restore_vector_data_readonly(p%y_gradients, dpdy_data)
     call restore_vector_data_readonly(p%z_gradients, dpdz_data)
@@ -969,13 +966,13 @@ contains
     call restore_vector_data(mf%values, mf_data)
 
     ! Update vectors on exit (just in case)
-    call update(u%values)
-    call update(v%values)
-    call update(w%values)
-    call update(p%values)
-    call update(p%x_gradients)
-    call update(p%y_gradients)
-    call update(p%z_gradients)
+    ! call update(u%values)
+    ! call update(v%values)
+    ! call update(w%values)
+    ! call update(p%values)
+    ! call update(p%x_gradients)
+    ! call update(p%y_gradients)
+    ! call update(p%z_gradients)
 
     call update(b)
     call update(mf%values)
@@ -1061,7 +1058,6 @@ contains
     real(ccs_real) :: mf_prime
     real(ccs_real), dimension(:), allocatable :: zero_arr
     real(ccs_real), dimension(:), pointer :: mf_data
-    real(ccs_real), dimension(:), pointer :: pp_data
     real(ccs_real), dimension(:), pointer :: invA_data
 
     type(cell_locator) :: loc_p
@@ -1084,14 +1080,13 @@ contains
     call zero(b)
 
     ! Update vector to make sure data is up to date
-    call update(p_prime%values)
+    ! call update(p_prime%values)
 
-    call get_vector_data_readonly(p_prime%values, pp_data)
     call get_vector_data_readonly(invA, invA_data)
 
     call get_vector_data(mf%values, mf_data)
 
-    allocate (zero_arr(size(pp_data)))
+    allocate (zero_arr(size(p_prime%values_ro)))
     zero_arr(:) = 0.0_ccs_real
 
     ! XXX: This should really be a face loop
@@ -1112,7 +1107,7 @@ contains
           call create_neighbour_locator(loc_p, j, loc_nb)
           call get_local_index(loc_nb, index_nb)
           if (i < index_nb) then
-            mf_prime = calc_mass_flux(pp_data, zero_arr, zero_arr, zero_arr, &
+            mf_prime = calc_mass_flux(p_prime%values_ro, zero_arr, zero_arr, zero_arr, &
                                       invA_data, loc_f, p_prime%enable_cell_corrections)
 
             mf_data(index_f) = mf_data(index_f) + mf_prime
@@ -1131,14 +1126,13 @@ contains
 
     deallocate (zero_arr)
 
-    call restore_vector_data_readonly(p_prime%values, pp_data)
     call restore_vector_data_readonly(invA, invA_data)
 
     call restore_vector_data(mf%values, mf_data)
 
     call update(mf%values)
     ! Update vector on exit (just in case)
-    call update(p_prime%values)
+    !call update(p_prime%values)
 
     !! Get corrected mass-imbalance
     call update(b)
@@ -1189,7 +1183,6 @@ contains
     class(ccs_vector), intent(inout) :: b
 
     real(ccs_real), dimension(:), pointer :: diag_data
-    real(ccs_real), dimension(:), pointer :: phi_data
     real(ccs_real), dimension(:), pointer :: b_data
 
     integer(ccs_int) :: local_num_cells
@@ -1200,7 +1193,6 @@ contains
     call get_matrix_diagonal(M, diag)
 
     call dprint("UR: get phi, diag, b")
-    call get_vector_data_readonly(phi%values, phi_data)
     call get_vector_data(diag, diag_data)
     call update(b)
     call get_vector_data(b, b_data)
@@ -1210,11 +1202,10 @@ contains
     do i = 1, local_num_cells
       diag_data(i) = diag_data(i) / alpha
 
-      b_data(i) = b_data(i) + (1.0_ccs_real - alpha) * diag_data(i) * phi_data(i)
+      b_data(i) = b_data(i) + (1.0_ccs_real - alpha) * diag_data(i) * phi%values_ro(i)
     end do
 
     call dprint("UR: Restore data")
-    call restore_vector_data_readonly(phi%values, phi_data)
     call restore_vector_data(diag, diag_data)
     call restore_vector_data(b, b_data)
 
