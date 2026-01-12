@@ -81,27 +81,6 @@ site_configuration = {
                         {"type": "gpu", "num_devices": 4}
                     ],
                 },
-                {
-                    "name": "compute-gpu-torch",
-                    "descr": "Compute nodes with AMD GPUs, and torch launcher",
-                    "max_jobs": 2,
-                    "features": ["torch"],
-                    "scheduler": "slurm",
-                    "launcher": "torchrun",
-                    "access": ["--partition=gpu"],
-                    "environs": [
-                        "rocm-PrgEnv-gnu",
-                        "rocm-PrgEnv-cray",
-                        "rocm-PrgEnv-aocc",
-                    ],
-                    "resources": [
-                        {"name": "qos", "options": ["--qos={qos}"]},
-                        {
-                            "name": "gpu",
-                            "options": ["--gres=gpu:{num_gpus_per_node}"],
-                        },
-                    ],
-                },
             ],
         },
         {
