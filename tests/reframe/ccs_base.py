@@ -18,7 +18,7 @@ class BuildCCS(rfm.CompileOnlyRegressionTest):
     sourcesdir = "https://git.ecdf.ed.ac.uk/asimov/asimov-ccs.git"
     #  sourcepath = "src"
     local = True
-    build_locally = False
+    build_locally = True
 
     valid_prog_environs = ["PrgEnv-gnu", "PrgEnv-cray"]
 
@@ -49,3 +49,15 @@ class BuildCCS(rfm.CompileOnlyRegressionTest):
         """Confirms that the executable was built"""
         build_dir = f"{self.stagedir}/ccs_build"
         return sn.path_exists(os.path.join(build_dir, "ccs_app"))
+
+
+class RunCCS(rfm.RunOnlyRegressionTest):
+    """Run CCS"""
+
+    valid_prog_environs = ["PrgEnv-cray"]
+    executable = "ccs_app"
+
+    keep_files = []
+
+    strict_check = True
+    tags = {"full_application"}
