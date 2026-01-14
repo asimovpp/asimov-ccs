@@ -55,7 +55,7 @@ class RunCCS(rfm.RunOnlyRegressionTest):
   valid_prog_environs = ["PrgEnv-cray"]
   executable = "ccs_app"
 
-  keep_files = []
+  keep_files = ["residulas.log", "timers.csv"]
 
   strict_check = True
   tags = {"full_application"}
