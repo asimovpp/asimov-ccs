@@ -176,6 +176,7 @@ contains
     call compute_fluxes(phi, mf, viscosity, density, 0, M, rhs)
     call apply_timestep(phi, D, M, rhs)
 
+    call update(rhs)
     call apply_sources(flow, phi, eval_sources, D, S, M, rhs)
 
     call dprint("SCALAR: assemble linear system")
