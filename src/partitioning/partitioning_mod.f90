@@ -6,7 +6,7 @@ module partitioning
 
   use core, only: ccs_options
   use kinds, only: ccs_long
-  use types, only: ccs_mesh
+  use types, only: ccs_mesh, topology, graph_connectivity
   use parallel_types, only: parallel_environment
 
   implicit none
@@ -19,15 +19,33 @@ module partitioning
   public :: compute_connectivity_get_local_cells
   public :: print_partition_quality
   
+  interface partition_kway
+     module procedure :: partition_kway_mesh
+     module procedure :: partition_kway_topo
+     module procedure :: partition_kway_graph_conn
+  end interface partition_kway
+  
   interface
 
     !v Partition the mesh
-    module subroutine partition_kway(par_env, shared_env, roots_env, mesh)
+    module subroutine partition_kway_mesh(par_env, shared_env, roots_env, mesh)
       class(parallel_environment), allocatable, target, intent(in) :: par_env    !< The global parallel environment
       class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared parallel environment
       class(parallel_environment), allocatable, target, intent(in) :: roots_env  !< The roots of shared memory parallel environment
       type(ccs_mesh), target, intent(inout) :: mesh                              !< The mesh for which to compute the partition
-    end subroutine partition_kway
+    end subroutine partition_kway_mesh
+    module subroutine partition_kway_topo(par_env, shared_env, roots_env, topo)
+      class(parallel_environment), allocatable, target, intent(in) :: par_env    !< The global parallel environment
+      class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared parallel environment
+      class(parallel_environment), allocatable, target, intent(in) :: roots_env  !< The roots of shared memory parallel environment
+      type(topology), target, intent(inout) :: topo                              !< The topo for which to compute the partition
+    end subroutine partition_kway_topo
+    module subroutine partition_kway_graph_conn(par_env, shared_env, roots_env, graph_conn)
+      class(parallel_environment), allocatable, target, intent(in) :: par_env    !< The global parallel environment
+      class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared parallel environment
+      class(parallel_environment), allocatable, target, intent(in) :: roots_env  !< The roots of shared memory parallel environment
+      type(graph_connectivity), target, intent(inout) :: graph_conn              !< The graph_conn for which to compute the partition
+    end subroutine partition_kway_graph_conn
 
     !v Compute the input arrays for the partitioner
     module subroutine compute_partitioner_input(par_env, shared_env, mesh)
