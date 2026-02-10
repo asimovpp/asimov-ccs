@@ -41,14 +41,13 @@ contains
   ! The graph can be weighted or unweighted.
   !
   ! High-level interface operating on the mesh object.
-  module subroutine partition_kway_mesh(par_env, shared_env, roots_env, mesh)
+  module subroutine partition_kway_mesh(par_env, shared_env, mesh)
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env    !< The global parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared parallel environment
-    class(parallel_environment), allocatable, target, intent(in) :: roots_env  !< The roots of shared memory parallel environment
     type(ccs_mesh), target, intent(inout) :: mesh                              !< The mesh for which to compute the parition
 
-    call partition_kway_topo(par_env, shared_env, roots_env, mesh%topo)
+    call partition_kway_topo(par_env, shared_env, mesh%topo)
     
   end subroutine partition_kway_mesh
 
@@ -58,14 +57,13 @@ contains
   ! The graph can be weighted or unweighted.
   !
   ! High-level interface operating on the topology object.
-  module subroutine partition_kway_topo(par_env, shared_env, roots_env, topo)
+  module subroutine partition_kway_topo(par_env, shared_env, topo)
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env    !< The global parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared parallel environment
-    class(parallel_environment), allocatable, target, intent(in) :: roots_env  !< The roots of shared memory parallel environment
     type(topology), target, intent(inout) :: topo                              !< The mesh topology for which to compute the parition
 
-    call partition_kway_graph_conn(par_env, shared_env, roots_env, topo%graph_conn)
+    call partition_kway_graph_conn(par_env, shared_env, topo%graph_conn)
     
   end subroutine partition_kway_topo
 
@@ -75,23 +73,18 @@ contains
   ! The graph can be weighted or unweighted.
   !
   ! Performs the partitioning on the graph connectivity object.
-  module subroutine partition_kway_graph_conn(par_env, shared_env, roots_env, graph_conn)
+  module subroutine partition_kway_graph_conn(par_env, shared_env, graph_conn)
 
     use mpi
     use iso_c_binding
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env    !< The global parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared parallel environment
-    class(parallel_environment), allocatable, target, intent(in) :: roots_env  !< The roots of shared memory parallel environment
     type(graph_connectivity), target, intent(inout) :: graph_conn              !< The graph connectivity for which to compute the parition
 
     ! Local variables
-    integer(ccs_long), dimension(:), pointer :: tmp_partition
-    integer :: tmp_partition_window
     integer(ccs_int) :: local_part_size
     integer(ccs_int) :: irank
-    integer(ccs_int) :: ierr
-    integer(ccs_int) :: i
 
     integer(ccs_long) :: global_num_cells
     
@@ -158,31 +151,6 @@ contains
 
       graph_conn%local_partition(:) = local_partition(:)
 
-      !=====================
-      ! TODO: remove this
-      call create_shared_array(shared_env, int(global_num_cells, ccs_int), tmp_partition, tmp_partition_window)
-
-      if (is_root(shared_env)) then
-        tmp_partition(:) = 0
-      end if
-      call sync(shared_env)
-
-      do i = 1, local_part_size
-        tmp_partition(i + vtxdist(irank + 1)) = graph_conn%local_partition(i)
-      end do
-      call sync(shared_env)
-
-      if (is_valid(roots_env)) then
-        select type (roots_env)
-        type is (parallel_environment_mpi)
-            call MPI_AllReduce(tmp_partition, graph_conn%global_partition, int(global_num_cells, ccs_int), &
-                              MPI_LONG, MPI_SUM, roots_env%comm, ierr)
-        class default
-          write(log_unit_out,*) "ERROR: Unknown parallel environment!"
-        end select
-      end if
-      !=====================
-
     class default
       write(log_unit_out,*) "ERROR: Unknown parallel environment!"
     end select
@@ -190,8 +158,6 @@ contains
     call dprint("Number of edgecuts: " // str(edgecuts))
 
     call sync(shared_env)
-
-    call destroy_shared_array(shared_env, tmp_partition, tmp_partition_window)
 
   end subroutine partition_kway_graph_conn
 

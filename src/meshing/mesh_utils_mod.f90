@@ -2496,28 +2496,16 @@ contains
   end subroutine
 
   ! Populate mesh%topo%graph_conn%global_partition with a split of cells in stride using global_start and local_count
-  subroutine partition_stride(par_env, shared_env, roots_env, mesh)
+  subroutine partition_stride(par_env, shared_env, mesh)
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The parallel environment
-    class(parallel_environment), allocatable, target, intent(in) :: roots_env !< The parallel environment
     type(ccs_mesh), intent(inout) :: mesh                             !< The resulting mesh.
 
-    integer(ccs_int) :: iproc, first, last
-    integer(ccs_int) :: global_num_cells
-
     ! roots_env kept as argument for consistency with partition_kway
-    associate (foo => roots_env)
+    associate (bar => shared_env)
     end associate
 
-    call get_global_num_cells(global_num_cells)
-
-    if (is_root(shared_env)) then
-      do iproc = 0, par_env%num_procs - 1
-        first = global_start(global_num_cells, iproc, par_env%num_procs)
-        last = first + local_count(global_num_cells, iproc, par_env%num_procs) - 1
-        mesh%topo%graph_conn%global_partition(first:last) = iproc
-      end do
-    end if
+    mesh%topo%graph_conn%local_partition(:) = par_env%proc_id
 
   end subroutine partition_stride
 
@@ -2727,12 +2715,6 @@ contains
       write(log_unit_out,*) par_env%proc_id, "local_partition   : UNALLOCATED"
     end if
 
-    if (associated(mesh%topo%graph_conn%global_partition)) then
-      write(log_unit_out,*) par_env%proc_id, "global_partition  : ", mesh%topo%graph_conn%global_partition(1:nb_elem)
-    else
-      write(log_unit_out,*) par_env%proc_id, "global_partition  : UNALLOCATED"
-    end if
-
     write(log_unit_out,*) ""
     if (associated(mesh%topo%global_face_indices)) then
       do i = 1, nb_elem
@@ -2802,11 +2784,6 @@ contains
       call destroy_shared_array(shared_env, mesh%topo%bnd_rid, mesh%topo%bnd_rid_window)
       call dprint("mesh%topo%bnd_rid deallocated.")
     end if
-
-    if (associated(mesh%topo%graph_conn%global_partition)) then
-      call destroy_shared_array(shared_env, mesh%topo%graph_conn%global_partition, mesh%topo%graph_conn%global_partition_window)
-      call dprint("mesh%topo%graph_conn%global_partition deallocated.")
-    end if
   end subroutine cleanup_topo
 
   subroutine mesh_partition_reorder(par_env, shared_env, run_options, mesh)
@@ -2822,20 +2799,16 @@ contains
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The parallel environment
     type(ccs_options), intent(in) :: run_options
     type(ccs_mesh), intent(inout) :: mesh                                   !< The mesh
-    class(parallel_environment), allocatable, target :: roots_env !< The parallel environment
-
 
     call set_mesh_object(mesh)
 
-    call create_shared_roots_comm(par_env, shared_env, roots_env)
-
     if (par_env%num_procs > 1) then
       call profiler_begin_region("Kway partitioning")
-      call partition_kway(par_env, shared_env, roots_env, mesh)
+      call partition_kway(par_env, shared_env, mesh)
       call profiler_end_region("Kway partitioning")
     else
       call profiler_begin_region("Strided partitioning")
-      call partition_stride(par_env, shared_env, roots_env, mesh)
+      call partition_stride(par_env, shared_env, mesh)
       call profiler_end_region("Strided partitioning")
     end if
 
@@ -2853,13 +2826,13 @@ contains
     call reorder_cells(par_env, shared_env, mesh)
     call profiler_end_region("Reordering")
 
-    call cleanup_partitioner_data(shared_env, mesh)
+    call cleanup_partitioner_data(mesh)
 
     call print_bandwidth(par_env, run_options)
 
     call nullify_mesh_object()
 
-  end subroutine
+  end subroutine mesh_partition_reorder
 
   ! Naively distribute cells equally across all processes
   subroutine set_naive_distribution(par_env, num_cells, graph_conn)

@@ -28,22 +28,19 @@ module partitioning
   interface
 
     !v Partition the mesh
-    module subroutine partition_kway_mesh(par_env, shared_env, roots_env, mesh)
+    module subroutine partition_kway_mesh(par_env, shared_env, mesh)
       class(parallel_environment), allocatable, target, intent(in) :: par_env    !< The global parallel environment
       class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared parallel environment
-      class(parallel_environment), allocatable, target, intent(in) :: roots_env  !< The roots of shared memory parallel environment
       type(ccs_mesh), target, intent(inout) :: mesh                              !< The mesh for which to compute the partition
     end subroutine partition_kway_mesh
-    module subroutine partition_kway_topo(par_env, shared_env, roots_env, topo)
+    module subroutine partition_kway_topo(par_env, shared_env, topo)
       class(parallel_environment), allocatable, target, intent(in) :: par_env    !< The global parallel environment
       class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared parallel environment
-      class(parallel_environment), allocatable, target, intent(in) :: roots_env  !< The roots of shared memory parallel environment
       type(topology), target, intent(inout) :: topo                              !< The topo for which to compute the partition
     end subroutine partition_kway_topo
-    module subroutine partition_kway_graph_conn(par_env, shared_env, roots_env, graph_conn)
+    module subroutine partition_kway_graph_conn(par_env, shared_env, graph_conn)
       class(parallel_environment), allocatable, target, intent(in) :: par_env    !< The global parallel environment
       class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared parallel environment
-      class(parallel_environment), allocatable, target, intent(in) :: roots_env  !< The roots of shared memory parallel environment
       type(graph_connectivity), target, intent(inout) :: graph_conn              !< The graph_conn for which to compute the partition
     end subroutine partition_kway_graph_conn
 
@@ -55,8 +52,7 @@ module partitioning
     end subroutine compute_partitioner_input
    
   !v Deallocate partitioner data structures associated with the mesh
-    module subroutine cleanup_partitioner_data(shared_env, mesh)
-      class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared parallel environment
+    module subroutine cleanup_partitioner_data(mesh)
       type(ccs_mesh), target, intent(inout) :: mesh                              !< The mesh
     end subroutine cleanup_partitioner_data
 
