@@ -5,7 +5,7 @@
 module partitioning
 
   use core, only: ccs_options
-  use kinds, only: ccs_long
+  use kinds, only: ccs_int, ccs_long
   use types, only: ccs_mesh, topology, graph_connectivity
   use parallel_types, only: parallel_environment
 
@@ -18,6 +18,7 @@ module partitioning
   public :: compute_connectivity
   public :: compute_connectivity_get_local_cells
   public :: print_partition_quality
+  public :: compute_vtxdist_local
   
   interface partition_kway
      module procedure :: partition_kway_mesh
@@ -84,6 +85,14 @@ module partitioning
       class(parallel_environment), intent(in) :: par_env
       type(ccs_options), intent(in) :: run_options
     end subroutine print_partition_quality
+
+    !!! INTERNAL SUBROUTINES - ONLY DECLARED FOR TESTING !!!
+    pure module function compute_vtxdist_local(nproc, partition) result(vtxdist)
+      integer(ccs_int), intent(in) :: nproc
+      integer(ccs_long), dimension(:), intent(in) :: partition
+      integer(ccs_int), dimension(nproc + 1) :: vtxdist
+    end function compute_vtxdist_local
+    !!! INTERNAL SUBROUTINES - ONLY DECLARED FOR TESTING !!!
     
   end interface
 

@@ -46,7 +46,24 @@ contains
 
   end subroutine compute_connectivity
 
-  subroutine compute_vtxdist(par_env, graph_conn)
+  pure module function compute_vtxdist_local(nproc, partition) result(vtxdist)
+    integer(ccs_int), intent(in) :: nproc
+    integer(ccs_long), dimension(:), intent(in) :: partition
+    integer(ccs_int), dimension(nproc + 1) :: vtxdist
+
+    integer :: i
+    
+    vtxdist = compute_vtxdist_count_(nproc, partition)
+
+    ! Convert counts into offsets
+    vtxdist(1) = 1
+    do i = 2, nproc + 1
+       vtxdist(i) = vtxdist(i) + vtxdist(i - 1)
+    end do
+    
+  end function compute_vtxdist_local
+
+  module subroutine compute_vtxdist(par_env, graph_conn)
     class(parallel_environment), intent(in) :: par_env
     type(graph_connectivity), intent(inout) :: graph_conn
 
