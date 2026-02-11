@@ -63,8 +63,9 @@ module partitioning
       type(ccs_mesh), target, intent(inout) :: mesh                              !< The mesh for which to compute the partition
     end subroutine compute_connectivity
 
-    module subroutine compute_connectivity_get_local_cells(par_env, mesh)
+    module subroutine compute_connectivity_get_local_cells(par_env, vtxdist_og, mesh)
       class(parallel_environment), allocatable, target, intent(in) :: par_env !< The global parallel environment
+      integer(ccs_long), dimension(:), intent(in) :: vtxdist_og               !< The original vtxdist
       type(ccs_mesh), target, intent(inout) :: mesh                           !< The mesh for which to compute the partition
     end subroutine compute_connectivity_get_local_cells
 

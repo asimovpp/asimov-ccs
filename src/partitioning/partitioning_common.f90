@@ -35,13 +35,15 @@ contains
     ! Local variables
     integer(ccs_int) :: irank ! MPI rank ID
     integer(ccs_int) :: isize ! Size of MPI world
+    integer(ccs_long), dimension(:), allocatable :: vtxdist_og
     
     irank = par_env%proc_id
     isize = par_env%num_procs
 
     ! Get global indices of local cells
+    vtxdist_og = mesh%topo%graph_conn%vtxdist
     call compute_vtxdist(par_env, mesh%topo%graph_conn)
-    call compute_connectivity_get_local_cells(par_env, mesh)
+    call compute_connectivity_get_local_cells(par_env, vtxdist_og, mesh)
     call compute_face_connectivity(par_env, shared_env, mesh)
 
   end subroutine compute_connectivity
@@ -310,9 +312,10 @@ contains
 
   end subroutine add_new_global_index
 
-  module subroutine compute_connectivity_get_local_cells(par_env, mesh)
+  module subroutine compute_connectivity_get_local_cells(par_env, vtxdist_og, mesh)
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
+    integer(ccs_long), dimension(:), intent(in) :: vtxdist_og               !< The original vtxdist
     type(ccs_mesh), target, intent(inout) :: mesh                           !< The mesh for which to compute the parition
 
     integer(ccs_int) :: irank
@@ -338,7 +341,7 @@ contains
 
     ! XXX: flatten_connectivity relies on the fact mesh%topo%global_indices is a sorted array. If
     ! this were to change, flatten_connectivity would have to be adapted
-    mesh%topo%global_indices = compute_global_indices(par_env, local_num_cells, &
+    mesh%topo%global_indices = compute_global_indices(par_env, vtxdist_og(irank + 1), &
                                                       mesh%topo%graph_conn%local_partition)
 
     ! Check global indices don't exceed expected range
@@ -349,33 +352,69 @@ contains
 
   end subroutine compute_connectivity_get_local_cells
 
-  function compute_global_indices(par_env, local_num_cells, partition) result(global_indices)
+  function compute_global_indices(par_env, global_idx_start, partition) result(global_indices)
+
+    use mpi
+    
     class(parallel_environment), intent(in) :: par_env
-    integer(ccs_int) ,intent(in) :: local_num_cells
+    integer(ccs_long), intent(in) :: global_idx_start
     integer(ccs_long), dimension(:), intent(in) :: partition
     integer(ccs_int), dimension(:), allocatable :: global_indices
 
+    integer(ccs_int) :: local_num_cells
+    integer(ccs_long), dimension(:), allocatable :: vtxdist, vtxdist2
+    integer(ccs_long), dimension(:), allocatable :: global_indices_partition
+    integer(ccs_int), dimension(:), allocatable :: proc_ctr, proc_ctr2
+
     integer :: i
-    integer(ccs_int) :: ctr
 
     integer :: irank
+    integer :: ierr
 
+    ! 1) get our local vtxdist - which processes do we have global indices for, and how many?
+    vtxdist = compute_vtxdist_local(par_env%num_procs, partition)
+
+    ! 2) build global indices for each process based on our local data
+    allocate(global_indices_partition(size(partition)))
+    allocate(proc_ctr(par_env%num_procs))
+    proc_ctr(:) = 0
+    do i = 1, size(partition)
+       irank = int(partition(i) + 1, ccs_int) ! Ranks are C-indexed
+       global_indices_partition(vtxdist(irank + proc_ctr(irank))) = global_idx_start + (i - 1)
+       proc_ctr(irank) = proc_ctr(irank) + 1
+    end do
+    
+    ! 3) send global indices to destinations using Alltoallv
+    ! -- first tell destinations how many you are sending
+    ! -- compute offset at destination (sender already knows offset of input data)
+    ! -- call Alltoallv to scatter/gather global indices
+
+    ! Scatter/gather element counts to all processors
+    select type(par_env)
+    type is(parallel_environment_mpi)
+       call MPI_Alltoall(proc_ctr, 1, MPI_INTEGER, proc_ctr2, 1, MPI_INTEGER, par_env%comm, ierr)
+    class default
+       error stop
+    end select
+
+    ! Determine where in our global index buffer data goes
+    vtxdist2 = [0, proc_ctr2] ! Temporarily fill with shifted counts
+    call vtxdist_count_to_offset(vtxdist2)
+
+    ! Scatter/gather global indices to all processors
+    local_num_cells = sum(proc_ctr2)
     allocate(global_indices(local_num_cells))
     global_indices(:) = -1 ! For checking
-
-    irank = par_env%proc_id
-
-    ctr = 1
-    do i = 1, size(partition)
-       if (partition(i) == irank) then
-          global_indices(ctr) = i
-          ctr = ctr + 1
-       end if
-    end do
-
-    if (ctr /= (local_num_cells + 1)) then
-      call error_abort("Didn't find all my cells!")
-    end if
+    select type(par_env)
+    type is(parallel_environment_mpi)
+       call MPI_Alltoallv(global_indices_partition, proc_ctr, &
+                          int(vtxdist(1:par_env%num_procs), ccs_int), MPI_INTEGER8, &
+                          global_indices, proc_ctr2, &
+                          int(vtxdist2(1:par_env%num_procs), ccs_int), MPI_INTEGER8, &
+                          par_env%comm, ierr)
+    class default
+       error stop
+    end select
 
     if (minval(global_indices) < 1) then
       call error_abort("Didn't register all cells properly!")
