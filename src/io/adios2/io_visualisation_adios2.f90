@@ -188,7 +188,6 @@ contains
                        create_cell_locator, &
                        get_global_index
     use utils, only: get_natural_data
-    use parallel, only: timer
 
     ! Arguments
     class(parallel_environment), allocatable, target, intent(in) :: par_env  !< The parallel environment

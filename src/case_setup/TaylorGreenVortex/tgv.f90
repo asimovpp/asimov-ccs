@@ -44,34 +44,32 @@ program tgv
   irank = par_env%proc_id
   isize = par_env%num_procs
 
-  call profiler_begin_region('Elapsed time')
+  call profiler_begin_region('Total elapsed time')
   if (is_root(par_env)) print *, "Starting ", run_options%paths%case_name, " case!"
 
-  call profiler_begin_region('Initialise')
-  call profiler_begin_region('Initialise mesh')
+  call profiler_begin_region('Total initialisation')
+  call profiler_begin_region('Mesh initialisation')
   call initialise_mesh(par_env, shared_env, run_options)
-  call profiler_end_region('Initialise mesh')
+  call profiler_end_region('Mesh initialisation')
   
   ! Initialise fields
   if (is_root(par_env)) print *, "Initialise fields"
 
-  call profiler_begin_region('Initialise fields')
+  call profiler_begin_region('Field initialisation')
   call initialise_fields(par_env, run_options, flow_fields)
-  call profiler_end_region('Initialise fields')
+  call profiler_end_region('Field initialisation')
   
   ! Initialise velocity field
   if (is_root(par_env)) print *, "Initialise velocity field"
-  call profiler_begin_region('Initialise flow')
+  call profiler_begin_region('Flow initialisation')
   call initialise_flow(par_env, run_options, flow_fields, get_init_flow, get_init_mass_flux)
-  call profiler_end_region('Initialise flow')
+  call profiler_end_region('Flow initialisation')
   
-  call profiler_end_region('Initialise')
+  call profiler_end_region('Total initialisation')
   
-  call profiler_begin_region('Run solver')
   call run_solver(par_env, run_options, eval_sources, postproc_tgv, flow_fields)
-  call profiler_end_region('Run solver')
   
-  call profiler_end_region('Elapsed time')
+  call profiler_end_region('Total elapsed time')
   call profiler_shutdown(par_env)
 
   call dealloc_fluid_fields(flow_fields)

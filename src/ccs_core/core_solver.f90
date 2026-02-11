@@ -14,15 +14,10 @@ submodule (core) core_solver
   
   use pv_coupling, only: solve_nonlinear
   use scalars, only: update_scalars
-
-  use timers, only: timer_register, timer_start, timer_stop
-
+  use profiler, only: profiler_begin_region, profiler_end_region
   use timestepping, only: timestepping_is_active, finalise_timestep
   
   implicit none
-
-  integer(ccs_int):: timer_index_sol
-  integer(ccs_int):: timer_index_io_sol
 
 contains
 
@@ -80,11 +75,8 @@ contains
       num_steps = 1
     end if
     
-    call timer_register("I/O time for solution", timer_index_io_sol)
-    call timer_register("Solver time inc I/O", timer_index_sol)
-    
+    call profiler_begin_region("Solver time inc I/O")
     do t = 1, num_steps
-      call timer_start(timer_index_sol)
 
       ! XXX: Coupler update here
       call advance_step(par_env, run_options, eval_sources, flow_fields, diverged)
@@ -105,8 +97,10 @@ contains
       if (check_to_write(run_options, t)) then
         call write_step(par_env, run_options, t, flow_fields)
       end if
-      call timer_stop(timer_index_sol)
+
     end do
+    call profiler_end_region("Solver time inc I/O")
+
 
   end subroutine run_solver
 
@@ -297,13 +291,13 @@ contains
     num_steps = run_options%solve%num_steps
     dt = run_options%solve%dt
     
-    call timer_start(timer_index_io_sol)
+    call profiler_begin_region("I/O time for solution")
     if (timestepping_is_active()) then
       call write_solution(par_env, run_options, mesh, flow_fields, t, num_steps, dt)
     else
       call write_solution(par_env, run_options, mesh, flow_fields)
     end if
-    call timer_stop(timer_index_io_sol)
+    call profiler_end_region("I/O time for solution")
 
   end subroutine write_step
 
