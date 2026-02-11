@@ -48,22 +48,27 @@ contains
 
   end subroutine compute_connectivity
 
-  pure module function compute_vtxdist_local(nproc, partition) result(vtxdist)
+  module function compute_vtxdist_local(proc_ctr) result(vtxdist)
+    integer(ccs_int), dimension(:), intent(in) :: proc_ctr
+    integer(ccs_int), dimension(:), allocatable :: vtxdist
+
+    vtxdist = compute_vtxdist_local_(size(proc_ctr), proc_ctr)
+
+  end function compute_vtxdist_local
+  pure function compute_vtxdist_local_(nproc, proc_ctr) result(vtxdist)
     integer(ccs_int), intent(in) :: nproc
-    integer(ccs_long), dimension(:), intent(in) :: partition
+    integer(ccs_int), dimension(nproc), intent(in) :: proc_ctr
     integer(ccs_int), dimension(nproc + 1) :: vtxdist
 
     integer :: i
-    
-    vtxdist = compute_vtxdist_count_(nproc, partition)
 
     ! Convert counts into offsets
     vtxdist(1) = 1
-    do i = 2, nproc + 1
-       vtxdist(i) = vtxdist(i) + vtxdist(i - 1)
+    do i = 1, nproc
+       vtxdist(i + 1) = vtxdist(i) + proc_ctr(i)
     end do
     
-  end function compute_vtxdist_local
+  end function compute_vtxdist_local_
 
   pure module function partition_count(nproc, partition) result(proc_count)
     integer(ccs_int), intent(in) :: nproc
@@ -390,16 +395,14 @@ contains
     integer :: ierr
 
     ! 1) get our local vtxdist - which processes do we have global indices for, and how many?
-    vtxdist = compute_vtxdist_local(par_env%num_procs, partition)
+    proc_ctr = partition_count(par_env%num_procs, partition)
+    vtxdist = compute_vtxdist_local(proc_ctr)
 
     ! 2) build global indices for each process based on our local data
     allocate(global_indices_partition(size(partition)))
-    allocate(proc_ctr(par_env%num_procs))
-    proc_ctr(:) = 0
     do i = 1, size(partition)
        irank = int(partition(i) + 1, ccs_int) ! Ranks are C-indexed
        global_indices_partition(vtxdist(irank + proc_ctr(irank))) = global_idx_start + (i - 1)
-       proc_ctr(irank) = proc_ctr(irank) + 1
     end do
     
     ! 3) send global indices to destinations using Alltoallv

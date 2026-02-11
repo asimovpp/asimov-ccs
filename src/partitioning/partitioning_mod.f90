@@ -89,16 +89,15 @@ module partitioning
     end subroutine print_partition_quality
 
     !!! INTERNAL SUBROUTINES - ONLY DECLARED FOR TESTING !!!
-    pure module function compute_vtxdist_local(nproc, partition) result(vtxdist)
-      integer(ccs_int), intent(in) :: nproc
-      integer(ccs_long), dimension(:), intent(in) :: partition
-      integer(ccs_int), dimension(nproc + 1) :: vtxdist
-    end function compute_vtxdist_local
     pure module function partition_count(nproc, partition) result(proc_count)
       integer(ccs_int), intent(in) :: nproc
       integer(ccs_long), dimension(:), intent(in) :: partition
       integer(ccs_int), dimension(nproc) :: proc_count
     end function partition_count
+    module function compute_vtxdist_local(proc_ctr) result(vtxdist)
+      integer(ccs_int), dimension(:), intent(in) :: proc_ctr
+      integer(ccs_int), dimension(:), allocatable :: vtxdist
+    end function compute_vtxdist_local
     !!! INTERNAL SUBROUTINES - ONLY DECLARED FOR TESTING !!!
     
   end interface
