@@ -65,6 +65,22 @@ contains
     
   end function compute_vtxdist_local
 
+  pure module function partition_count(nproc, partition) result(proc_count)
+    integer(ccs_int), intent(in) :: nproc
+    integer(ccs_long), dimension(:), intent(in) :: partition
+    integer(ccs_int), dimension(nproc) :: proc_count
+
+    integer(ccs_int) :: i
+    integer(ccs_long) :: irank
+    
+    proc_count(:) = 0
+    do i = 1, size(partition)
+       irank = partition(i) + 1
+       proc_count(irank) = proc_count(irank) + 1
+    end do
+
+  end function partition_count
+
   module subroutine compute_vtxdist(par_env, graph_conn)
     class(parallel_environment), intent(in) :: par_env
     type(graph_connectivity), intent(inout) :: graph_conn

@@ -19,6 +19,7 @@ module partitioning
   public :: compute_connectivity_get_local_cells
   public :: print_partition_quality
   public :: compute_vtxdist_local
+  public :: partition_count
   
   interface partition_kway
      module procedure :: partition_kway_mesh
@@ -93,6 +94,11 @@ module partitioning
       integer(ccs_long), dimension(:), intent(in) :: partition
       integer(ccs_int), dimension(nproc + 1) :: vtxdist
     end function compute_vtxdist_local
+    pure module function partition_count(nproc, partition) result(proc_count)
+      integer(ccs_int), intent(in) :: nproc
+      integer(ccs_long), dimension(:), intent(in) :: partition
+      integer(ccs_int), dimension(nproc) :: proc_count
+    end function partition_count
     !!! INTERNAL SUBROUTINES - ONLY DECLARED FOR TESTING !!!
     
   end interface
