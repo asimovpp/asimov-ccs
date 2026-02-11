@@ -352,6 +352,8 @@ contains
 
   end subroutine compute_connectivity_get_local_cells
 
+  ! Given a partition, scatter the global indices to their destination ranks, these are expected to
+  ! be sorted.
   function compute_global_indices(par_env, global_idx_start, partition) result(global_indices)
 
     use mpi
