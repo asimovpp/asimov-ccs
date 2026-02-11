@@ -8,8 +8,9 @@ submodule(io_visualisation) io_visualisation_adios2
                 write_array, read_array
   use adios2
   use adios2_types, only: adios2_io_process
-  use utils, only: exit_print, get_field, update, set_values
   use profiler, only: profiler_begin_region, profiler_end_region
+  use utils, only: exit_print, update, set_values
+  use fields, only: get_field
   use types, only: field
   
   implicit none
@@ -37,12 +38,12 @@ contains
     use vec, only: get_global_data_vec
 
     ! Arguments
-    class(parallel_environment), allocatable, target, intent(in) :: par_env  !< The parallel environment
-    character(len=:), allocatable, intent(in) :: case_name                   !< The case name
-    type(ccs_mesh), intent(in) :: mesh                                       !< The mesh
-    type(fluid), intent(inout) :: flow                                       !< The flow variables
-    integer(ccs_int), optional, intent(in) :: step                           !< The current time-step count
-    integer(ccs_int), optional, intent(in) :: maxstep                        !< The maximum time-step count
+    class(parallel_environment), intent(in) :: par_env     !< The parallel environment
+    character(len=:), allocatable, intent(in) :: case_name !< The case name
+    type(ccs_mesh), intent(in) :: mesh                     !< The mesh
+    type(fluid), intent(inout) :: flow                     !< The flow variables
+    integer(ccs_int), optional, intent(in) :: step         !< The current time-step count
+    integer(ccs_int), optional, intent(in) :: maxstep      !< The maximum time-step count
 
     ! Local variables
     character(len=:), allocatable :: sol_file     ! Solution file name
@@ -177,13 +178,12 @@ contains
 
 
   !> Write the field data to file
-  module subroutine write_fields(par_env, case_name, mesh, flow, step, maxstep)
+  module subroutine write_fields(par_env, run_options, mesh, flow, step, maxstep)
 
     use kinds, only: ccs_long
     use constants, only: ndim, adiosconfig
     use vec, only: get_vector_data, restore_vector_data
-    use types, only: field_ptr, cell_locator
-    use case_config, only: write_gradients
+    use types, only: cell_locator
     use meshing, only: get_local_num_cells, get_global_num_cells, &
                        create_cell_locator, &
                        get_global_index
@@ -192,7 +192,7 @@ contains
 
     ! Arguments
     class(parallel_environment), allocatable, target, intent(in) :: par_env  !< The parallel environment
-    character(len=:), allocatable, intent(in) :: case_name                   !< The case name
+    type(ccs_options), intent(in) :: run_options                             !< The runtime configuration
     type(ccs_mesh), intent(in) :: mesh                                       !< The mesh
     type(fluid), intent(inout) :: flow                                       !< The flow variables
     integer(ccs_int), optional, intent(in) :: step                           !< The current time-step count
@@ -225,8 +225,8 @@ contains
 
     class(field), pointer :: phi
     
-    sol_file = case_name // '.sol.h5'
-    adios2_file = case_name // adiosconfig
+    sol_file = run_options%paths%case_name // '.sol.h5'
+    adios2_file = run_options%paths%case_name // adiosconfig
 
     if (present(step)) then
       ! Unsteady case
@@ -293,7 +293,7 @@ contains
    
 
     ! Write out gradients, if required (e.g. for calculating enstrophy)
-    if (write_gradients) then
+    if (run_options%io%write_gradients) then
       call profiler_begin_region("Write gradients time")
       do i = 1, size(flow%fields)
         call get_field(flow, i, phi)

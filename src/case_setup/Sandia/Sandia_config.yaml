@@ -20,6 +20,8 @@ dt: 1.0e-5
 # domain size
 L: 3.1415926535
 
+mesh: read
+
 relaxation_factor:
   u: 0.7
   v: 0.7
@@ -68,29 +70,39 @@ compute_bwidth : false
 #  v: 1.0
 #  w: 1.0
 
-#post:
-#  type: center
-#  variables: [u, v, w, p]
+post:
+  type: center
+  variables: [u, v, w, p, scalar]
 
 variables:
   enable_cell_corrections: false
-  n_variables: 6
+  n_variables: 8
   variable_1:
     name: u
     type: central
+    solve: on
   variable_2:
     name: v
     type: central
+    solve: on
   variable_3:
     name: w
     type: central
+    solve: on
   variable_4:
     name: p
     type: central
+    solve: on
   variable_5:
     name: p_prime
     type: central
   variable_6:
+    name: viscosity
+    type: central
+  variable_7:
+    name: density
+    type: central
+  variable_8:
     name: scalar
     type: central
 

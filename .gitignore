@@ -1,4 +1,5 @@
 auto
+
 *.pdf
 !dev_guide/logos/*.pdf
 *.aux
@@ -6,6 +7,8 @@ auto
 *.synctex.gz
 *.out
 *.toc
+*.csv
+*.txt
 
 *.o
 *.mod
@@ -23,9 +26,15 @@ src/TAGS
 __pycache__
 
 ccs_app
+libccs.a
 
 *.swp
 
 *.h5
 *.xmf
 *.geo
+**/.DS_Store
+.vscode
+.devcontainer
+
+.idea

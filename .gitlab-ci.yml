@@ -86,11 +86,11 @@ build_intel:
 
 test_intel:
   needs: 
-    - job: build_intel
+    - job: debug_build_intel
       artifacts: true
   extends: [.general_setup, .setup_intel, .test_common]
   script:
-    - HOME=${CI_HOME} CMP=intel make tests
+    - HOME=${CI_HOME} CMP=intel BUILD=debug make tests
 
 #-----------------------------------------------------------------------------#
 
@@ -107,13 +107,13 @@ build_intelx:
   artifacts:
     paths: [obj/]
 
-test_intelx:
-  needs: 
-    - job: build_intelx
-      artifacts: true
-  extends: [.general_setup, .setup_intelx, .test_common]
-  script:
-    - HOME=${CI_HOME} CMP=intelx make tests
+# test_intelx:
+#  needs: 
+#    - job: debug_build_intelx
+#      artifacts: true
+#  extends: [.general_setup, .setup_intelx, .test_common]
+#  script:
+#    - HOME=${CI_HOME} CMP=intelx BUILD=debug make tests
 
 #-----------------------------------------------------------------------------#
 debug_build_cray:
@@ -131,13 +131,13 @@ build_cray:
 
 test_cray:
   needs: 
-    - job: build_cray
+    - job: debug_build_cray
       artifacts: true
   extends: [.general_setup, .setup_cray, .test_common]
   script:
     - cray_run_command "slurmctld -vv"
     - cray_run_command "slurmd -vv"
-    - HOME=${CI_HOME} cray_run_command "CMP=cray make tests"
+    - HOME=${CI_HOME} cray_run_command "CMP=cray BUILD=debug make tests"
 
 #-----------------------------------------------------------------------------#
 

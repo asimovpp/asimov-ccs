@@ -1,6 +1,7 @@
 !v Implementation of the theta timestepping scheme with a fixed-size timestep.
 submodule(timestepping) timestepping_theta
 
+  use transient_kernel_def, only: transient_theta_kernel
   implicit none
 
   real(ccs_real), parameter :: theta = 0.5 !< timestepping scheme mixing factor
@@ -37,17 +38,16 @@ contains
     class(ccs_vector), intent(inout) :: diag
     class(ccs_matrix), intent(inout) :: M
     class(ccs_vector), intent(inout) :: b
+    class(transient_kernel), allocatable :: transient ! The transient kernel
 
     if (.not. timestepping_is_active()) then
       return
     end if
 
-    ! Do a first order update the first time because there no two past time steps yet.
-    if (first_update) then
-      call apply_timestep_first_order(phi, diag, M, b)
-    else
-      call apply_timestep_theta(theta, phi, diag, M, b)
-    end if
+    ! Allocating the kernel every timestep is temporary, it should be done once when the final equation 
+    ! system isget_vector_data, restore_vector_data implemented
+    allocate(transient_theta_kernel :: transient)
+    call apply_timestep_kernel(transient, phi, diag, M, b)
 
   end subroutine apply_timestep
 

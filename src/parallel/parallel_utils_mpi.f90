@@ -92,12 +92,11 @@ contains
   module subroutine create_shared_array_int_1D(shared_env, length, array, window)
 
     use iso_c_binding
-    use iso_fortran_env, only: int64
     
     class(parallel_environment), intent(in) :: shared_env
     integer(ccs_int), intent(in) :: length
     integer(ccs_int), pointer, dimension(:), intent(out) :: array
-    integer(int64), intent(out) :: window
+    integer, intent(out) :: window
     type(c_ptr) :: c_array_ptr
     integer(ccs_int) :: dummy_int = 1_ccs_int
     integer(ccs_err) :: ierr
@@ -105,23 +104,19 @@ contains
     integer(mpi_address_kind) :: byte_size, allocate_byte_size
 
     disp_unit = c_sizeof(dummy_int)
-    byte_size = int(length, int64) * int(disp_unit, int64)
-
-    if (is_root(shared_env)) then
-      allocate_byte_size = byte_size
-    else
-      allocate_byte_size = 0
-   end if
-   
     select type (shared_env)
     type is (parallel_environment_mpi)
+      allocate_byte_size = shared_alloc_size([length], disp_unit, shared_env, .true.)
       call mpi_win_allocate_shared(allocate_byte_size, disp_unit, MPI_INFO_NULL, shared_env%comm, c_array_ptr, window, ierr)
+      call error_handling(ierr, "mpi", shared_env)
 
       call mpi_win_shared_query(window, 0, byte_size, disp_unit, c_array_ptr, ierr)
+      call error_handling(ierr, "mpi", shared_env)
 
       call c_f_pointer(c_array_ptr, array, shape=[length])
 
       call mpi_barrier(shared_env%comm, ierr)
+      call error_handling(ierr, "mpi", shared_env)
 
     class default
       call error_abort("Unsupported parallel environment")
@@ -133,12 +128,11 @@ contains
   module subroutine create_shared_array_long_1D(shared_env, length, array, window)
 
     use iso_c_binding
-    use iso_fortran_env, only: int64
 
     class(parallel_environment), intent(in) :: shared_env
     integer(ccs_int), intent(in) :: length
     integer(ccs_long), pointer, dimension(:), intent(out) :: array
-    integer(int64), intent(out) :: window
+    integer, intent(out) :: window
     type(c_ptr) :: c_array_ptr
     integer(ccs_long) :: dummy_long = 1_ccs_long
     integer(ccs_err) :: ierr
@@ -146,23 +140,20 @@ contains
     integer(mpi_address_kind) :: byte_size, allocate_byte_size
 
     disp_unit = c_sizeof(dummy_long)
-    byte_size = int(length, int64) * int(disp_unit, int64)
-
-    if (is_root(shared_env)) then
-      allocate_byte_size = byte_size
-    else
-      allocate_byte_size = 0
-    end if
 
     select type (shared_env)
     type is (parallel_environment_mpi)
+      allocate_byte_size = shared_alloc_size([length], disp_unit, shared_env, .true.)
       call mpi_win_allocate_shared(allocate_byte_size, disp_unit, MPI_INFO_NULL, shared_env%comm, c_array_ptr, window, ierr)
+      call error_handling(ierr, "mpi", shared_env)
 
       call mpi_win_shared_query(window, 0, byte_size, disp_unit, c_array_ptr, ierr)
+      call error_handling(ierr, "mpi", shared_env)
 
       call c_f_pointer(c_array_ptr, array, shape=[length])
 
       call mpi_barrier(shared_env%comm, ierr)
+      call error_handling(ierr, "mpi", shared_env)
 
     class default
       call error_abort("Unsupported parallel environment")
@@ -174,12 +165,11 @@ contains
   module subroutine create_shared_array_int_2D(shared_env, length, array, window)
 
     use iso_c_binding
-    use iso_fortran_env, only: int64
 
     class(parallel_environment), intent(in) :: shared_env
     integer(ccs_int), dimension(2), intent(in) :: length
     integer(ccs_int), pointer, dimension(:,:), intent(out) :: array
-    integer(int64), intent(out) :: window
+    integer, intent(out) :: window
     type(c_ptr) :: c_array_ptr
     integer(ccs_int) :: dummy_int = 1_ccs_int
     integer(ccs_err) :: ierr
@@ -187,23 +177,20 @@ contains
     integer(mpi_address_kind) :: byte_size, allocate_byte_size
 
     disp_unit = c_sizeof(dummy_int)
-    byte_size = int(length(1), kind=8) * int(length(2), kind=8) * int(disp_unit, kind=8)
-
-    if (is_root(shared_env)) then
-      allocate_byte_size = byte_size
-    else
-      allocate_byte_size = 0
-    end if
 
     select type (shared_env)
     type is (parallel_environment_mpi)
+      allocate_byte_size = shared_alloc_size(length, disp_unit, shared_env, .true.)
       call mpi_win_allocate_shared(allocate_byte_size, disp_unit, MPI_INFO_NULL, shared_env%comm, c_array_ptr, window, ierr)
+      call error_handling(ierr, "mpi", shared_env)
 
       call mpi_win_shared_query(window, 0, byte_size, disp_unit, c_array_ptr, ierr)
+      call error_handling(ierr, "mpi", shared_env)
 
       call c_f_pointer(c_array_ptr, array, shape=length)
 
       call mpi_barrier(shared_env%comm, ierr)
+      call error_handling(ierr, "mpi", shared_env)
 
     class default
       call error_abort("Unsupported parallel environment")
@@ -215,12 +202,11 @@ contains
   module subroutine create_shared_array_real_1D(shared_env, length, array, window)
 
     use iso_c_binding
-    use iso_fortran_env, only: int64
 
     class(parallel_environment), intent(in) :: shared_env
     integer(ccs_int), intent(in) :: length
     real(ccs_real), pointer, dimension(:), intent(out) :: array
-    integer(int64), intent(out) :: window
+    integer, intent(out) :: window
 
     type(c_ptr) :: c_array_ptr
     real(ccs_real) :: dummy_real = 1.0_ccs_real
@@ -229,23 +215,20 @@ contains
     integer(mpi_address_kind) :: byte_size, allocate_byte_size
 
     disp_unit = c_sizeof(dummy_real)
-    byte_size = int(length, int64) * int(disp_unit, int64)
-
-    if (is_root(shared_env)) then
-      allocate_byte_size = byte_size
-    else
-      allocate_byte_size = 0
-    end if
 
     select type (shared_env)
     type is (parallel_environment_mpi)
+      allocate_byte_size = shared_alloc_size([length], disp_unit, shared_env, .true.)
       call mpi_win_allocate_shared(allocate_byte_size, disp_unit, MPI_INFO_NULL, shared_env%comm, c_array_ptr, window, ierr)
+      call error_handling(ierr, "mpi", shared_env)
 
       call mpi_win_shared_query(window, 0, byte_size, disp_unit, c_array_ptr, ierr)
+      call error_handling(ierr, "mpi", shared_env)
 
       call c_f_pointer(c_array_ptr, array, shape=[length])
 
       call mpi_barrier(shared_env%comm, ierr)
+      call error_handling(ierr, "mpi", shared_env)
 
     class default
       call error_abort("Unsupported parallel environment")
@@ -257,12 +240,11 @@ contains
   module subroutine create_shared_array_real_2D(shared_env, length, array, window)
 
     use iso_c_binding
-    use iso_fortran_env, only: int64
 
     class(parallel_environment), intent(in) :: shared_env
     integer(ccs_int), dimension(2), intent(in) :: length
     real(ccs_real), pointer, dimension(:,:), intent(out) :: array
-    integer(int64), intent(out) :: window
+    integer, intent(out) :: window
 
     type(c_ptr) :: c_array_ptr
     real(ccs_real) :: dummy_real = 1.0_ccs_real
@@ -271,23 +253,20 @@ contains
     integer(mpi_address_kind) :: byte_size, allocate_byte_size
 
     disp_unit = c_sizeof(dummy_real)
-    byte_size = int(length(1), kind=8) * int(length(2), kind=8) * int(disp_unit, kind=8)
-
-    if (is_root(shared_env)) then
-      allocate_byte_size = byte_size
-    else
-      allocate_byte_size = 0
-    end if
 
     select type (shared_env)
     type is (parallel_environment_mpi)
+      allocate_byte_size = shared_alloc_size(length, disp_unit, shared_env, .true.)
       call mpi_win_allocate_shared(allocate_byte_size, disp_unit, MPI_INFO_NULL, shared_env%comm, c_array_ptr, window, ierr)
+      call error_handling(ierr, "mpi", shared_env)
 
       call mpi_win_shared_query(window, 0, byte_size, disp_unit, c_array_ptr, ierr)
+      call error_handling(ierr, "mpi", shared_env)
 
       call c_f_pointer(c_array_ptr, array, shape=length)
 
       call mpi_barrier(shared_env%comm, ierr)
+      call error_handling(ierr, "mpi", shared_env)
 
     class default
       call error_abort("Unsupported parallel environment")
@@ -299,12 +278,11 @@ contains
   module subroutine create_shared_array_real_3D(shared_env, length, array, window)
 
     use iso_c_binding
-    use iso_fortran_env, only: int64
 
     class(parallel_environment), intent(in) :: shared_env
     integer(ccs_int), dimension(3), intent(in) :: length
     real(ccs_real), pointer, dimension(:,:,:), intent(out) :: array
-    integer(int64), intent(out) :: window
+    integer, intent(out) :: window
 
     type(c_ptr) :: c_array_ptr
     real(ccs_real) :: dummy_real = 1.0_ccs_real
@@ -313,23 +291,20 @@ contains
     integer(mpi_address_kind) :: byte_size, allocate_byte_size
 
     disp_unit = c_sizeof(dummy_real)
-    byte_size = int(length(1), int64) * int(length(2), int64) * int(length(3), int64) * int(disp_unit, int64)
-
-    if (is_root(shared_env)) then
-      allocate_byte_size = byte_size
-    else
-      allocate_byte_size = 0
-    end if
 
     select type (shared_env)
     type is (parallel_environment_mpi)
+      allocate_byte_size = shared_alloc_size([length], disp_unit, shared_env, .true.)
       call mpi_win_allocate_shared(allocate_byte_size, disp_unit, MPI_INFO_NULL, shared_env%comm, c_array_ptr, window, ierr)
+      call error_handling(ierr, "mpi", shared_env)
 
       call mpi_win_shared_query(window, 0, byte_size, disp_unit, c_array_ptr, ierr)
+      call error_handling(ierr, "mpi", shared_env)
 
       call c_f_pointer(c_array_ptr, array, shape=length)
 
       call mpi_barrier(shared_env%comm, ierr)
+      call error_handling(ierr, "mpi", shared_env)
 
     class default
       call error_abort("Unsupported parallel environment")
@@ -337,6 +312,53 @@ contains
     end select
 
   end subroutine
+
+  integer(MPI_ADDRESS_KIND) function shared_alloc_size(shape, elem_bytes, shared_env, root_alloc) result(nbytes)
+
+    use iso_fortran_env, only: int64
+    
+    integer(ccs_int), dimension(:), intent(in) :: shape      !< What is the shape we are allocating
+    integer(ccs_int), intent(in) :: elem_bytes               !< Size of elements (in bytes)
+    type(parallel_environment_mpi), intent(in) :: shared_env !< The shared memory environment
+    logical, intent(in) :: root_alloc                        !< Option to set allocation pattern
+
+    integer(MPI_ADDRESS_KIND) :: mybytes
+    integer(MPI_ADDRESS_KIND) :: delta
+
+    if (any(shape < 0)) then
+       call error_abort("Allocated shape must be positive")
+    end if
+    if (elem_bytes < 0) then
+       call error_abort("Per element size [bytes] must be positive")
+    end if
+    
+    ! Determine how many bytes to allocate
+    nbytes = product(int(shape, int64)) * int(elem_bytes, int64)
+
+    ! Determine how to distribute the allocation
+    if (root_alloc) then
+       ! Root rank allocates
+       if (.not. is_root(shared_env)) then
+          nbytes = 0
+       end if
+    else
+       ! Allocate across shared memory region
+       mybytes = nbytes / shared_env%num_procs
+
+       ! Distribute bytes to lower ranks
+       delta = nbytes - shared_env%num_procs * mybytes
+       if (shared_env%proc_id < delta) then
+          mybytes = mybytes + 1
+       end if
+
+       nbytes = mybytes
+    end if
+    
+    if (nbytes < 0) then
+       call error_abort("Byte computation overflowed!")
+    end if
+    
+  end function shared_alloc_size
 
   module subroutine destroy_shared_array_int_1D(shared_env, array, window)
     class(parallel_environment), intent(in) :: shared_env
@@ -349,6 +371,7 @@ contains
     end associate
 
     call mpi_win_free(window, ierr)
+    call error_handling(ierr, "mpi", shared_env)
 
     nullify(array)
 
@@ -365,6 +388,7 @@ contains
     end associate
 
     call mpi_win_free(window, ierr)
+    call error_handling(ierr, "mpi", shared_env)
 
     nullify(array)
 
@@ -382,6 +406,7 @@ contains
     end associate
 
     call mpi_win_free(window, ierr)
+    call error_handling(ierr, "mpi", shared_env)
 
     nullify(array)
 
@@ -399,6 +424,7 @@ contains
     end associate
 
     call mpi_win_free(window, ierr)
+    call error_handling(ierr, "mpi", shared_env)
 
     nullify(array)
 
@@ -415,6 +441,7 @@ contains
     end associate
 
     call mpi_win_free(window, ierr)
+    call error_handling(ierr, "mpi", shared_env)
 
     nullify(array)
 
@@ -533,7 +560,7 @@ contains
 
   end subroutine
 
-    !> Query whether a STOP file exists and broadcast result to all processes
+  !> Query whether a STOP file exists and broadcast result to all processes
   module function query_stop_run(par_env) result(stop_run)
 
     class(parallel_environment), intent(in) :: par_env !< parallel_environment_mpi
@@ -552,6 +579,7 @@ contains
       end if
 
       call MPI_Bcast(stop_run, 1, MPI_LOGICAL, par_env%root, par_env%comm, ierr)
+      call error_handling(ierr, "mpi", par_env)
 
     class default
       call error_abort("Unsupported parallel environment")

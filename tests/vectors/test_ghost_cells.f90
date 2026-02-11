@@ -3,6 +3,7 @@ program test_ghost_cells
 
   use testing_lib
   use ccs_base, only: bnd_names_default
+  use core
   use constants, only: insert_mode
   use kinds, only: ccs_int
   use types, only: field, upwind_field, central_field, cell_locator, face_locator, neighbour_locator
@@ -32,13 +33,17 @@ program test_ghost_cells
   type(cell_locator) :: loc_p
   integer(ccs_int) :: global_index_p
 
+  type(ccs_options) :: run_options
+
   call init()
 
   proc_id = par_env%proc_id
   num_procs = par_env%num_procs
 
-  mesh = build_square_mesh(par_env, shared_env, 11, 1.0_ccs_real, &
-       bnd_names_default(1:4))
+  run_options%mesh%bnd_names = bnd_names_default(1:4)
+  run_options%mesh%cps = 11
+  run_options%mesh%domain_size = 1.0_ccs_real
+  mesh = build_square_mesh(par_env, shared_env, run_options)
   call set_mesh_object(mesh)
   call get_local_num_cells(local_num_cells)
 

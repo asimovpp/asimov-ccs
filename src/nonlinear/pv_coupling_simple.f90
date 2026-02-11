@@ -4,10 +4,10 @@
 
 submodule(pv_coupling) pv_coupling_simple
 #include "ccs_macros.inc"
-  use case_config, only: velocity_solver_method_name, velocity_solver_precon_name, &
-                         pressure_solver_method_name, pressure_solver_precon_name
+  use core, only: ccs_options
+  use kinds, only: ccs_int, ccs_real
   use types, only: vector_spec, ccs_vector, matrix_spec, ccs_matrix, equation_system, &
-                   linear_solver, bc_config, vector_values, cell_locator, &
+                   linear_solver, bc_config, vector_values, cell_locator, ccs_residuals, &
                    face_locator, neighbour_locator, matrix_values, matrix_values_spec, upwind_field
   use fv, only: compute_fluxes, calc_mass_flux, update_gradient
   use vec, only: create_vector, vec_reciprocal, scale_vec, &
@@ -18,9 +18,9 @@ submodule(pv_coupling) pv_coupling_simple
                  set_matrix_values_spec_ncols, create_matrix_values, mat_vec_product
   use utils, only: update, initialise, finalise, set_size, set_values, &
                    mult, zero, clear_entries, set_entry, set_row, set_col, set_mode, &
-                   str, exit_print
+                   str, exit_print, debug_print
+  use fields, only:  count_fields, get_field_idx, get_field, get_is_field_solved
 
-  use utils, only: debug_print, get_field, get_is_field_solved
   use solver, only: create_solver, solve, set_equation_system, axpy, norm, set_solver_method, set_solver_precon
   use constants, only: insert_mode, add_mode, ndim, cell
   use meshing, only: get_face_area, get_global_index, get_local_index, count_neighbours, &
@@ -30,12 +30,12 @@ submodule(pv_coupling) pv_coupling_simple
                      get_global_num_cells, &
                      get_max_faces, is_mesh_set
   use scalars, only: update_scalars
-  use timestepping, only: update_old_values, finalise_timestep, get_current_step, get_current_time
+  use timestepping, only: update_old_values, get_current_step, get_current_time
   use bc_constants, only: bc_type_dirichlet
+  use residuals, only: compute_residuals, compute_global_residuals, init_residuals, normalise_residuals, &
+                       get_max_residuals, print_residuals
 
   implicit none
-
-  integer(ccs_int), save :: varp = 0
 
   ! Temporary inverse coefficients until we can confirm correctness of applying pressure correction
   ! using a single coefficient
@@ -46,15 +46,24 @@ submodule(pv_coupling) pv_coupling_simple
 contains
 
   !> Solve Navier-Stokes equations using the SIMPLE algorithm
-  module subroutine solve_nonlinear(par_env, mesh, it_start, it_end, res_target, &
-                                    flow, diverged)
+  module subroutine solve_nonlinear(par_env, run_options, eval_sources, mesh, flow, diverged)
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env   !< parallel environment
+    type(ccs_options), intent(in) :: run_options
     type(ccs_mesh), intent(in) :: mesh                                !< the mesh
-    integer(ccs_int), intent(in) :: it_start
-    integer(ccs_int), intent(in) :: it_end
-    real(ccs_real), intent(in) :: res_target                          !< Target residual
+    interface
+      !v Subroutine to evaluate source terms, case-specific.
+      !
+      !  Note this should return the integrated source.
+      subroutine eval_sources(flow, phi, R, S)
+        use types, only: fluid, field, ccs_vector
+        type(fluid), intent(in) :: flow !< Provides access to full flow field
+        class(field), intent(in) :: phi !< Field being transported
+        class(ccs_vector), intent(inout) :: R !< Work vector (for evaluating linear/implicit sources)
+        class(ccs_vector), intent(inout) :: S !< Work vector (for evaluating fixed/explicit sources)
+      end subroutine eval_sources
+    end interface
     type(fluid), intent(inout) :: flow                                !< The structure containting all the fluid fields
     logical, optional, intent(out) :: diverged                        !< returns true if the solution diverged
 
@@ -64,8 +73,9 @@ contains
     class(ccs_matrix), allocatable :: M
     class(ccs_vector), allocatable :: invA    ! Inverse diagonal coefficient
     class(ccs_vector), allocatable :: workvec ! Temporary workspace vector 
+    class(ccs_vector), allocatable :: sourcevec
     class(ccs_vector), allocatable :: res
-    real(ccs_real), dimension(:), allocatable :: residuals
+    type(ccs_residuals) :: residuals
     integer(ccs_int) :: max_faces ! The maximum number of faces per cell
 
     type(vector_spec) :: vec_properties
@@ -90,6 +100,14 @@ contains
     class(field), pointer :: mf      !< field containing the face-centred velocity flux
     class(field), pointer :: viscosity !< field containing the viscosity
     class(field), pointer :: density !< field containing the density
+
+    integer(ccs_int) :: it_start
+    integer(ccs_int) :: it_end
+    real(ccs_real) :: res_target                          !< Target residual
+
+    it_start = run_options%solve%it_start
+    it_end = run_options%solve%it_end
+    res_target = run_options%solve%res_target
 
     if (.not. is_mesh_set()) then
       call error_abort("Mesh object needs to be set")
@@ -146,16 +164,12 @@ contains
     ! Create workspace vector
     call dprint("NONLINEAR: setup workspace")
     call create_vector(vec_properties, workvec)
+    call create_vector(vec_properties, sourcevec)
 
     ! Create vectors for storing residuals
     call dprint("NONLINEAR: setup residuals")
     call create_vector(vec_properties, res)
-    if (u_sol) nvar = nvar + 1
-    if (v_sol) nvar = nvar + 1
-    if (w_sol) nvar = nvar + 1
-    if (p_sol) nvar = nvar + 2 ! (Pressure residual & mass imbalance)
-    allocate (residuals(2 * nvar))
-    residuals(:) = 0.0_ccs_real
+    call init_residuals(flow, residuals)
 
     ! Get pressure gradient
     call dprint("NONLINEAR: compute gradients")
@@ -169,31 +183,31 @@ contains
 
       ! Solve momentum equation with guessed pressure and velocity fields (eq. 4)
       call dprint("NONLINEAR: guess velocity")
-      call calculate_velocity(par_env, flow, ivar, M, source, &
-                              lin_system, invA, workvec, res, residuals)
+      call calculate_velocity(par_env, run_options, flow, eval_sources, M, source, &
+                              lin_system, invA, workvec, sourcevec, res, residuals)
 
       ! Calculate pressure correction from mass imbalance (sub. eq. 11 into eq. 8)
       call dprint("NONLINEAR: mass imbalance")
-      call compute_mass_imbalance(invA, ivar, flow, source, residuals)
+      call compute_mass_imbalance(invA, flow, source, residuals)
       call dprint("NONLINEAR: compute p'")
-      call calculate_pressure_correction(par_env, invA, M, source, lin_system, p_prime, lin_solverP)
+      call calculate_pressure_correction(par_env, run_options, invA, M, source, lin_system, p_prime, lin_solverP)
 
       ! Update velocity with velocity correction (eq. 6)
       call dprint("NONLINEAR: correct face velocity")
-      call update_face_velocity(invA, p_prime, mf, res, residuals)
+      call update_face_velocity(flow, invA, p_prime, mf, res, residuals)
       call dprint("NONLINEAR: correct velocity")
       call update_velocity(flow)
 
       ! Update pressure field with pressure correction
       call dprint("NONLINEAR: correct pressure")
-      call update_pressure(p_prime, p)
+      call update_pressure(run_options, p_prime, p)
 
       !< density values are in single digits (same as i/p)
 
       ! Transport scalars
       ! XXX: Should we distinguish active scalars (update in non-linear loop) and passive scalars
       !      (single update per timestep)?
-      call update_scalars(par_env, mesh, flow)
+      call update_scalars(par_env, mesh, eval_sources, flow, residuals)
 
       !< density values change to exponential here after update
 
@@ -223,11 +237,8 @@ contains
     end do outerloop
 
     deallocate (lin_solverP)
-    call finalise_timestep()
 
     ! Free up memory
-    deallocate (residuals)
-
     deallocate(invAu)
     deallocate(invAv)
     deallocate(invAw)
@@ -239,26 +250,33 @@ contains
   !  Given an initial guess of a pressure field form the momentum equations (as scalar
   !  equations) and solve to obtain an intermediate velocity field u* that will not
   !  satisfy continuity.
-  subroutine calculate_velocity(par_env, flow, ivar, M, vec, &
-                                lin_sys, invA, workvec, res, residuals)
+  subroutine calculate_velocity(par_env, run_options, flow, eval_sources, M, vec, &
+                                lin_sys, invA, workvec, sourcevec, res, residuals)
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< the parallel environment
+    type(ccs_options), intent(in) :: run_options
     type(fluid), intent(inout) :: flow                   !< Container for flow fields
-    integer(ccs_int), intent(inout) :: ivar              !< flow variable counter
+    interface
+      !v Subroutine to evaluate source terms, case-specific.
+      !
+      !  Note this should return the integrated source.
+      subroutine eval_sources(flow, phi, R, S)
+        use types, only: fluid, field, ccs_vector
+        type(fluid), intent(in) :: flow !< Provides access to full flow field
+        class(field), intent(in) :: phi !< Field being transported
+        class(ccs_vector), intent(inout) :: R !< Work vector (for evaluating linear/implicit sources)
+        class(ccs_vector), intent(inout) :: S !< Work vector (for evaluating fixed/explicit sources)
+      end subroutine eval_sources
+    end interface
     class(ccs_matrix), allocatable, intent(inout) :: M   !< matrix object
     class(ccs_vector), allocatable, intent(inout) :: vec !< vector object
     type(equation_system), intent(inout) :: lin_sys      !< linear system object
     class(ccs_vector), intent(inout) :: invA             !< vector containing the inverse momentum coefficients
     class(ccs_vector), intent(inout) :: workvec          !< vector for work space
+    class(ccs_vector), intent(inout) :: sourcevec        !< vector for work space
     class(ccs_vector), intent(inout) :: res              !< residual field
-    real(ccs_real), dimension(:), intent(inout) :: residuals !< RMS and L-inf of residuals for each flow variable
-
-    ! Local variables
-    logical, save :: first_time = .true.
-    integer(ccs_int), save :: varu = 0
-    integer(ccs_int), save :: varv = 0
-    integer(ccs_int), save :: varw = 0
+    type(ccs_residuals), intent(inout) :: residuals      !< RMS and L-inf of residuals for each flow variable
 
     logical :: u_sol
     logical :: v_sol
@@ -282,29 +300,12 @@ contains
     call get_is_field_solved(v, v_sol)
     call get_is_field_solved(w, w_sol)
 
-    ! Set flow variable identifiers (for residuals)
-    if (first_time) then
-      if (u_sol) then
-        ivar = ivar + 1
-        varu = ivar
-      end if
-      if (v_sol) then
-        ivar = ivar + 1
-        varv = ivar
-      end if
-      if (w_sol) then
-        ivar = ivar + 1
-        varw = ivar
-      end if
-      first_time = .false.
-    end if
-
     ! u-velocity
     ! ----------
     if (u_sol) then
       call zero_vector(invAu)
-      call calculate_velocity_component(flow, par_env, varu, p, 1, M, vec, lin_sys, u, invAu, &
-           workvec, res, residuals)
+      call calculate_velocity_component(flow, par_env, run_options, eval_sources, p, 1, M, vec, lin_sys, u, invAu, &
+           workvec, sourcevec, res, residuals)
       call axpy(1.0_ccs_real, invAu, invA)
       call vec_reciprocal(invAu)
       dim = dim + 1.0_ccs_real
@@ -314,8 +315,8 @@ contains
     ! ----------
     if (v_sol) then
       call zero_vector(invAv)
-      call calculate_velocity_component(flow, par_env, varv, p, 2, M, vec, lin_sys, v, invAv, &
-                                        workvec, res, residuals)
+      call calculate_velocity_component(flow, par_env, run_options, eval_sources, p, 2, M, vec, lin_sys, v, invAv, &
+           workvec, sourcevec, res, residuals)
       call axpy(1.0_ccs_real, invAv, invA)
       call vec_reciprocal(invAv)
       dim = dim + 1.0_ccs_real
@@ -325,8 +326,8 @@ contains
     ! ----------
     if (w_sol) then
       call zero_vector(invAw)
-      call calculate_velocity_component(flow, par_env, varw, p, 3, M, vec, lin_sys, w, invAw, &
-                                        workvec, res, residuals)
+      call calculate_velocity_component(flow, par_env, run_options, eval_sources, p, 3, M, vec, lin_sys, w, invAw, &
+           workvec, sourcevec, res, residuals)
       call axpy(1.0_ccs_real, invAw, invA)
       call vec_reciprocal(invAw)
       dim = dim + 1.0_ccs_real
@@ -339,17 +340,28 @@ contains
 
   end subroutine calculate_velocity
 
-  subroutine calculate_velocity_component(flow, par_env, ivar, p, component, M, vec, &
-                                          lin_sys, u, invA, workvec, input_res, residuals)
+  subroutine calculate_velocity_component(flow, par_env, run_options, eval_sources, p, component, M, vec, &
+                                          lin_sys, u, invA, workvec, sourcevec, input_res, residuals)
 
-    use case_config, only: velocity_relax
     use timestepping, only: apply_timestep
     use profiler
 
     ! Arguments
     type(fluid), intent(inout) :: flow                   !< Container for flow fields
     class(parallel_environment), allocatable, intent(in) :: par_env
-    integer(ccs_int), intent(in) :: ivar
+    type(ccs_options), intent(in) :: run_options
+    interface
+      !v Subroutine to evaluate source terms, case-specific.
+      !
+      !  Note this should return the integrated source.
+      subroutine eval_sources(flow, phi, R, S)
+        use types, only: fluid, field, ccs_vector
+        type(fluid), intent(in) :: flow !< Provides access to full flow field
+        class(field), intent(in) :: phi !< Field being transported
+        class(ccs_vector), intent(inout) :: R !< Work vector (for evaluating linear/implicit sources)
+        class(ccs_vector), intent(inout) :: S !< Work vector (for evaluating fixed/explicit sources)
+      end subroutine eval_sources
+    end interface
     class(field), pointer :: mf
     class(field), pointer :: viscosity
     class(field), pointer :: density
@@ -361,14 +373,14 @@ contains
     class(field), target, intent(inout) :: u
     class(ccs_vector), intent(inout) :: invA
     class(ccs_vector), intent(inout) :: workvec
+    class(ccs_vector), intent(inout) :: sourcevec
     class(ccs_vector), target, intent(inout) :: input_res
     class(ccs_vector), pointer :: res
-    real(ccs_real), dimension(:), intent(inout) :: residuals
+    type(ccs_residuals), intent(inout) :: residuals
 
     ! Local variables
     class(linear_solver), allocatable :: lin_solver
-    integer(ccs_int) :: nvar ! Number of flow variables to solve
-    integer(ccs_int) :: global_num_cells
+    integer(ccs_int) :: timer_coeffs
 
     ! First zero matrix/RHS
     call zero(vec)
@@ -419,9 +431,12 @@ contains
     call dprint("compute viscous souce term")
     ! call calculate_momentum_viscous_source(flow, component, vec)
 
+    ! Add source terms
+    call get_momentum_sources(flow, u, eval_sources, workvec, sourcevec, M, vec)
+
     ! Underrelax the equations
     call dprint("GV: underrelax u")
-    call underrelax(velocity_relax, u, workvec, M, vec)
+    call underrelax(run_options%solve%velocity_relax, u, workvec, M, vec)
 
     ! Store contribution to central coefficient
     call dprint("GV: get u diag")
@@ -434,16 +449,6 @@ contains
     call update(vec)
     call finalise(M)
 
-    ! Compute residual
-    call mat_vec_product(M, u%values, res)
-    call vec_aypx(vec, -1.0_ccs_real, res)
-    ! Stores RMS of residuals
-    call get_global_num_cells(global_num_cells)
-    residuals(ivar) = norm(res, 2) / sqrt(real(global_num_cells))
-    ! Stores Linf norm of residuals
-    nvar = int(size(residuals) / 2_ccs_int)
-    residuals(ivar + nvar) = norm(res, 0)
-
     ! Create linear solver
     if (allocated(u%values%name)) then
       call set_equation_system(par_env, vec, u%values, M, lin_sys, u%values%name)
@@ -453,12 +458,15 @@ contains
     call create_solver(lin_sys, lin_solver)
 
     ! Customise linear solver
-    call set_solver_method(velocity_solver_method_name, lin_solver)
-    call set_solver_precon(velocity_solver_precon_name, lin_solver)
+    call set_solver_method(run_options%solve%velocity_solver, lin_solver)
+    call set_solver_precon(run_options%solve%velocity_precon, lin_solver)
 
     ! Solve the linear system
     call dprint("GV: solve u")
     call solve(lin_solver)
+
+    ! Compute residual
+    call compute_residuals(flow, M, u, vec, res, residuals)
 
     ! Clean up
     deallocate (lin_solver)
@@ -509,6 +517,39 @@ contains
     call restore_vector_data_readonly(p_gradients, p_gradient_data)
 
   end subroutine calculate_momentum_pressure_source
+
+  !v Assembles the case-specific source terms into the momentum equation(s).
+  subroutine get_momentum_sources(flow, u, eval_sources, R, S, M, rhs)
+
+    use fv, only: add_fixed_source, add_linear_source
+    
+    type(fluid), intent(in) :: flow !< The flow field.
+    class(field), intent(in) :: u   !< The velocity field for this equation
+    interface
+      !v Subroutine to evaluate source terms, case-specific.
+      !
+      !  Note this should return the integrated source.
+      subroutine eval_sources(flow, phi, R, S)
+        use types, only: fluid, field, ccs_vector
+        type(fluid), intent(in) :: flow !< Provides access to full flow field
+        class(field), intent(in) :: phi !< Field being transported
+        class(ccs_vector), intent(inout) :: R !< Work vector (for evaluating linear/implicit sources)
+        class(ccs_vector), intent(inout) :: S !< Work vector (for evaluating fixed/explicit sources)
+      end subroutine eval_sources
+    end interface
+    class(ccs_vector), intent(inout) :: R   !< Linear source vector
+    class(ccs_vector), intent(inout) :: S   !< Fixed source vector
+    class(ccs_matrix), intent(inout) :: M   !< System matrix
+    class(ccs_vector), intent(inout) :: rhs !< RHS vector
+
+    call eval_sources(flow, u, R, S)
+    ! TODO: Insert model-specific sources here
+    ! @note Model-specific source subroutines should be additive to avoid overwriting user-defined
+    !       sources.
+    call add_fixed_source(S, rhs)
+    call add_linear_source(R, M)
+    
+  end subroutine get_momentum_sources
 
   !v Adds the momentum source due to variation in viscosity
   subroutine calculate_momentum_viscous_source(flow, component, vec)
@@ -683,13 +724,15 @@ contains
   !v Solves the pressure correction equation
   !
   !  Solves the pressure correction equation formed by the mass-imbalance.
-  subroutine calculate_pressure_correction(par_env, invA, M, vec, lin_sys, p_prime, lin_solver)
+  subroutine calculate_pressure_correction(par_env, run_options, invA, M, vec, lin_sys, p_prime, lin_solver)
 
     use fv, only: compute_boundary_coeffs
     use profiler
+    use fv_kernels, only: diffusion_kernel
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< the parallel environment
+    type(ccs_options), intent(in) :: run_options                    !< runtime options
     class(ccs_vector), intent(inout) :: invA                        !< inverse diagonal momentum coefficients
     class(ccs_matrix), allocatable, intent(inout) :: M              !< matrix object
     class(ccs_vector), allocatable, intent(inout) :: vec            !< the RHS vector
@@ -711,6 +754,7 @@ contains
     real(ccs_real) :: face_area
     real(ccs_real), dimension(ndim) :: face_normal
     real(ccs_real) :: r
+    real(ccs_real), dimension(2) :: coeffs
     real(ccs_real) :: coeff_f, coeff_p, coeff_nb
     real(ccs_real) :: aPb, bP
     logical :: is_boundary
@@ -742,7 +786,13 @@ contains
 
     integer(ccs_int) :: global_num_cells
 
+    type(diffusion_kernel) :: diff_kernel
+    real(ccs_real), dimension(2) :: phi_dummy
+    real(ccs_real), dimension(3, 2) :: rvecs
+    real(ccs_real), dimension(3, 2) :: grads
+
     call profiler_begin_region("Building coefficients")
+
     ! First zero matrix
     call zero(M)
 
@@ -766,6 +816,8 @@ contains
       call clear_entries(vec_values)
 
       call create_cell_locator(index_p, loc_p)
+
+      ! ---> Rhie-Chow/Poisson equation
       call get_global_index(loc_p, global_index_p)
       call count_neighbours(loc_p, nnb)
 
@@ -791,47 +843,56 @@ contains
 
         call get_boundary_status(loc_f, is_boundary)
 
+        ! Determine Rhie-Chow coefficient
+        call get_face_interpolation(loc_f, interpol_factor)
         if (.not. is_boundary) then
-          ! Interior face
           call create_neighbour_locator(loc_p, j, loc_nb)
-          call get_global_index(loc_nb, global_index_nb)
           call get_local_index(loc_nb, index_nb)
-          call get_face_interpolation(loc_f, interpol_factor)
 
           call get_distance(loc_p, loc_nb, dx)
           dxmag = sqrt(sum(dx**2))
-          coeff_f = (1.0 / dxmag) * face_area
 
           call get_volume(loc_nb, V_nb)
           Vf = interpol_factor * Vp + (1.0_ccs_real - interpol_factor) * V_nb
 
           invA_nb = invA_data(index_nb)
           invA_f = interpol_factor * invA_p + (1.0_ccs_real - interpol_factor) * invA_nb
-
-          coeff_f = -(Vf * invA_f) * coeff_f
-
-          coeff_nb = coeff_f
-          col = global_index_nb
         else
           call get_distance(loc_p, loc_f, dx)
-          dxmag = sqrt(sum(dx**2))
-
-          coeff_f = (1.0 / (2 * dxmag)) * face_area
-          coeff_f = -(Vp * invA_p) * coeff_f
-
-          call compute_boundary_coeffs(p_prime, 0, loc_p, loc_f, face_normal, aPb, bP)
-          coeff_p = coeff_p + coeff_f * aPb
-          r = r - coeff_f * bP
-          col = -1 ! Don't attempt to set neighbour coefficients
-          coeff_nb = 0.0
+          dxmag = 2 * sqrt(sum(dx**2))
+          Vf = Vp
+          invA_f = invA_p
+          interpol_factor = 0.5_ccs_real
         end if
-        coeff_p = coeff_p - coeff_f
+        coeff_f = (1.0 / dxmag) * face_area
+        coeff_f = (Vf * invA_f) * coeff_f
+
+        ! Compute Poisson equation coefficients and RHS
+        coeffs = diff_kernel%eval_coeffs(coeff_f)
+        rvecs = 0.0_ccs_real ! There's no orthogonality correction to apply
+        grads = 0.0_ccs_real ! There's no orthogonality correction to apply
+        phi_dummy = [0.0_ccs_real, 1.0_ccs_real]
+        r = r + diff_kernel%eval_explicit(phi_dummy, coeff_f, interpol_factor, rvecs, grads)
+
+        coeff_p = coeff_p + coeffs(1)
+        coeff_nb = coeffs(2)
+
+        ! Set equation entries
+        if (.not. is_boundary) then
+          call create_neighbour_locator(loc_p, j, loc_nb)
+          call get_global_index(loc_nb, global_index_nb)
+          col = global_index_nb
+        else
+          ! Apply boundary modification to discretised equation
+          call compute_boundary_coeffs(p_prime, 0, loc_p, loc_f, face_normal, aPb, bP)
+          coeff_p = coeff_p + coeff_nb * aPb
+          r = r - coeff_nb * bP
+          col = -1 ! Don't attempt to set neighbour coefficients
+        end if
 
         call set_row(row, mat_coeffs)
         call set_col(col, mat_coeffs)
         call set_entry(coeff_nb, mat_coeffs)
-        ! call clear_entries(mat_coeffs)
-
       end do
 
       ! XXX: Need to fix pressure somewhere
@@ -855,6 +916,7 @@ contains
 
       call set_row(global_index_p, vec_values)
       call set_entry(r, vec_values)
+      ! <--- Rhie-Chow/Poisson equation
 
       ! Set the values
       call set_values(mat_coeffs, M)
@@ -887,8 +949,8 @@ contains
     call create_solver(lin_sys, lin_solver)
 
     ! Customise linear solver
-    call set_solver_method(pressure_solver_method_name, lin_solver)
-    call set_solver_precon(pressure_solver_precon_name, lin_solver)
+    call set_solver_method(run_options%solve%pressure_solver, lin_solver)
+    call set_solver_precon(run_options%solve%pressure_precon, lin_solver)
 
     ! Solve the linear system
     call dprint("P': solve")
@@ -897,13 +959,12 @@ contains
   end subroutine calculate_pressure_correction
 
   !> Computes the per-cell mass imbalance, updating the face velocity flux as it does so.
-  subroutine compute_mass_imbalance(invA, ivar, flow, input_b, residuals)
+  subroutine compute_mass_imbalance(invA, flow, input_b, residuals)
 
     class(ccs_vector), intent(inout) :: invA !< The inverse momentum equation diagonal coefficient
-    integer(ccs_int), intent(inout) :: ivar  !< Counter for flow variables
     type(fluid), intent(inout) :: flow                   !< Container for flow fields
     class(ccs_vector), target, intent(inout) :: input_b   !< The per-cell mass imbalance
-    real(ccs_real), dimension(:), intent(inout) :: residuals !< Residual for each equation
+    type(ccs_residuals), intent(inout) :: residuals !< Residual for each equation
 
     class(ccs_vector), pointer :: b   !< The per-cell mass imbalance
     type(vector_values) :: vec_values
@@ -932,10 +993,7 @@ contains
     integer(ccs_int) :: index_nb      ! Neighbour cell index
 
     real(ccs_real) :: mib ! Cell mass imbalance
-    integer(ccs_int) :: nvar ! Number of flow variables to solve
-    integer(ccs_int) :: global_num_cells
-
-    logical, save :: first_time = .true.
+    integer(ccs_int) :: ifield
 
     class(field), pointer :: u        !< The x velocity component
     class(field), pointer :: v        !< The y velocity component
@@ -948,14 +1006,6 @@ contains
     call get_field(flow, "w", w)
     call get_field(flow, "p", p)
     call get_field(flow, "mf", mf)
-
-
-    ! Set variable index for pressure
-    if (first_time) then
-      ivar = ivar + 1
-      varp = ivar
-      first_time = .false.
-    end if
 
     call create_vector_values(1_ccs_int, vec_values)
     call set_mode(insert_mode, vec_values)
@@ -1052,25 +1102,20 @@ contains
     call update(mf%values)
 
     ! Pressure residual
-    ! Stores RMS of residuals
-    call get_global_num_cells(global_num_cells)
-    residuals(varp) = norm(b, 2) / sqrt(real(global_num_cells))
-    ! Stores Linf norm of residuals
-    nvar = int(size(residuals) / 2_ccs_int)
-    residuals(varp + nvar) = norm(b, 0)
+    call get_field_idx(flow, p, ifield)
+    call normalise_residuals(b, ifield, residuals)
 
   end subroutine compute_mass_imbalance
 
   !> Corrects the pressure field, using explicit underrelaxation
-  subroutine update_pressure(p_prime, p)
-
-    use case_config, only: pressure_relax
+  subroutine update_pressure(run_options, p_prime, p)
 
     ! Arguments
+    type(ccs_options), intent(in) :: run_options
     class(field), intent(in) :: p_prime !< pressure correction
     class(field), intent(inout) :: p    !< the pressure field being corrected
 
-    call axpy(pressure_relax, p_prime%values, p%values)
+    call axpy(run_options%solve%pressure_relax, p_prime%values, p%values)
 
     call update_gradient(p)
 
@@ -1123,16 +1168,16 @@ contains
   end subroutine update_velocity
 
   !> Corrects the face velocity flux using the pressure correction
-  subroutine update_face_velocity(invA, p_prime, mf, b, residuals)
-
+  subroutine update_face_velocity(flow, invA, p_prime, mf, b, residuals)
+    type(fluid), intent(inout) :: flow                              !< Container for flow fields
     class(ccs_vector), intent(inout) :: invA !< The inverse momentum equation diagonal coefficient
     class(field), intent(inout) :: p_prime   !< The pressure correction
     class(field), intent(inout) :: mf        !< The face velocity being corrected
     class(ccs_vector), intent(inout) :: b    !< The per-cell mass imbalance
-    real(ccs_real), dimension(:), intent(inout) :: residuals !< Residual for each equation
+    type(ccs_residuals), intent(inout) :: residuals !< Residual for each equation
 
     integer(ccs_int) :: local_num_cells
-    integer(ccs_int) :: i
+    integer(ccs_int) :: i, ifield
 
     real(ccs_real) :: mf_prime
     real(ccs_real), dimension(:), allocatable :: zero_arr
@@ -1153,10 +1198,7 @@ contains
     integer(ccs_int) :: global_index_p  ! Central cell global index
     real(ccs_real) :: face_area         ! Face area
     real(ccs_real) :: mib
-    integer(ccs_int) :: nvar ! Number of flow variables to solve
     type(vector_values) :: vec_values
-
-    integer(ccs_int) :: global_num_cells
 
     call create_vector_values(1_ccs_int, vec_values)
     call set_mode(insert_mode, vec_values)
@@ -1222,122 +1264,33 @@ contains
     !! Get corrected mass-imbalance
     call update(b)
 
-    ! Stores RMS of residuals
-    call get_global_num_cells(global_num_cells)
-    residuals(varp + 1) = norm(b, 2) / sqrt(real(global_num_cells))
-    ! Stores Linf norm of residuals
-    nvar = int(size(residuals) / 2_ccs_int)
-    residuals(varp + 1 + nvar) = norm(b, 0)
+    ! Stores residuals
+    call get_field_idx(flow, mf, ifield)
+    call normalise_residuals(b, ifield, residuals)
 
   end subroutine update_face_velocity
 
   subroutine check_convergence(par_env, flow, itr, residuals, res_target, &
                                converged, diverged)
-
+    use ccs_base, only: L2, Linfty
+    
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< The parallel environment
     type(fluid), intent(inout) :: flow                              !< Container for flow fields
     integer(ccs_int), intent(in) :: itr                             !< Iteration count
-    real(ccs_real), dimension(:), intent(in) :: residuals           !< RMS and Linf of residuals for each equation
+    type(ccs_residuals), intent(inout) :: residuals
     real(ccs_real), intent(in) :: res_target                        !< Target residual
     logical, intent(inout) :: converged                             !< Has solution converged (true/false)
     logical, optional, intent(out) :: diverged                      !< Has solution diverged (true/false)
 
-    ! Local variables
-    integer :: io_unit
-    integer(ccs_int) :: step                            !< The current time-step
-    real(ccs_real) :: time                              !< The current time
-    integer(ccs_int) :: nvar              ! Number of variables (u,v,w,p,etc)
-    integer(ccs_int) :: i
-    character(len=60) :: fmt              ! Format string for writing out residuals
-    character(len=60) :: prefix           ! prefix for residual norms
-    logical, save :: first_time = .true.  ! Whether first time this subroutine is called
-
-    class(field), pointer :: u
-    class(field), pointer :: v
-    class(field), pointer :: w
-    class(field), pointer :: p
-    logical :: u_sol                                    !< Is x-velocity being solved (true/false)
-    logical :: v_sol                                    !< Is y-velocity being solved (true/false)
-    logical :: w_sol                                    !< Is z-velocity being solved (true/false)
-    logical :: p_sol                                    !< Is pressure field being solved (true/false)
-    
-    call get_field(flow, "u", u)
-    call get_field(flow, "v", v)
-    call get_field(flow, "w", w)
-    call get_field(flow, "p", p)
-
-    call get_is_field_solved(u, u_sol)
-    call get_is_field_solved(v, v_sol)
-    call get_is_field_solved(w, w_sol)
-    call get_is_field_solved(p, p_sol)
-    call get_current_step(step)
-    call get_current_time(time)
-
-    nvar = int(size(residuals) / 2_ccs_int)
-
-    ! Print residuals
-    if (par_env%proc_id == par_env%root) then
-      if (first_time) then
-        ! Write header
-        open (newunit=io_unit, file="residuals.log", status="replace", form="formatted")
-
-        write (*, *)
-        if (step >= 0) then
-          write (*, '(a6, 1x, a6)', advance='no') 'Step', 'Iter'
-
-          write (io_unit, '(a6, 1x, a12, 1x, a6)', advance='no') '#step', 'time', 'iter'
-        else
-          write (*, '(a6)', advance='no') 'Iter'
-
-          write (io_unit, '(a6)', advance='no') '#iter'
-        end if
-        do i = 1, 2
-          if (u_sol) write (*, '(1x,a12)', advance='no') 'u'
-          if (v_sol) write (*, '(1x,a12)', advance='no') 'v'
-          if (w_sol) write (*, '(1x,a12)', advance='no') 'w'
-          if (p_sol) write (*, '(1x,a12)', advance='no') 'p'
-          if (p_sol) write (*, '(1x,a12)', advance='no') '|div(u)|'
-
-          if (i == 1) then
-            prefix = "L2_"
-          else
-            prefix = "Linf_"
-          end if
-          if (u_sol) write (io_unit, '(1x,a12)', advance='no') trim(prefix) // 'u'
-          if (v_sol) write (io_unit, '(1x,a12)', advance='no') trim(prefix) // 'v'
-          if (w_sol) write (io_unit, '(1x,a12)', advance='no') trim(prefix) // 'w'
-          if (p_sol) write (io_unit, '(1x,a12)', advance='no') trim(prefix) // 'p'
-          if (p_sol) write (io_unit, '(1x,a12)', advance='no') trim(prefix) // 'div(u)'
-        end do
-        write (*, *)
-        write (io_unit, *)
-        first_time = .false.
-      else
-        open (newunit=io_unit, file="residuals.log", status="old", form="formatted", position="append")
-      end if
-
-      ! Write step, iteration and residuals
-      if (step >= 0) then
-        fmt = '(i6,1x,i6,' // str(2 * nvar) // '(1x,e12.4))'
-        write (*, fmt) step, itr, residuals(1:2 * nvar)
-
-        fmt = '(i6,1x,e12.4,1x,i6,' // str(2 * nvar) // '(1x,e12.4))'
-        write (io_unit, fmt) step, time, itr, residuals(1:2 * nvar)
-      else
-        fmt = '(i6,' // str(2 * nvar) // '(1x,e12.4))'
-        write (*, fmt) itr, residuals(1:2 * nvar)
-
-        write (io_unit, fmt) itr, residuals(1:2 * nvar)
-      end if
-      close (io_unit)
-    end if
+    call compute_global_residuals(par_env, flow, residuals)
+    call print_residuals(par_env, flow, itr, residuals)
 
     ! checks if RMS of residuals is below target
-    if (maxval(residuals(1:nvar)) < res_target) converged = .true.
+    converged = (get_max_residuals(residuals, L2) < res_target)
 
     if (present(diverged)) then
-      diverged = (maxval(residuals) > huge(1.0_ccs_real)) 
+      diverged = (get_max_residuals(residuals, Linfty) > huge(1.0_ccs_real)) 
     end if
 
   end subroutine check_convergence

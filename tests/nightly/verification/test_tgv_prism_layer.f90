@@ -4,12 +4,13 @@
 program test_tgv_prism_layer
 #include "ccs_macros.inc"
 
+  use core
   use testing_lib
   use ccs_base, only: bnd_names_default
-  use error_analysis, only: get_order, print_error_summary
+  use error_analysis, only: compute_order, print_error_summary
   use types, only: cell_locator, face_locator, vert_locator
   use mesh_utils, only: build_square_mesh
-  use tgv2d_core, only: run_tgv2d, domain_size
+  use tgv2d_core, only: run_tgv2d
   use mesh_utils, only: compute_face_interpolation
   use meshing, only: get_local_num_cells, get_total_num_cells, set_mesh_object, nullify_mesh_object, &
                      create_cell_locator, create_face_locator, create_vert_locator, &
@@ -34,6 +35,9 @@ program test_tgv_prism_layer
   character(len=12), dimension(nvar) :: variable_labels
 
   integer(ccs_int) :: i, j
+  type(ccs_options) :: run_options
+
+  real(ccs_real) :: domain_size
 
   call init()
 
@@ -49,8 +53,10 @@ program test_tgv_prism_layer
 
   do i = 1, num_cps
     cps = cps_list(i)
-    mesh = build_square_mesh(par_env, shared_env, cps, domain_size, &
-         bnd_names_default(1:4))
+    run_options%mesh%bnd_names = bnd_names_default(1:4)
+    run_options%mesh%cps = cps
+    run_options%mesh%domain_size = domain_size
+    mesh = build_square_mesh(par_env, shared_env, run_options)
 
     call generate_prism_layer(shared_env, growth_rate, cps, mesh)
 
@@ -61,8 +67,8 @@ program test_tgv_prism_layer
 
     call print_error_summary(variable_labels, refinements, error_L2, error_Linf)
 
-    call get_order(refinements, error_L2, orders_L2)
-    call get_order(refinements, error_Linf, orders_Linf)
+    call compute_order(refinements, error_L2, orders_L2)
+    call compute_order(refinements, error_Linf, orders_Linf)
 
     call assert_gt(orders_L2(1), 1.9_ccs_real, "U not converging in 2nd order ")
     call assert_gt(orders_L2(2), 1.9_ccs_real, "V not converging in 2nd order ")

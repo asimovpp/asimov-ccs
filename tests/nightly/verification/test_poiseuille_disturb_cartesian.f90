@@ -4,11 +4,12 @@
 program test_poiseuille_disturb_cartesian
 #include "ccs_macros.inc"
 
-  use ccs_base, only: bnd_names_default
+  use core
   use testing_lib
-  use error_analysis, only: get_order, print_error_summary, disturb_cartesian
+  use error_analysis, only: compute_order, print_error_summary, disturb_cartesian
   use mesh_utils, only: build_square_mesh
-  use poiseuille_core, only: run_poiseuille, domain_size
+  use ccs_base, only: bnd_names_default
+  use poiseuille_core, only: run_poiseuille
   use mesh_utils, only: compute_face_interpolation
   use meshing, only: get_total_num_cells, set_mesh_object, nullify_mesh_object
 
@@ -27,6 +28,9 @@ program test_poiseuille_disturb_cartesian
   character(len=12), dimension(nvar) :: variable_labels
 
   integer(ccs_int) :: i
+  type(ccs_options) :: run_options
+
+  real(ccs_real) :: domain_size
 
   call init()
 
@@ -41,8 +45,10 @@ program test_poiseuille_disturb_cartesian
 
   do i = 1, num_cps
     cps = cps_list(i)
-    mesh = build_square_mesh(par_env, shared_env, cps, domain_size, &
-         bnd_names_default(1:4))
+    run_options%mesh%cps = cps
+    run_options%mesh%domain_size = domain_size
+    run_options%mesh%bnd_names = bnd_names_default(1:4)
+    mesh = build_square_mesh(par_env, shared_env, run_options)
 
     call set_mesh_object(mesh)
     call disturb_cartesian(cps, domain_size, mesh)
@@ -55,8 +61,8 @@ program test_poiseuille_disturb_cartesian
 
     call print_error_summary(variable_labels, refinements, error_L2, error_Linf)
 
-    call get_order(refinements, error_L2, orders_L2)
-    call get_order(refinements, error_Linf, orders_Linf)
+    call compute_order(refinements, error_L2, orders_L2)
+    call compute_order(refinements, error_Linf, orders_Linf)
 
     call assert_gt(orders_L2(1), 1.9_ccs_real, "U not converging in 2nd order ")
     call assert_gt(orders_L2(2), 1.9_ccs_real, "V not converging in 2nd order ")

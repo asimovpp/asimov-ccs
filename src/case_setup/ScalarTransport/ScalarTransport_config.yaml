@@ -15,6 +15,7 @@ steps: 100
 # time step size
 dt: 1.0e-2
 
+mesh: 2d
 # Square/cubic mesh generation parameters
 # cells per side
 cps: 16
@@ -63,22 +64,31 @@ write_frequency: 5
 #output:
 #  every: 1000
 
-#post:
-#  type: center
-#  variables: [u, v, w, p]
+post:
+  type: center
+  variables: [whisky, water]
 
 variables:
   store_residuals: false
-  n_variables: 2
+  n_variables: 5
   variable_1:
     name: whisky
     type: central
   variable_2:
     name: water
     type: upwind
+  variable_3:
+    name: u
+    type: central
+  variable_4:
+    name: v
+    type: central
+  variable_5:
+    name: w
+    type: central
 
 boundaries:
-  n_boundaries: 6
+  n_boundaries: 4
   boundary_1: 
     name: left
     type: neumann

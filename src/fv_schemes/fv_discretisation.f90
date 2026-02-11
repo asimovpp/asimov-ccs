@@ -198,7 +198,7 @@ contains
       ! -------------
       coeffaF = 0.5_ccs_real
       coeffaP = 1.0_ccs_real - coeffaF
-    endif
+    end if
 
     ! Restore vectors
     call restore_vector_data(phi%values, phi_data)
