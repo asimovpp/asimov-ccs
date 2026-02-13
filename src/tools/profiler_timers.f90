@@ -5,7 +5,7 @@ submodule(profiler) profiler_timers
 
 contains
 
-  !> Initialise Caliper profiler
+  !> Initialise timer-based profiler
   module subroutine profiler_init()
     use timers, only: timer_init
 
@@ -13,7 +13,7 @@ contains
 
   end subroutine
 
-  !> Shutdown Caliper profiler
+  !> Shutdown timer-based profiler
   module subroutine profiler_shutdown(par_env)
     use timers, only: timer_print_all, timer_export_csv, timer_reset
     use parallel_types_mpi, only: parallel_environment_mpi

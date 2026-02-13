@@ -52,7 +52,7 @@ bases:
       reordering: [reordering_rcm, reordering_petsc, reordering_zcurve, reordering_none]
       poisson_discretisation: [poisson_discretisation_ref]
       partitioning: [partitioning_parhip, partitioning_parmetis]
-      profiler: [profiler_timers, profiler_caliper]
+      profiler: [profiler_timers, profiler_caliper, profiler_likwid]
   mpi:
     defaults:
       mat_common: mat_common
