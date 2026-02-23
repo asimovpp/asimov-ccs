@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""ReFrame base module for LAMMPS tests"""
+"""ReFrame base module for Asimov-CCS tests"""
 
 import os
 
@@ -13,12 +13,12 @@ class BuildCCS(rfm.CompileOnlyRegressionTest):
   https://reframe-hpc.readthedocs.io/en/stable/tutorial.html#test-fixtures
   """
 
-  build_system = "make"
+  build_system = "Make"
   modules = []
   sourcesdir = "https://git.ecdf.ed.ac.uk/asimov/asimov-ccs.git"
   #  sourcepath = "src"
   local = True
-  build_locally = True
+  build_locally = False
 
   valid_prog_environs = ["PrgEnv-gnu", "PrgEnv-cray"]
 
@@ -49,11 +49,14 @@ class BuildCCS(rfm.CompileOnlyRegressionTest):
     return sn.path_exists(os.path.join(build_dir, "ccs_app"))
 
 
+@rfm.simple_test
 class RunCCS(rfm.RunOnlyRegressionTest):
   """Run CCS"""
 
+  valid_systems = ["archer2:compute"]
   valid_prog_environs = ["PrgEnv-cray"]
   executable = "ccs_app"
+  stream_binary = fixture(BuildCCS, scope="environment")
 
   keep_files = ["residulas.log", "timers.csv"]
 
@@ -63,7 +66,6 @@ class RunCCS(rfm.RunOnlyRegressionTest):
   @run_before("compile")
   def prepare_build(self):
     """Setup environment for build"""
-    self.build_system.max_concurrency = 8
     self.build_system.build_dir = f"{self.stagedir}/ccs_build"
     self.build_system.options = ["all"]
 
@@ -79,3 +81,15 @@ class RunCCS(rfm.RunOnlyRegressionTest):
       self.env_vars["CMP"] = "cray"
     elif self.current_environ == "PrgEnv-gnu":
       self.env_vars["CMP"] = "gnu"
+
+    @run_after("setup")
+    def set_executable(self):
+        """sets up executable"""
+        self.executable = os.path.join(self.stream_binary.build_system.builddir, "ccs_app")
+
+
+  @sanity_function
+  def assert_finished(self):
+    """Sanity check that simulation finished successfully"""
+    file_len = len(self.keep_files[0])
+    return sn.assert_ge(file_len, 10)
