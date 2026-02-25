@@ -8,6 +8,7 @@ program test_tgv_timestep
   use error_analysis, only: compute_order, print_error_summary
   use tgv2d_core, only: run_tgv2d
   use timestepping, only: get_theoretical_order
+  use parallel, only: is_root
 
   implicit none
 
@@ -41,7 +42,7 @@ program test_tgv_timestep
     call run_tgv2d(par_env, shared_env, errors_L2(:, i), errors_Linf(:, i), input_dt=dt, input_num_steps=num_steps)
   end do
 
-  if (par_env%proc_id == par_env%root) then
+  if (is_root(par_env)) then
 
     call print_error_summary(variable_labels, refinements, errors_L2, errors_Linf)
 

@@ -12,6 +12,7 @@ program test_tgv_disturb_cartesian
   use tgv2d_core, only: run_tgv2d
   use mesh_utils, only: compute_face_interpolation
   use meshing, only: get_total_num_cells, set_mesh_object, nullify_mesh_object
+  use parallel, only: is_root
 
   implicit none
 
@@ -58,7 +59,7 @@ program test_tgv_disturb_cartesian
     call run_tgv2d(par_env, shared_env, error_L2(:, i), error_Linf(:, i), input_mesh=mesh)
   end do
 
-  if (par_env%proc_id == par_env%root) then
+  if (is_root(par_env)) then
 
     call print_error_summary(variable_labels, refinements, error_L2, error_Linf)
 

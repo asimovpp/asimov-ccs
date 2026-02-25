@@ -39,9 +39,6 @@ contains
     real(ccs_real), intent(in), optional :: input_dt !< timestep, if not provided, the yaml config option is used
     integer(ccs_int), intent(in), optional :: input_num_steps !< number of timesteps, if not provided, the yaml config option is used
 
-    integer(ccs_int) :: irank ! MPI rank ID
-    integer(ccs_int) :: isize ! Size of MPI world
-
     integer(ccs_int):: timer_index_total
     integer(ccs_int):: timer_index_init
 
@@ -49,9 +46,6 @@ contains
 
     type(ccs_options) :: run_options
     
-    irank = par_env%proc_id
-    isize = par_env%num_procs
-
     call timer_register_start("Elapsed time", timer_index_total, is_total_time=.true.)
     call timer_register_start("Init time", timer_index_init)
 
