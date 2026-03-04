@@ -44,6 +44,7 @@ contains
     associate(foo => par_env)
     end associate
     call mgr%flush
+    call cali_flush(0)
     call configmanager_delete(mgr)
 
   end subroutine
