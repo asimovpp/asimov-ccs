@@ -380,7 +380,6 @@ contains
 
     ! Local variables
     class(linear_solver), allocatable :: lin_solver
-    integer(ccs_int) :: timer_coeffs
 
     ! First zero matrix/RHS
     call zero(vec)

@@ -41,6 +41,8 @@ contains
   module subroutine profiler_shutdown(par_env)
     class(parallel_environment), intent(in) :: par_env
 
+    associate(foo => par_env)
+    end associate
     call mgr%flush
     call configmanager_delete(mgr)
 
