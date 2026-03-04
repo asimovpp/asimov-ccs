@@ -75,8 +75,8 @@ contains
       num_steps = 1
     end if
     
-    call profiler_begin_region("Solver time inc I/O")
     do t = 1, num_steps
+      call profiler_begin_region("Solver time inc I/O")
 
       ! XXX: Coupler update here
       call advance_step(par_env, run_options, eval_sources, flow_fields, diverged)
@@ -91,6 +91,7 @@ contains
       call postproc(par_env, flow_fields)
 
       if (check_stop_run(par_env, run_options, t, flow_fields, diverged)) then
+        call profiler_end_region("Solver time inc I/O")
         exit
       end if
 
@@ -98,8 +99,8 @@ contains
         call write_step(par_env, run_options, t, flow_fields)
       end if
 
+      call profiler_end_region("Solver time inc I/O")
     end do
-    call profiler_end_region("Solver time inc I/O")
 
 
   end subroutine run_solver
