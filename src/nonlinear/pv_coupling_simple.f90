@@ -22,7 +22,7 @@ submodule(pv_coupling) pv_coupling_simple
   use fields, only:  count_fields, get_field_idx, get_field, get_is_field_solved
 
   use solver, only: create_solver, solve, set_equation_system, axpy, norm, set_solver_method, set_solver_precon
-  use constants, only: insert_mode, add_mode, ndim, cell
+  use constants, only: add_mode, insert_mode, ndim, cell
   use meshing, only: get_face_area, get_global_index, get_local_index, count_neighbours, &
                      get_boundary_status, get_face_normal, create_neighbour_locator, create_face_locator, &
                      create_cell_locator, get_volume, get_distance, &
@@ -727,7 +727,7 @@ contains
 
     use fv, only: compute_boundary_coeffs
     use profiler
-    use fv_kernels, only: diffusion_kernel
+    use fv_equations, only: poisson_equation
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< the parallel environment
@@ -743,55 +743,18 @@ contains
     type(matrix_values) :: mat_coeffs
     type(vector_values) :: vec_values
     type(cell_locator) :: loc_p
-    type(neighbour_locator) :: loc_nb
-    type(face_locator) :: loc_f
+    type(matrix_values_spec) :: mat_val_spec
+
     integer(ccs_int) :: local_num_cells
-    integer(ccs_int) :: global_index_p, global_index_nb, index_p
-    integer(ccs_int) :: j
-    integer(ccs_int) :: nnb
-    integer(ccs_int) :: row, col
-    real(ccs_real) :: face_area
-    real(ccs_real), dimension(ndim) :: face_normal
-    real(ccs_real) :: r
-    real(ccs_real), dimension(2) :: coeffs
-    real(ccs_real) :: coeff_f, coeff_p, coeff_nb
-    real(ccs_real) :: aPb, bP
-    logical :: is_boundary
+    integer(ccs_int) :: index_p
+    integer(ccs_int) :: max_faces
+    integer(ccs_int) :: max_stencil_width
 
     real(ccs_real), dimension(:), pointer :: invA_data
 
-    real(ccs_real) :: Vp
-    real(ccs_real) :: V_nb
-    real(ccs_real) :: Vf
-    real(ccs_real) :: invA_p
-    real(ccs_real) :: invA_nb
-    real(ccs_real) :: invA_f
-
-    integer(ccs_int) :: index_nb
-
-    integer(ccs_int) :: cps   ! Cells per side
-    integer(ccs_int) :: rcrit ! Global index of approximate central cell
-
-    ! Specify block size (how many elements to set at once?)
-    integer(ccs_int) :: block_nrows
-    integer(ccs_int) :: block_ncols
-
-    type(matrix_values_spec) :: mat_val_spec
-
-    real(ccs_real) :: interpol_factor
-
-    real(ccs_real), dimension(ndim) :: dx
-    real(ccs_real) :: dxmag
-
-    integer(ccs_int) :: global_num_cells
-
-    type(diffusion_kernel) :: diff_kernel
-    real(ccs_real), dimension(2) :: phi_dummy
-    real(ccs_real), dimension(3, 2) :: rvecs
-    real(ccs_real), dimension(3, 2) :: grads
+    type(poisson_equation) :: pois_eqn
 
     call profiler_begin_region("Building coefficients")
-
     ! First zero matrix
     call zero(M)
 
@@ -799,6 +762,8 @@ contains
     call dprint("P': negate RHS")
     call scale_vec(-1.0_ccs_real, vec)
     call update(vec)
+
+    call update_gradient(p_prime)
 
     call create_vector_values(1_ccs_int, vec_values)
     call set_mode(add_mode, vec_values)
@@ -808,124 +773,38 @@ contains
     call dprint("P': get invA")
     call get_vector_data_readonly(invA, invA_data)
 
+    call dprint("P': setup equation buffers")
+    call get_max_faces(max_faces)
+    max_stencil_width = max_faces + 1
+    call set_matrix_values_spec_nrows(1_ccs_int, mat_val_spec)
+    call set_matrix_values_spec_ncols(max_stencil_width, mat_val_spec)
+    call create_matrix_values(mat_val_spec, mat_coeffs)
+    call set_mode(insert_mode, mat_coeffs)
+
+    call pois_eqn%bind_inverse(invA_data)
+    call pois_eqn%init(max_faces)
+
     ! Loop over cells
     call dprint("P': cell loop")
     call get_local_num_cells(local_num_cells)
     do index_p = 1, local_num_cells
+      call clear_entries(mat_coeffs)
       call clear_entries(vec_values)
 
       call create_cell_locator(index_p, loc_p)
 
-      ! ---> Rhie-Chow/Poisson equation
-      call get_global_index(loc_p, global_index_p)
-      call count_neighbours(loc_p, nnb)
+      call pois_eqn%gather(p_prime, loc_p)
+      call pois_eqn%apply(mat_coeffs, vec_values)
 
-      block_nrows = 1_ccs_int
-      block_ncols = 1_ccs_int + nnb
-      call set_matrix_values_spec_nrows(block_nrows, mat_val_spec)
-      call set_matrix_values_spec_ncols(block_ncols, mat_val_spec)
-      call create_matrix_values(mat_val_spec, mat_coeffs)
-      call set_mode(insert_mode, mat_coeffs)
-
-      row = global_index_p
-      coeff_p = 0.0_ccs_real
-      r = 0.0_ccs_real
-
-      call get_volume(loc_p, Vp)
-      invA_p = invA_data(index_p)
-
-      ! Loop over faces
-      do j = 1, nnb
-        call create_face_locator(index_p, j, loc_f)
-        call get_face_area(loc_f, face_area)
-        call get_face_normal(loc_f, face_normal)
-
-        call get_boundary_status(loc_f, is_boundary)
-
-        ! Determine Rhie-Chow coefficient
-        call get_face_interpolation(loc_f, interpol_factor)
-        if (.not. is_boundary) then
-          call create_neighbour_locator(loc_p, j, loc_nb)
-          call get_local_index(loc_nb, index_nb)
-
-          call get_distance(loc_p, loc_nb, dx)
-          dxmag = sqrt(sum(dx**2))
-
-          call get_volume(loc_nb, V_nb)
-          Vf = interpol_factor * Vp + (1.0_ccs_real - interpol_factor) * V_nb
-
-          invA_nb = invA_data(index_nb)
-          invA_f = interpol_factor * invA_p + (1.0_ccs_real - interpol_factor) * invA_nb
-        else
-          call get_distance(loc_p, loc_f, dx)
-          dxmag = 2 * sqrt(sum(dx**2))
-          Vf = Vp
-          invA_f = invA_p
-          interpol_factor = 0.5_ccs_real
-        end if
-        coeff_f = (1.0 / dxmag) * face_area
-        coeff_f = (Vf * invA_f) * coeff_f
-
-        ! Compute Poisson equation coefficients and RHS
-        coeffs = diff_kernel%eval_coeffs(coeff_f)
-        rvecs = 0.0_ccs_real ! There's no orthogonality correction to apply
-        grads = 0.0_ccs_real ! There's no orthogonality correction to apply
-        phi_dummy = [0.0_ccs_real, 1.0_ccs_real]
-        r = r + diff_kernel%eval_explicit(phi_dummy, coeff_f, interpol_factor, rvecs, grads)
-
-        coeff_p = coeff_p + coeffs(1)
-        coeff_nb = coeffs(2)
-
-        ! Set equation entries
-        if (.not. is_boundary) then
-          call create_neighbour_locator(loc_p, j, loc_nb)
-          call get_global_index(loc_nb, global_index_nb)
-          col = global_index_nb
-        else
-          ! Apply boundary modification to discretised equation
-          call compute_boundary_coeffs(p_prime, 0, loc_p, loc_f, face_normal, aPb, bP)
-          coeff_p = coeff_p + coeff_nb * aPb
-          r = r - coeff_nb * bP
-          col = -1 ! Don't attempt to set neighbour coefficients
-        end if
-
-        call set_row(row, mat_coeffs)
-        call set_col(col, mat_coeffs)
-        call set_entry(coeff_nb, mat_coeffs)
-      end do
-
-      ! XXX: Need to fix pressure somewhere
-      !      Row is the global index - should be unique
-      !      Locate approximate centre of mesh (assuming a square)
-      if (.not. any(p_prime%bcs%bc_types(:) == bc_type_dirichlet)) then
-        call get_global_num_cells(global_num_cells)
-        cps = int(sqrt(real(global_num_cells)), ccs_int)
-        rcrit = (cps / 2) * (1 + cps)
-        if (row == rcrit) then
-          coeff_p = coeff_p + 1.0e30 ! Force diagonal to be huge -> zero solution (approximately).
-          call dprint("Fixed coeff_p" // str(coeff_p) // " at " // str(row))
-        end if
-      end if
-
-      ! Add the diagonal entry
-      col = row
-      call set_row(row, mat_coeffs)
-      call set_col(col, mat_coeffs)
-      call set_entry(coeff_p, mat_coeffs)
-
-      call set_row(global_index_p, vec_values)
-      call set_entry(r, vec_values)
-      ! <--- Rhie-Chow/Poisson equation
-
-      ! Set the values
       call set_values(mat_coeffs, M)
       call set_values(vec_values, vec)
-      call clear_entries(mat_coeffs)
-
-      deallocate (mat_coeffs%global_row_indices)
-      deallocate (mat_coeffs%global_col_indices)
-      deallocate (mat_coeffs%values)
     end do
+
+    deallocate (mat_coeffs%global_row_indices)
+    deallocate (mat_coeffs%global_col_indices)
+    deallocate (mat_coeffs%values)
+    deallocate (vec_values%global_indices)
+    deallocate (vec_values%values)
 
     call dprint("P': restore invA")
     call restore_vector_data_readonly(invA, invA_data)

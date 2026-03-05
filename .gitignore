@@ -35,6 +35,5 @@ libccs.a
 *.geo
 **/.DS_Store
 .vscode
-.devcontainer
-
 .idea
+.devcontainer

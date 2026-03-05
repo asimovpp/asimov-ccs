@@ -271,7 +271,7 @@ A2_perf_1node:
   variables:
     SLURM_partition: standard
     SLURM_qos: lowpriority
-    SLURM_time: "00:10:00"
+    SLURM_time: "00:20:00"
     SLURM_ntasks_per_node: 128
     SLURM_nodes: 1
   script:
@@ -305,7 +305,7 @@ A2_perf_2nodes:
   variables:
     SLURM_partition: standard
     SLURM_qos: lowpriority
-    SLURM_time: "00:10:00"
+    SLURM_time: "00:20:00"
     SLURM_ntasks_per_node: 128
     SLURM_nodes: 2
   script:

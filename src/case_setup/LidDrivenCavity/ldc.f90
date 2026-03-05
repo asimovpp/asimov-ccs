@@ -5,9 +5,6 @@
 program ldc
 #include "ccs_macros.inc"
 
-  use petscvec
-  use petscsys
-
   use core
   use constants, only: cell, face
   use kinds, only: ccs_real, ccs_int
@@ -25,9 +22,6 @@ program ldc
   class(parallel_environment), allocatable :: par_env
   class(parallel_environment), allocatable :: shared_env
 
-  integer(ccs_int) :: irank ! MPI rank ID
-  integer(ccs_int) :: isize ! Size of MPI world
-
   integer(ccs_int) :: timer_index_init, timer_index_total
 
   type(fluid) :: flow_fields
@@ -37,9 +31,6 @@ program ldc
   ! Launch MPI
   call initialise_parallel_environment(par_env)
   call timer_init()
-
-  irank = par_env%proc_id
-  isize = par_env%num_procs
 
   call timer_register_start("Elapsed time", timer_index_total, is_total_time=.true.)
   call timer_register_start("Init time", timer_index_init)

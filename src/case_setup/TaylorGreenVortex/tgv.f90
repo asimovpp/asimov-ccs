@@ -2,11 +2,6 @@
 program tgv
 #include "ccs_macros.inc"
 
-  use iso_c_binding, ONLY : C_INT64_T
-
-  use petscsys
-  use petscvec
-
   use core
   use constants, only: ndim
   use meshing, only: nullify_mesh_object
@@ -29,8 +24,6 @@ program tgv
 
   type(ccs_options) :: run_options
 
-  integer(ccs_int):: irank  ! MPI rank ID
-  integer(ccs_int):: isize  ! Size of MPI world
 
   type(fluid):: flow_fields
 
@@ -40,9 +33,6 @@ program tgv
 
   call get_config(par_env, run_options)
   call configure_parallelism(run_options, par_env, shared_env)
-
-  irank = par_env%proc_id
-  isize = par_env%num_procs
 
   call profiler_begin_region('Total elapsed time')
   if (is_root(par_env)) print *, "Starting ", run_options%paths%case_name, " case!"
