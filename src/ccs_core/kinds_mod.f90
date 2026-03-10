@@ -9,7 +9,9 @@ module kinds
 
 #ifdef ACCS_PETSC
 #include <petsc/finclude/petscsys.h>
+#if PETSC_VERSION_GE(3,24,0)    
 use petscsys
+#endif
 #endif
 
   implicit none
