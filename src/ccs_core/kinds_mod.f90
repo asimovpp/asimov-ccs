@@ -11,6 +11,7 @@ module kinds
 #ifdef ACCS_PETSC
 #include <petsc/finclude/petscsys.h>
 #include <petscconf.h>
+use petscsys
 #endif
 
   implicit none
