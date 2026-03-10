@@ -25,9 +25,6 @@ program sandia
 
   type(ccs_options) :: run_options
 
-  integer(ccs_int):: timer_index_total
-  integer(ccs_int):: timer_index_init
-
   type(fluid):: flow_fields
   ! type(bc_profile), allocatable:: profile
   
