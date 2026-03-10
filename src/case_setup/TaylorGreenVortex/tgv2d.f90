@@ -9,7 +9,7 @@ program tgv2d
   use constants, only: ccs_split_type_shared
   use parallel, only: initialise_parallel_environment, cleanup_parallel_environment, &
                       create_new_par_env
-  use timers, only: timer_init, timer_reset
+  use profiler, only: profiler_init, profiler_shutdown
 
   implicit none
 
@@ -21,14 +21,14 @@ program tgv2d
 
   ! Launch MPI
   call initialise_parallel_environment(par_env)
-  call timer_init()
+  call profiler_init()
   use_mpi_splitting = .true.
   call create_new_par_env(par_env, ccs_split_type_shared, use_mpi_splitting, shared_env)
 
   call run_tgv2d(par_env, shared_env, error_L2, error_Linf)
 
   ! Finalise MPI
-  call timer_reset()
+  call profiler_shutdown(par_env)
   call cleanup_parallel_environment(par_env)
 
 end program tgv2d

@@ -9,6 +9,7 @@ submodule(core) core_init_mesh
   use meshing, only: set_mesh_object
   use profiler, only: profiler_begin_region, profiler_end_region
   use kinds, only: ccs_int
+  use profiler, only: profiler_begin_region, profiler_end_region
 
 implicit none
 
@@ -19,6 +20,7 @@ contains
     class(parallel_environment), intent(in), allocatable :: shared_env !< The shared parallel environment
     type(ccs_options), intent(in) :: run_options                       !< Object containing relevant options for building/reading the mesh
   
+    call profiler_begin_region('Mesh initialisation')
     if (is_root(par_env)) then
       print *, "******************************************************************************"
       print *, "* MESH INFO"
@@ -60,6 +62,8 @@ contains
         print *, "******************************************************************************"
       end if
     end associate
+
+    call profiler_end_region('Mesh initialisation')
 
   end subroutine initialise_mesh
 

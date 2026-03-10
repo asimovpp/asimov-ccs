@@ -17,6 +17,8 @@ submodule(core) core_init_flow
   use vec, only: get_vector_data, restore_vector_data, create_vector_values
   use fv, only: compute_boundary_values
 
+  use profiler, only: profiler_begin_region, profiler_end_region
+
   use io_visualisation, only: read_solution
 
   use constants, only: insert_mode, ndim
@@ -50,12 +52,16 @@ submodule(core) core_init_flow
       end subroutine
     end interface
 
+    call profiler_begin_region('Flow initialisation')
+
     if (.not. run_options%variables%restart) then
       call initialise_cell_values(flow_fields, get_init_flow)
       call initialise_mass_flux(flow_fields, get_init_mass_flux)
     else
       call read_solution(par_env, run_options%paths%case_path, mesh, flow_fields)
     end if
+
+    call profiler_end_region('Flow initialisation')
 
   end subroutine initialise_flow
 

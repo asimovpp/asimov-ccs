@@ -38,22 +38,16 @@ program tgv
   if (is_root(par_env)) print *, "Starting ", run_options%paths%case_name, " case!"
 
   call profiler_begin_region('Total initialisation')
-  call profiler_begin_region('Mesh initialisation')
   call initialise_mesh(par_env, shared_env, run_options)
-  call profiler_end_region('Mesh initialisation')
   
   ! Initialise fields
   if (is_root(par_env)) print *, "Initialise fields"
 
-  call profiler_begin_region('Field initialisation')
   call initialise_fields(par_env, run_options, flow_fields)
-  call profiler_end_region('Field initialisation')
   
   ! Initialise velocity field
   if (is_root(par_env)) print *, "Initialise velocity field"
-  call profiler_begin_region('Flow initialisation')
   call initialise_flow(par_env, run_options, flow_fields, get_init_flow, get_init_mass_flux)
-  call profiler_end_region('Flow initialisation')
   
   call profiler_end_region('Total initialisation')
   
