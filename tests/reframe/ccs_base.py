@@ -7,7 +7,7 @@ import reframe as rfm
 import reframe.utility.sanity as sn
 
 
-class SetupDependencies(rfm.RegressionTestPlugin):
+class SetupDependencies(rfm.RegressionMixin):
   """Sets up the dependencies for build and run"""
   # https://reframe-hpc.readthedocs.io/en/stable/regression_test_api.html#reframe.core.pipeline.RegressionTestPlugin
 
