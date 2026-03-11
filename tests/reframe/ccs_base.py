@@ -94,7 +94,11 @@ class SetupDependencies(rfm.RegressionMixin):
             os.getenv("LD_LIBRARY_PATH")
             )
 
-    # PETSC
+    # Update PATH
+    self.env_vars["PATH"] = (
+            makedepf90_dir + "/bin" + ":" +
+            os.getenv("PATH")
+            )
 
 
 class BuildCCS(rfm.CompileOnlyRegressionTest, SetupDependencies):
