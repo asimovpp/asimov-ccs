@@ -25,11 +25,12 @@ class SetupDependencies(rfm.RegressionMixin):
     elif self.current_environ == "PrgEnv-gnu":
       cmp = "gnu"
     else:
-      cmp = ""
+      cmp = "cray"
+    print(self.current_environ)
     self.env_vars["CMP"] = cmp
 
     # local_vars
-    install_dir="/work/e609/e609/shared/epcc/libs/"
+    install_dir="/work/e609/e609/shared/epcc/libs"
     adios2_v="2.10.2"
     parhip_v="3.19"
     petsc_v="3.23.7"
@@ -50,27 +51,27 @@ class SetupDependencies(rfm.RegressionMixin):
     self.env_vars["PETSC_DIR"] = petsc_dir
 
     # FYAMLC
-    fyamlc_dir = install_dir + "/fyaml-" + cmp + "-v" + fyamlc_v
+    fyamlc_dir = install_dir + "/fyaml-c-" + cmp + "-v" + fyamlc_v
     self.env_vars["FYAMLC"] = fyamlc_dir
 
     # ADIOS2
-    adios2_dir = install_dir + "/fyaml-" + cmp + "-v" + adios2_v
+    adios2_dir = install_dir + "/adios2-" + cmp + "-v" + adios2_v
     self.env_vars["ADIOS2"] = adios2_dir
 
     # HDF5
-    hdf5_dir = install_dir + "/fyaml-" + cmp + "-v" + hdf5_v
+    hdf5_dir = install_dir + "/hdf5-" + cmp + "-v" + hdf5_v
     self.env_vars["HDF5"] = hdf5_dir
 
     # PARHIP
-    parhip_dir = install_dir + "/fyaml-" + cmp + "-v" + parhip_v
+    parhip_dir = install_dir + "/parhip-" + cmp + "-v" + parhip_v
     self.env_vars["PARHIP"] = parhip_dir
 
     # PARMETIS
-    parmetis_dir = install_dir + "/fyaml-" + cmp
+    parmetis_dir = install_dir + "/parmetis-" + cmp
     self.env_vars["PARMETIS"] = parmetis_dir
 
     # PARMETIS_32BIT
-    parmetis_32bit_dir = install_dir + "/fyaml-" + cmp + "-32bit"
+    parmetis_32bit_dir = install_dir + "/parmetis-" + cmp + "-32bit"
     self.env_vars["PARMETIS_32bit"] = parmetis_32bit_dir
 
     # RCMF90
