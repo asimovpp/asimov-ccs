@@ -103,7 +103,7 @@ class BuildCCS(rfm.CompileOnlyRegressionTest, SetupDependencies):
   """
 
   build_system = "Make"
-  modules = ["cray-python, cmake"]
+  modules = ["cray-python", "cmake"]
   #sourcesdir = "git@git.ecdf.ed.ac.uk:asimov/asimov-ccs.git"
   sourcepath = "asimov-ccs"
   #sourcesdir = "../../"
