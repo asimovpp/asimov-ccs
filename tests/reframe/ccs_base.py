@@ -128,7 +128,7 @@ class BuildCCS(rfm.CompileOnlyRegressionTest, SetupDependencies):
   @sanity_function
   def sanity_executable_exists(self):
     """Confirms that the executable was built"""
-    build_dir = f"{self.stagedir}/ccs_build"
+    build_dir = f"{self.stagedir}/asimov_ccs"
     return sn.path_exists(os.path.join(build_dir, "ccs_app"))
 
 
