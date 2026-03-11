@@ -14,20 +14,29 @@ class BuildCCS(rfm.CompileOnlyRegressionTest):
   """
 
   build_system = "Make"
-  modules = []
-  sourcesdir = "https://git.ecdf.ed.ac.uk/asimov/asimov-ccs.git"
-  #  sourcepath = "src"
+  modules = ["cray-python"]
+  #sourcesdir = "git@git.ecdf.ed.ac.uk:asimov/asimov-ccs.git"
+  sourcepath = "asimov-ccs"
+  #sourcesdir = "../../"
   local = True
   build_locally = False
 
   valid_prog_environs = ["PrgEnv-gnu", "PrgEnv-cray"]
+
+  prebuild_cmds = ["git clone git@git.ecdf.ed.ac.uk:asimov/asimov-ccs.git", "cd asimov-ccs"]
+  # prebuild_cmds = [
+  #         "module list > ml.txt",
+  #         "python -m venv --system-site-packages ./ccs-venv",
+  #         "source ./ccs-venv/bin/activate",
+  #         "python -m pip install lit",
+  #         ]
 
   @run_before("compile")
   def prepare_build(self):
     """Setup environment for build"""
     self.build_system.max_concurrency = 8
     self.build_system.build_dir = f"{self.stagedir}/ccs_build"
-    self.build_system.options = ["all"]
+    self.build_system.options = ["ccs_app"]
 
     ccs_deps = "/work/e609/e609/shared/ccs-deps/cray"
     self.env_vars["PETSC_DIR"] = ccs_deps + "/petsc"
