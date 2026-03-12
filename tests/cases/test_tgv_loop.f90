@@ -10,6 +10,7 @@ program test_tgv_loop
   use error_analysis, only: compute_order, print_error_summary
   use mesh_utils, only: build_square_mesh
   use tgv2d_core, only: run_tgv2d
+  use parallel, only: is_root
 
   implicit none
 
@@ -49,7 +50,7 @@ program test_tgv_loop
     call run_tgv2d(par_env, shared_env, error_L2(:, i), error_Linf(:, i), input_mesh=mesh)
   end do
 
-  if (par_env%proc_id == par_env%root) then
+  if (is_root(par_env)) then
 
     call print_error_summary(variable_labels, refinements, error_L2, error_Linf)
 

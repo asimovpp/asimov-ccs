@@ -16,6 +16,7 @@ program test_tgv_prism_layer
                      create_cell_locator, create_face_locator, create_vert_locator, &
                      get_centre, set_centre, set_area, set_volume, get_face_normal, get_volume, get_face_area
   use utils, only: debug_print, str
+  use parallel, only: is_root
 
   implicit none
 
@@ -63,7 +64,7 @@ program test_tgv_prism_layer
     call run_tgv2d(par_env, shared_env, error_L2(:, i), error_Linf(:, i), input_mesh=mesh)
   end do
 
-  if (par_env%proc_id == par_env%root) then
+  if (is_root(par_env)) then
 
     call print_error_summary(variable_labels, refinements, error_L2, error_Linf)
 

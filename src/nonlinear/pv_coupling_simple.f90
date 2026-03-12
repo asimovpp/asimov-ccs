@@ -34,6 +34,7 @@ submodule(pv_coupling) pv_coupling_simple
   use bc_constants, only: bc_type_dirichlet
   use residuals, only: compute_residuals, compute_global_residuals, init_residuals, normalise_residuals, &
                        get_max_residuals, print_residuals
+  use parallel, only: is_root
 
   implicit none
 
@@ -215,7 +216,7 @@ contains
                              converged, diverged)
       if (converged) then
         call dprint("NONLINEAR: converged!")
-        if (par_env%proc_id == par_env%root) then
+        if (is_root(par_env)) then
           write (*, *)
           write (*, '(a)') 'Converged!'
           write (*, *)
@@ -225,7 +226,7 @@ contains
 
       if (present(diverged)) then
         if (diverged) then
-          if (par_env%proc_id == par_env%root) then
+          if (is_root(par_env)) then
             write (*, *)
             write (*, '(a)') 'Diverged!'
             write (*, *)

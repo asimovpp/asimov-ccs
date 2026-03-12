@@ -121,6 +121,7 @@ contains
   module subroutine write_xdmf(par_env, run_options, flow, step, maxstep, dt)
 
     use meshing, only: get_global_num_cells
+    use parallel, only: is_root
 
     ! Arguments
     class(parallel_environment), target, allocatable, intent(in) :: par_env  !< The parallel environment
@@ -148,7 +149,7 @@ contains
     sol_file = run_options%paths%case_name // '.sol.h5'
 
     ! On first call, write the header of the XML file
-    if (par_env%proc_id == par_env%root) then
+    if (is_root(par_env)) then
       if (present(step)) then
         ! Unsteady case
         if (initial_step) then

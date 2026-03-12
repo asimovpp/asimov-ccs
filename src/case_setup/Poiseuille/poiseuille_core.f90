@@ -43,18 +43,12 @@ module poiseuille_core
     class(field), pointer :: u
     type(bc_profile), allocatable :: profile
 
-    integer(ccs_int) :: irank ! MPI rank ID
-    integer(ccs_int) :: isize ! Size of MPI world
-
     integer(ccs_int) :: timer_index_total
     integer(ccs_int) :: timer_index_init
 
     type(fluid) :: flow_fields
 
     type(ccs_options) :: run_options
-
-    irank = par_env%proc_id
-    isize = par_env%num_procs
 
     call timer_register_start("Elapsed time", timer_index_total)
     call timer_register_start("Init time", timer_index_init)

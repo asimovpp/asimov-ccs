@@ -262,7 +262,7 @@ contains
     use constants, only: ndim, ccs_string_len
     use types, only: field, ccs_mesh, cell_locator
     use vec, only: get_vector_data, restore_vector_data
-    use parallel, only: allreduce, error_handling
+    use parallel, only: allreduce, error_handling, is_root
     use parallel_types_mpi, only: parallel_environment_mpi
     use parallel_types, only: parallel_environment
     use meshing, only: get_local_num_cells, create_cell_locator, get_volume
@@ -327,7 +327,7 @@ contains
 
     ek_global = ek_global / volume_global
 
-    if (par_env%proc_id == par_env%root) then
+    if (is_root(par_env)) then
       if (first_time) then
         first_time = .false.
         open (newunit=io_unit, file="tgv2d-ek.log", status="replace", form="formatted")
@@ -350,7 +350,7 @@ contains
     use constants, only: ndim, ccs_string_len
     use types, only: field, ccs_mesh
     use vec, only: get_vector_data, restore_vector_data
-    use parallel, only: allreduce, error_handling
+    use parallel, only: allreduce, error_handling, is_root
     use parallel_types_mpi, only: parallel_environment_mpi
     use parallel_types, only: parallel_environment
     use meshing, only: get_local_num_cells
@@ -408,7 +408,7 @@ contains
       call error_abort("ERROR: Unknown type")
     end select
 
-    if (par_env%proc_id == par_env%root) then
+    if (is_root(par_env)) then
       if (first_time) then
         first_time = .false.
         open (newunit=io_unit, file="tgv2d-ens.log", status="replace", form="formatted")

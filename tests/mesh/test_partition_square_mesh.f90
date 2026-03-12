@@ -17,6 +17,7 @@ program test_partition_square_mesh
   use meshing, only: get_local_num_cells, get_global_num_cells, &
                      create_cell_locator, get_global_index
   use meshing, only: set_mesh_object, nullify_mesh_object
+  use parallel, only: is_root
 
   use utils, only: debug_print
 
@@ -47,7 +48,7 @@ program test_partition_square_mesh
   call partition_kway(par_env, shared_env, roots_env, mesh)
   call check_topology("mid")
 
-  if (par_env%proc_id == 0) then
+  if (is_root(par_env)) then
     print *, "Global partition after partitioning:"
     call get_global_num_cells(global_num_cells)
     do i = 1, global_num_cells
