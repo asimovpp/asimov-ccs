@@ -7,6 +7,7 @@ module tgv2d_core
   use ccs_base, only: mesh
   use constants, only: ccs_string_len
   use kinds, only: ccs_real, ccs_int
+  use kinds, only: CCS_MPI_PRECISION
   use types, only: fluid, field, ccs_mesh
   use parallel, only: timer, is_root
   use parallel_types, only: parallel_environment
@@ -239,8 +240,8 @@ contains
 
     select type (par_env)
     type is (parallel_environment_mpi)
-      call MPI_AllReduce(error_L2_local, error_L2, size(error_L2), MPI_DOUBLE_PRECISION, MPI_SUM, par_env%comm, ierr)
-      call MPI_AllReduce(error_Linf_local, error_Linf, size(error_Linf), MPI_DOUBLE_PRECISION, MPI_MAX, par_env%comm, ierr)
+      call MPI_AllReduce(error_L2_local, error_L2, size(error_L2), CCS_MPI_PRECISION, MPI_SUM, par_env%comm, ierr)
+      call MPI_AllReduce(error_Linf_local, error_Linf, size(error_Linf), CCS_MPI_PRECISION, MPI_MAX, par_env%comm, ierr)
     class default
       call error_abort("ERROR: Unknown type")
     end select
