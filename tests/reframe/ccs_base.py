@@ -13,20 +13,12 @@ class SetupDependencies(rfm.RegressionMixin):
 
   @run_before("compile")
   def prepare_build(self):
-    """Setup environment for build"""
-    # General options
-    self.build_system.max_concurrency = 8
-    self.build_system.build_dir = f"{self.stagedir}/ccs_build"
-    self.build_system.options = ["ccs_app"]
 
     # select compiler
-    if self.current_environ == "PrgEnv-Cray":
+    if self.current_environ.name == "PrgEnv-cray":
       cmp = "cray"
-    elif self.current_environ == "PrgEnv-gnu":
+    elif self.current_environ.name == "PrgEnv-gnu":
       cmp = "gnu"
-    else:
-      cmp = "cray"
-    print(self.current_environ)
     self.env_vars["CMP"] = cmp
 
     # local_vars
@@ -109,26 +101,28 @@ class BuildCCS(rfm.CompileOnlyRegressionTest, SetupDependencies):
 
   build_system = "Make"
   modules = ["cray-python", "cmake"]
-  #sourcesdir = "git@git.ecdf.ed.ac.uk:asimov/asimov-ccs.git"
-  sourcepath = "asimov-ccs"
-  #sourcesdir = "../../"
+  sourcedir = "asimov-ccs"
+
   local = True
   build_locally = False
 
   valid_prog_environs = ["PrgEnv-gnu", "PrgEnv-cray"]
 
+  # Reframe only supports https git cloning using the sourcedir route, prebuild_cmds allows 
   prebuild_cmds = ["git clone git@git.ecdf.ed.ac.uk:asimov/asimov-ccs.git", "cd asimov-ccs"]
-  # prebuild_cmds = [
-  #         "module list > ml.txt",
-  #         "python -m venv --system-site-packages ./ccs-venv",
-  #         "source ./ccs-venv/bin/activate",
-  #         "python -m pip install lit",
-  #         ]
+
+  @run_before("compile")
+  def build_options(self):
+    """Setup environment for build"""
+    # General options
+    self.build_system.max_concurrency = 8
+    self.build_system.options = ["ccs_app"]
+    self.build_system.srcdir = "asimov-ccs"
 
   @sanity_function
   def sanity_executable_exists(self):
     """Confirms that the executable was built"""
-    build_dir = f"{self.stagedir}/asimov_ccs"
+    build_dir = f"{self.stagedir}/asimov-ccs"
     return sn.path_exists(os.path.join(build_dir, "ccs_app"))
 
 
@@ -140,7 +134,13 @@ class RunCCS(rfm.RunOnlyRegressionTest, SetupDependencies):
   valid_prog_environs = ["PrgEnv-cray"]
   executable = "ccs_app"
   stream_binary = fixture(BuildCCS, scope="environment")
+  executable_opts = [
+          "--ccs_m 32",
+          "--ccs_case TaylorGreenVortex",
+          ]
 
+
+  sourcesdir = "inputs"
   keep_files = ["residulas.log", "timers.csv"]
 
   strict_check = True
@@ -150,7 +150,10 @@ class RunCCS(rfm.RunOnlyRegressionTest, SetupDependencies):
   @run_after("setup")
   def set_executable(self):
     """sets up executable"""
-    self.executable = os.path.join(self.stream_binary.build_system.builddir, "ccs_app")
+    # stage_dir is the base folder for the build job;
+    # sourcedir is the folder where the executable was compiled
+    # self.executable is defined in this class, above
+    self.executable = os.path.join(self.stream_binary.stagedir, self.stream_binary.sourcedir, self.executable)
 
 
   @sanity_function
