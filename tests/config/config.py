@@ -166,6 +166,14 @@ site_configuration = {
             "target_systems": ["archer2"],
         },
         {
+            "name": "PrgEnv-intel",
+            "modules": ["PrgEnv-intel"],
+            "cc": "cc",
+            "cxx": "CC",
+            "ftn": "ftn",
+            "target_systems": ["cirrus-ex"],
+        },
+        {
             "name": "PrgEnv-aocc",
             "modules": ["PrgEnv-aocc"],
             "cc": "cc",

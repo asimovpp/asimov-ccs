@@ -130,7 +130,7 @@ class BuildCCS(rfm.CompileOnlyRegressionTest, SetupDependencies):
 class RunCCS(rfm.RunOnlyRegressionTest, SetupDependencies):
   """Run CCS"""
 
-  valid_systems = ["archer2:compute"]
+  valid_systems = ["archer2:compute", "cirrus-ex:compute"]
   valid_prog_environs = ["PrgEnv-cray"]
   executable = "ccs_app"
   stream_binary = fixture(BuildCCS, scope="environment")
