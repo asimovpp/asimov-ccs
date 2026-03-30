@@ -56,9 +56,6 @@ LIB_CCS=libccs.a
 # check makedepf90 version
 MAKEDEPF90_SMODS=$(shell makedepf90 -h | grep -q '\-S PATH'; echo $$?)
 
-INC = -I${CCS_DIR}/include
-LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
-
 # check config.yaml for optional libraries
 OPT_PARHIP = $(shell $(PY) $(TOOLS)/extra_exists.py $(CCS_DIR)/config.yaml "partitioning_parhip")
 OPT_PARMETIS = $(shell $(PY) $(TOOLS)/extra_exists.py $(CCS_DIR)/config.yaml "partitioning_parmetis")
@@ -101,8 +98,10 @@ ifeq ($(NEED_CMP),yes)
   include $(EXE_DEPS)
 endif
 
+INC = -I${CCS_DIR}/include
 FFLAGS += -DACCS_PETSC
 INC += -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include
+LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
 
 INC += -I${RCMF90}/include
 LIB += -L${RCMF90}/lib -lrcm
