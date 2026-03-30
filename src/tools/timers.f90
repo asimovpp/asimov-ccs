@@ -10,6 +10,7 @@ module timers
   use parallel, only: timer, is_root
 
   use utils, only: exit_print
+  use logging, only: log_unit_out
 
   implicit none
 
@@ -167,17 +168,17 @@ contains
     end select
 
     if (is_root(par_env)) then
-      write(*,'(A30, F12.4, A)', advance="no")  trim(timer_names(timer_index)) // ":", max_time, " s"
+      write (log_unit_out,'(A30, F12.4, A)', advance="no")  trim(timer_names(timer_index)) // ":", max_time, " s"
 
       if (total_index /= 0) then
         call timer_get_time(total_index, total_time)
-        write(*, '(F10.2, A)', advance="no") 100*max_time / total_time, " %"
+        write (log_unit_out, '(F10.2, A)', advance="no") 100*max_time / total_time, " %"
       end if
 
       if (counters(timer_index) >= 2) then
-        write(*, '(F10.4, A, I10, A)', advance="no") max_time / counters(timer_index), " s/call", counters(timer_index), " calls"
+        write (log_unit_out, '(F10.4, A, I10, A)', advance="no") max_time / counters(timer_index), " s/call", counters(timer_index), " calls"
       end if
-      write(*, '(A)') ""
+      write (log_unit_out, '(A)') ""
     end if
 
   end subroutine

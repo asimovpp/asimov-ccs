@@ -6,6 +6,7 @@ module error_analysis
   use types
   use constants, only: ndim
   use meshing, only: get_centre, set_centre, create_cell_locator
+  use logging, only: log_unit_out
 
   interface compute_order
     module procedure compute_order_single, compute_order_multi
@@ -33,24 +34,24 @@ contains
       call compute_order(refinements, errors_secondary, orders_secondary)
     end if
 
-    print *, "----------------------------------------------------"
-    print *, "Summary of errors"
+    write (log_unit_out,*) "----------------------------------------------------"
+    write (log_unit_out,*) "Summary of errors"
 
     do j = 1, nvar
-      print *, "------ " // trim(variable_labels(j)) // " errors"
+      write (log_unit_out,*) "------ " // trim(variable_labels(j)) // " errors"
       do i = 1, nref
         if (present(errors_secondary)) then
           fmt = '(f12.4,e12.4,e12.4)'
-          write (*, fmt) refinements(i), errors(j, i), errors_secondary(j, i)
+          write (log_unit_out, fmt) refinements(i), errors(j, i), errors_secondary(j, i)
         else
           fmt = '(f12.4,e12.4)'
-          write (*, fmt) refinements(i), errors(j, i)
+          write (log_unit_out, fmt) refinements(i), errors(j, i)
         end if
       end do
     end do
 
-    print *, "----------------------------------------------------"
-    print *, "Convergence orders"
+    write (log_unit_out,*) "----------------------------------------------------"
+    write (log_unit_out,*) "Convergence orders"
     do j = 1, nvar
       if (present(errors_secondary)) then
         fmt = '(a12,f12.4,f12.4)'
@@ -60,8 +61,8 @@ contains
         write (*, fmt) trim(variable_labels(j)) // " order: ", orders(j)
       end if
     end do
-    print *, "----------------------------------------------------"
-    print *, ""
+    write (log_unit_out,*) "----------------------------------------------------"
+    write (log_unit_out,*) ""
 
   end subroutine
 
