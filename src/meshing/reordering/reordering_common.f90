@@ -43,7 +43,7 @@ contains
     if (write_csr .and. is_root(par_env)) then
       open (newunit=wrunit, FILE="csr_orig.txt", FORM="FORMATTED")
       do i = 1, mesh%topo%local_num_cells
-        write (wrunit, *) mesh%topo%nb_indices(:, i)
+        write(wrunit, *) mesh%topo%nb_indices(:, i)
       end do
       close (wrunit)
     end if
@@ -66,7 +66,7 @@ contains
     if (write_csr .and. is_root(par_env)) then
       open (newunit=wrunit, FILE="csr_new.txt", FORM="FORMATTED")
       do i = 1, mesh%topo%local_num_cells
-        write (wrunit, *) mesh%topo%nb_indices(:, i)
+        write(wrunit, *) mesh%topo%nb_indices(:, i)
       end do
       close (wrunit)
     end if
@@ -336,7 +336,7 @@ contains
       call MPI_Allreduce(MPI_IN_PLACE, bw_max, 1, MPI_INTEGER, MPI_MAX, par_env%comm, ierr)
       call MPI_Allreduce(bw_avg, sum_bw_avg, 1, CCS_MPI_PRECISION, MPI_SUM, par_env%comm, ierr)
       if(is_root(par_env)) then 
-        write (log_unit_out,*) "Bandwidth: ", bw_max, sum_bw_avg/par_env%num_procs
+        write(log_unit_out,*) "Bandwidth: ", bw_max, sum_bw_avg/par_env%num_procs
       end if
 
     class default

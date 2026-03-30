@@ -34,35 +34,35 @@ contains
       call compute_order(refinements, errors_secondary, orders_secondary)
     end if
 
-    write (log_unit_out,*) "----------------------------------------------------"
-    write (log_unit_out,*) "Summary of errors"
+    write(log_unit_out,*) "----------------------------------------------------"
+    write(log_unit_out,*) "Summary of errors"
 
     do j = 1, nvar
-      write (log_unit_out,*) "------ " // trim(variable_labels(j)) // " errors"
+      write(log_unit_out,*) "------ " // trim(variable_labels(j)) // " errors"
       do i = 1, nref
         if (present(errors_secondary)) then
           fmt = '(f12.4,e12.4,e12.4)'
-          write (log_unit_out, fmt) refinements(i), errors(j, i), errors_secondary(j, i)
+          write(log_unit_out, fmt) refinements(i), errors(j, i), errors_secondary(j, i)
         else
           fmt = '(f12.4,e12.4)'
-          write (log_unit_out, fmt) refinements(i), errors(j, i)
+          write(log_unit_out, fmt) refinements(i), errors(j, i)
         end if
       end do
     end do
 
-    write (log_unit_out,*) "----------------------------------------------------"
-    write (log_unit_out,*) "Convergence orders"
+    write(log_unit_out,*) "----------------------------------------------------"
+    write(log_unit_out,*) "Convergence orders"
     do j = 1, nvar
       if (present(errors_secondary)) then
         fmt = '(a12,f12.4,f12.4)'
-        write (*, fmt) trim(variable_labels(j)) // " order: ", orders(j), orders_secondary(j)
+        write(*, fmt) trim(variable_labels(j)) // " order: ", orders(j), orders_secondary(j)
       else
         fmt = '(a12,f12.4)'
-        write (*, fmt) trim(variable_labels(j)) // " order: ", orders(j)
+        write(*, fmt) trim(variable_labels(j)) // " order: ", orders(j)
       end if
     end do
-    write (log_unit_out,*) "----------------------------------------------------"
-    write (log_unit_out,*) ""
+    write(log_unit_out,*) "----------------------------------------------------"
+    write(log_unit_out,*) ""
 
   end subroutine
 

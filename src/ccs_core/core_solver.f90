@@ -177,7 +177,7 @@ contains
     
     if (diverged) then
       if (is_root(par_env)) then
-        write (log_unit_out,*) "INFO: Divergence detected"
+        write(log_unit_out,*) "INFO: Divergence detected"
       end if
       call dump_run(par_env, run_options, t, flow_fields)
 
@@ -200,7 +200,7 @@ contains
 
     if (query_stop_run(par_env)) then
       if (is_root(par_env)) then
-        write (log_unit_out,*) "INFO: Found STOP file"
+        write(log_unit_out,*) "INFO: Found STOP file"
       end if
       call dump_run(par_env, run_options, t, flow_fields)
 
@@ -220,7 +220,7 @@ contains
     type(fluid), intent(inout) :: flow_fields
 
     if (is_root(par_env)) then
-      write (log_unit_out,*) "STOPPING SIMULATION"
+      write(log_unit_out,*) "STOPPING SIMULATION"
     end if
     call write_step(par_env, run_options, t, flow_fields)
 
@@ -257,9 +257,9 @@ contains
     check_flow_sol = have_p .and. have_vel
     if (is_root(par_env)) then
       if (check_flow_sol) then
-        write (log_unit_out,*) "Solving fluid flow"
+        write(log_unit_out,*) "Solving fluid flow"
       else
-        write (log_unit_out,*) "Solving scalar transport only"
+        write(log_unit_out,*) "Solving scalar transport only"
       end if
     end if
     

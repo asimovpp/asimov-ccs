@@ -209,9 +209,9 @@ contains
     character(32) :: tmp_string
 
     if (present(format_str)) then
-      write (tmp_string, format_str) in_int
+      write(tmp_string, format_str) in_int
     else
-      write (tmp_string, *) in_int
+      write(tmp_string, *) in_int
     end if
     out_string = trim(adjustl(tmp_string))
   end function
@@ -225,9 +225,9 @@ contains
     character(32) :: tmp_string
 
     if (present(format_str)) then
-      write (tmp_string, format_str) in_real
+      write(tmp_string, format_str) in_real
     else
-      write (tmp_string, *) in_real
+      write(tmp_string, *) in_real
     end if
     out_string = trim(adjustl(tmp_string))
   end function
@@ -239,7 +239,7 @@ contains
 
     character(32) :: tmp_string
 
-    write (tmp_string, *) in_bool
+    write(tmp_string, *) in_bool
 
     out_string = trim(adjustl(tmp_string))
   end function
@@ -336,7 +336,7 @@ contains
         open (newunit=io_unit, file="tgv2d-ek.log", status="old", form="formatted", position="append")
       end if
       fmt = '(I0,1(1x,e12.4))'
-      write (io_unit, fmt) step, ek_global
+      write(io_unit, fmt) step, ek_global
       close (io_unit)
     end if
 
@@ -417,7 +417,7 @@ contains
         open (newunit=io_unit, file="tgv2d-ens.log", status="old", form="formatted", position="append")
       end if
       fmt = '(I0,1(1x,e12.4))'
-      write (io_unit, fmt) step, ens_global
+      write(io_unit, fmt) step, ens_global
       close (io_unit)
     end if
 

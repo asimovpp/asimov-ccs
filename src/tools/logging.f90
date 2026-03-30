@@ -51,7 +51,7 @@ module logging
     if (is_root(par_env)) then
       close(log_unit_out, iostat=ierr)
       if (ierr /= 0) then
-        write (error_unit, *) "ERROR: Could not close log file."
+        write(error_unit, *) "ERROR: Could not close log file."
       end if
       initialised = .false.
     end if
