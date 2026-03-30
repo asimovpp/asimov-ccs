@@ -20,6 +20,7 @@ module partitioning
   public :: print_partition_quality
   public :: compute_vtxdist_local
   public :: partition_count
+  public :: compute_global_indices_partition
   
   interface partition_kway
      module procedure :: partition_kway_mesh
@@ -98,6 +99,13 @@ module partitioning
       integer(ccs_int), dimension(:), intent(in) :: proc_ctr
       integer(ccs_int), dimension(:), allocatable :: vtxdist
     end function compute_vtxdist_local
+    module function compute_global_indices_partition(partition, proc_ctr, vtxdist, global_idx_start) result(global_indices)
+      integer(ccs_long), dimension(:), intent(in) :: partition
+      integer(ccs_int), dimension(:), intent(in) :: proc_ctr
+      integer(ccs_int), dimension(:), intent(in) :: vtxdist
+      integer(ccs_long), intent(in) :: global_idx_start
+      integer(ccs_long), dimension(:), allocatable :: global_indices
+    end function compute_global_indices_partition
     !!! INTERNAL SUBROUTINES - ONLY DECLARED FOR TESTING !!!
     
   end interface

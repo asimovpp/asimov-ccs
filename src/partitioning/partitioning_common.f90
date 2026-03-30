@@ -69,6 +69,38 @@ contains
     end do
     
   end function compute_vtxdist_local_
+  
+  module function compute_global_indices_partition(partition, proc_ctr, vtxdist, global_idx_start) result(global_indices)
+    integer(ccs_long), dimension(:), intent(in) :: partition
+    integer(ccs_int), dimension(:), intent(in) :: proc_ctr
+    integer(ccs_int), dimension(:), intent(in) :: vtxdist
+    integer(ccs_long), intent(in) :: global_idx_start
+    integer(ccs_long), dimension(:), allocatable :: global_indices
+
+    integer(ccs_int) :: nlocal, nproc
+
+    nlocal = size(partition)
+    nproc = size(proc_ctr)
+
+    vtxdist = compute_global_indices_partition_(nlocal, nproc, partition, proc_ctr, vtxdist, global_idx_start)
+  end function compute_global_indices_partition
+  pure function compute_global_indices_partition_(nlocal, nproc, partition, proc_ctr, vtxdist, global_idx_start) result(global_indices)
+    integer(ccs_int), intent(in) :: nlocal
+    integer(ccs_int), intent(in) :: nproc
+    integer(ccs_long), dimension(nlocal), intent(in) :: partition
+    integer(ccs_int), dimension(nproc), intent(in) :: proc_ctr
+    integer(ccs_int), dimension(nproc + 1), intent(in) :: vtxdist
+    integer(ccs_long), intent(in) :: global_idx_start
+    integer(ccs_long), dimension(nlocal), allocatable :: global_indices
+
+    integer(ccs_int) :: i
+    integer(ccs_long) :: irank
+    
+    do i = 1, size(nlocal)
+       irank = partition(i) + 1 ! Ranks are C-indexed
+       global_indices_partition(vtxdist(irank + proc_ctr(irank))) = global_idx_start + (i - 1)
+    end do
+  end function compute_global_indices_partition_
 
   pure module function partition_count(nproc, partition) result(proc_count)
     integer(ccs_int), intent(in) :: nproc
@@ -397,13 +429,7 @@ contains
     ! 1) get our local vtxdist - which processes do we have global indices for, and how many?
     proc_ctr = partition_count(par_env%num_procs, partition)
     vtxdist = compute_vtxdist_local(proc_ctr)
-
-    ! 2) build global indices for each process based on our local data
-    allocate(global_indices_partition(size(partition)))
-    do i = 1, size(partition)
-       irank = int(partition(i) + 1, ccs_int) ! Ranks are C-indexed
-       global_indices_partition(vtxdist(irank + proc_ctr(irank))) = global_idx_start + (i - 1)
-    end do
+    global_indices = compute_global_indices_partition(partition, proc_ctr, vtxdist, global_idx_start)
     
     ! 3) send global indices to destinations using Alltoallv
     ! -- first tell destinations how many you are sending
