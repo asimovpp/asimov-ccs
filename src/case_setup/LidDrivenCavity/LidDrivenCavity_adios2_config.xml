@@ -8,7 +8,7 @@
   </io>
   <io name="geo_writer">
 
-    <engine type="HDF5">
+    <engine type="BP4">
     </engine>
 
   </io>
