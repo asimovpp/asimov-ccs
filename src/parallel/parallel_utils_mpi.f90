@@ -92,7 +92,7 @@ contains
   module subroutine create_shared_array_int_1D(shared_env, length, array, window)
 
     use iso_c_binding
-
+    
     class(parallel_environment), intent(in) :: shared_env
     integer(ccs_int), intent(in) :: length
     integer(ccs_int), pointer, dimension(:), intent(out) :: array
@@ -104,7 +104,6 @@ contains
     integer(mpi_address_kind) :: byte_size, allocate_byte_size
 
     disp_unit = c_sizeof(dummy_int)
-
     select type (shared_env)
     type is (parallel_environment_mpi)
       allocate_byte_size = shared_alloc_size([length], disp_unit, shared_env, .true.)
