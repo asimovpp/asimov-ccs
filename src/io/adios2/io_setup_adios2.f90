@@ -130,7 +130,7 @@ contains
           call error_abort("Unknown ADIOS2 engine type: " // trim(engine_type))
         end if
         call adios2_open(io_proc%engine, io_proc%io_task, filename // file_type, get_mode(mode), ierr)
-      else
+      else if(mode == "read" .or. mode == "append") then
         call adios2_open(io_proc%engine, io_proc%io_task, filename, get_mode(mode), ierr)
       end if
 
