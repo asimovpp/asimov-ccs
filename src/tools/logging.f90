@@ -11,6 +11,8 @@ module logging
   integer :: log_unit_out = output_unit
   integer :: log_unit_err = error_unit
 
+  character(256) :: message_buf
+
   contains
 
   !> Initialise logging module
@@ -49,7 +51,7 @@ module logging
     if (is_root(par_env)) then
       close(log_unit_out, iostat=ierr)
       if (ierr /= 0) then
-        call error_abort("ERROR: Could not close log file.")
+        write (error_unit, *) "ERROR: Could not close log file."
       end if
       initialised = .false.
     end if
