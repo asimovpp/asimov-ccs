@@ -18,6 +18,7 @@ module fields
   use fv, only: update_gradient
   use timestepping, only: initialise_old_values
   use error_codes
+  use logging, only: log_unit_out
 
   implicit none
 
@@ -135,7 +136,7 @@ contains
     field_type = field_properties%field_type
     
     if (is_root(par_env)) then
-      print *, "Create field: ", trim(field_name), " ("//get_scheme_name(field_type)//")"
+      write(log_unit_out,*) "Create field: ", trim(field_name), " ("//get_scheme_name(field_type)//")"
     end if
     
   end subroutine print_field
