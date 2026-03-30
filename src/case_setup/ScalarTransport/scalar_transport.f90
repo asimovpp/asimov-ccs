@@ -30,9 +30,6 @@ program scalar_transport
   class(parallel_environment), allocatable :: par_env
   class(parallel_environment), allocatable, target :: shared_env
 
-  integer(ccs_int) :: irank ! MPI rank ID
-  integer(ccs_int) :: isize ! Size of MPI world
-
   type(fluid) :: flow_fields
 
   type(ccs_options) :: run_options
