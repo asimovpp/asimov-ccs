@@ -14,6 +14,7 @@ submodule(core) core_fields
                     set_field_enable_cell_corrections, set_field_vector_properties, create_field, &
                     set_field_name, set_field_type, set_is_field_solved, get_field
   use fortran_yaml_c_interface, only: parse
+  use logging, only: log_unit_out
 
 implicit none
 
@@ -34,7 +35,7 @@ contains
 
     ! Read boundary conditions
     if (is_root(par_env)) then
-      print *, "Read and allocate BCs"
+      write (log_unit_out,*) "Read and allocate BCs"
     end if
     ! XXX: these calls should probably be moved to the config reading section
     config_file => parse(run_options%paths%ccs_config_file, error)
@@ -47,7 +48,7 @@ contains
 
     ! Create and initialise field vectors
     if (is_root(par_env)) then
-      print *, "Initialise field vectors"
+      write (log_unit_out,*) "Initialise field vectors"
     end if
     call initialise(vec_properties)
 
@@ -95,7 +96,7 @@ contains
     
     ! Expect to find u, v, w, p, p_prime, scalar
     if (is_root(par_env)) then
-      print *, "Build field list"
+      write (log_unit_out,*) "Build field list"
     end if
 
     ! Create a local copyt of field_properties
@@ -105,13 +106,13 @@ contains
       ! Make sure we don't attempt to define mf. 
       if (trim(run_options%variables%variable_names(i)) == 'mf') then 
         if (is_root(par_env)) then
-          print *, "mf already defined in code. skipping definition in case config file"
+          write (log_unit_out,*) "mf already defined in code. skipping definition in case config file"
         end if
         cycle
       end if
 
       if (is_root(par_env)) then
-        print *, "Creating field ", trim(run_options%variables%variable_names(i))
+        write (log_unit_out,*) "Creating field ", trim(run_options%variables%variable_names(i))
       end if
       call set_field_type(run_options%variables%variable_types(i), my_field_properties)
       call set_field_name(run_options%variables%variable_names(i), my_field_properties)
@@ -121,7 +122,7 @@ contains
     end do
 
     if (is_root(par_env)) then
-      print *, "Built ", size(flow_fields%fields), " dynamically-defined fields"
+      write (log_unit_out,*) "Built ", size(flow_fields%fields), " dynamically-defined fields"
     end if
   end subroutine build_user_fields
 
@@ -149,7 +150,7 @@ contains
     call create_field(par_env, my_field_properties, flow_fields)
 
     if (is_root(par_env)) then
-      print *, "Built ", size(flow_fields%fields) - nfields_init, " common fields"
+      write (log_unit_out,*) "Built ", size(flow_fields%fields) - nfields_init, " common fields"
     end if
 
   end subroutine build_common_fields
