@@ -7,8 +7,9 @@ submodule(core) core_init_mesh
   use parallel, only: is_root
   use mesh_utils, only: build_mesh, build_square_mesh, read_mesh
   use meshing, only: set_mesh_object
-  use timers, only: timer_register_start, timer_stop
+  use profiler, only: profiler_begin_region, profiler_end_region
   use kinds, only: ccs_int
+  use profiler, only: profiler_begin_region, profiler_end_region
 
 implicit none
 
@@ -19,15 +20,14 @@ contains
     class(parallel_environment), intent(in), allocatable :: shared_env !< The shared parallel environment
     type(ccs_options), intent(in) :: run_options                       !< Object containing relevant options for building/reading the mesh
   
-    integer(ccs_int) :: timer_index_build
-
+    call profiler_begin_region('Mesh initialisation')
     if (is_root(par_env)) then
       print *, "******************************************************************************"
       print *, "* MESH INFO"
     end if
     
     associate (cps => run_options%mesh%cps)
-      call timer_register_start("Mesh read time", timer_index_build)
+      call profiler_begin_region("Mesh read time")
       select case (run_options%mesh%init_mesh_type)
       case (build_mesh_2d)
         ! Create a cubic mesh
@@ -50,7 +50,7 @@ contains
         call error_abort("invalid init mesh type specified")
       end select
       call set_mesh_object(mesh)
-      call timer_stop(timer_index_build)
+      call  profiler_end_region("Mesh read time")
 
       if (is_root(par_env)) then
         if ((run_options%mesh%init_mesh_type == build_mesh_2d) .or. &
@@ -62,6 +62,8 @@ contains
         print *, "******************************************************************************"
       end if
     end associate
+
+    call profiler_end_region('Mesh initialisation')
 
   end subroutine initialise_mesh
 

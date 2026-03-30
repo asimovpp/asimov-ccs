@@ -14,6 +14,7 @@ submodule(core) core_fields
                     set_field_enable_cell_corrections, set_field_vector_properties, create_field, &
                     set_field_name, set_field_type, set_is_field_solved, get_field
   use fortran_yaml_c_interface, only: parse
+  use profiler, only: profiler_begin_region, profiler_end_region
 
 implicit none
 
@@ -70,6 +71,7 @@ contains
     
     type(field_spec) :: field_properties
     
+    call profiler_begin_region('Field initialisation')
     ! Set field properties
     call set_field_properties(par_env, run_options, field_properties)
 
@@ -81,6 +83,8 @@ contains
     
     ! Finally build any case specific fields.
     call build_case_fields(par_env, run_options, field_properties, flow_fields)
+
+    call profiler_end_region('Field initialisation')
   end subroutine initialise_fields
 
   !> Builds the user specified fields from the case config file

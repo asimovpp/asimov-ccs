@@ -23,16 +23,12 @@ program scalar_transport
   use scalars, only: update_scalars
   use utils, only: exit_print, add_field_to_outputlist
   use fields, only: get_field, dealloc_fluid_fields
-  use timers, only: timer_init, timer_register_start, timer_stop, &
-                    timer_print_all, timer_export_csv
+  use profiler, only: profiler_init, profiler_shutdown, profiler_begin_region, profiler_end_region
 
   implicit none
 
   class(parallel_environment), allocatable :: par_env
   class(parallel_environment), allocatable, target :: shared_env
-
-  integer(ccs_int):: timer_index_total
-  integer(ccs_int):: timer_index_init
 
   type(fluid) :: flow_fields
 
@@ -40,14 +36,14 @@ program scalar_transport
   
   ! Launch MPI
   call initialise_parallel_environment(par_env)
-  call timer_init()
+  call profiler_init()
 
   call get_config(par_env, run_options)
   call configure_parallelism(run_options, par_env, shared_env)
 
-  call timer_register_start("Elapsed time", timer_index_total, is_total_time=.true.)
+  call profiler_begin_region('Total elapsed time')
 
-  call timer_register_start("Init time", timer_index_init)
+  call profiler_begin_region('Total initialisation')
 
   if (is_root(par_env)) print *, "Starting ", run_options%paths%case_name, " case!"
 
@@ -65,17 +61,16 @@ program scalar_transport
   ! Solve using SIMPLE algorithm
   if (is_root(par_env)) print *, "Start scalar solver"
 
-  call timer_stop(timer_index_init)
+  call profiler_end_region('Total initialisation')
 
   ! Write out mesh and solution
   call run_solver(par_env, run_options, eval_sources, postproc_scalar, flow_fields)
-  call timer_stop(timer_index_total)
+
+  call profiler_end_region('Total elapsed time')
+  call profiler_shutdown(par_env)
 
   ! Clean-up
   call dealloc_fluid_fields(flow_fields)
-
-  call timer_print_all(par_env)
-  call timer_export_csv(par_env)
 
   ! Finalise MPI
   call nullify_mesh_object()

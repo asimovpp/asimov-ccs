@@ -20,7 +20,7 @@ submodule(fv) fv_common
                      get_local_num_cells, get_face_interpolation, &
                      get_max_faces, get_centre
   use boundary_conditions, only: get_bc_index
-  use timers, only: timer_register_start, timer_stop
+  use profiler, only: profiler_begin_region, profiler_end_region
   use bc_constants
   use error_codes
 
@@ -577,6 +577,7 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
   module subroutine update_gradient(phi)
 
     use meshing, only: get_local_num_cells
+    use profiler
 
     class(field), intent(inout) :: phi !< the field whose gradients we want to update
     real(ccs_real), dimension(:), allocatable :: x_gradients
@@ -585,13 +586,12 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
 
     real(ccs_real), dimension(:), pointer :: gradients_data    ! Data array for gradients
     integer(ccs_int) :: local_num_cells
-    integer(ccs_int) :: timer_index
 
     integer(ccs_int) :: i
     type(cell_locator) :: loc_p
     real(ccs_real), dimension(3) :: grad_p ! Gradient at cell centre
 
-    call timer_register_start("Compute gradient", timer_index)
+    call profiler_begin_region("Compute gradient")
 
     call get_local_num_cells(local_num_cells)
     allocate (x_gradients(local_num_cells))
@@ -621,7 +621,7 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
     call restore_vector_data(phi%z_gradients, gradients_data)
     call update(phi%z_gradients) ! zzz: opportunity to overlap update with later compute (begin/compute/end)
 
-    call timer_stop(timer_index)
+    call profiler_end_region("Compute gradient")
 
   end subroutine update_gradient
 
