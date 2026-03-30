@@ -18,6 +18,7 @@ program tgv
   use fields, only: get_field, add_field, dealloc_fluid_fields, set_is_field_solved
   use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, timer_print, &
                     timer_get_time, timer_print_all, timer_export_csv, timer_get_index
+  use logging, only: initialise_logging, finalise_logging, log_unit_out
 
   implicit none
 
@@ -37,26 +38,30 @@ program tgv
 
   ! Launch MPI
   call initialise_parallel_environment(par_env)
+
+  call initialise_logging(par_env, "ccs.log")
+  
   call timer_init()
 
   call get_config(par_env, run_options)
+
   call configure_parallelism(run_options, par_env, shared_env)
 
   call timer_register_start("Elapsed time", timer_index_total, is_total_time=.true.)
 
   call timer_register_start("Init time", timer_index_init)
 
-  if (is_root(par_env)) print *, "Starting ", run_options%paths%case_name, " case!"
+  if (is_root(par_env)) write (log_unit_out,*) "Starting ", run_options%paths%case_name, " case!" 
 
   call initialise_mesh(par_env, shared_env, run_options)
 
   ! Initialise fields
-  if (is_root(par_env)) print *, "Initialise fields"
+  if (is_root(par_env)) write (log_unit_out,*) "Initialise fields"
 
   call initialise_fields(par_env, run_options, flow_fields)
   
   ! Initialise velocity field
-  if (is_root(par_env)) print *, "Initialise velocity field"
+  if (is_root(par_env)) write (log_unit_out,*) "Initialise velocity field"
   call initialise_flow(par_env, run_options, flow_fields, get_init_flow, get_init_mass_flux)
 
   call timer_stop(timer_index_init)
@@ -71,12 +76,15 @@ program tgv
   call timer_get_time(timer_index_sol, sol_time)
   call timer_get_time(timer_index_io_sol, io_time)
   if (is_root(par_env)) then
-    write(*,'(A30, F10.4, A)') "Solver time no I/O:", sol_time - io_time, " s"
-    write(*,'(A30, F10.4, A)') "Average time/step (no I/O):", (sol_time - io_time) / run_options%solve%num_steps, " s"
+    write (log_unit_out,'(A30, F10.4, A)') "Solver time no I/O:", sol_time - io_time, " s"
+    write (log_unit_out,'(A30, F10.4, A)') "Average time/step (no I/O):", (sol_time - io_time) / run_options%solve%num_steps, " s"
   end if
 
   call dealloc_fluid_fields(flow_fields)
   call nullify_mesh_object()
+
+  call finalise_logging(par_env)
+
   ! Finalise MPI
   call cleanup_parallel_environment(par_env)
 

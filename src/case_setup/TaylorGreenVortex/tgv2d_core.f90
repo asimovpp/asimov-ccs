@@ -19,6 +19,7 @@ module tgv2d_core
   use timestepping, only: reset_timestepping
   use io_visualisation, only: reset_io_visualisation
   use timers, only: timer_register_start, timer_stop, timer_print_all, timer_export_csv
+  use logging, only: log_unit_out
 
   implicit none
 
@@ -69,15 +70,15 @@ contains
     end if
 
     ! Initialise fields
-    if (is_root(par_env)) print *, "Initialise fields"
+    if (is_root(par_env)) write (log_unit_out,*) "Initialise fields"
     call initialise_fields(par_env, run_options, flow_fields)
 
     ! Initialise velocity field
-    if (is_root(par_env)) print *, "Initialise velocity field"
+    if (is_root(par_env)) write (log_unit_out,*) "Initialise velocity field"
     call initialise_flow(par_env, run_options, flow_fields, get_init_flow, get_init_mass_flux)
 
     ! Solve using SIMPLE algorithm
-    if (is_root(par_env)) print *, "Start SIMPLE"
+    if (is_root(par_env)) write (log_unit_out,*) "Start SIMPLE"
     
     tgv2d_error_L2_global = 0.0_ccs_real
     tgv2d_error_Linf_global = 0.0_ccs_real
