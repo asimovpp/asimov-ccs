@@ -314,6 +314,7 @@ contains
     use parallel_types_mpi, only: parallel_environment_mpi
     use core, only: ccs_options
     use kinds, only: CCS_MPI_PRECISION
+    use logging, only: log_unit_out
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     type(ccs_options), intent(in) :: run_options
@@ -335,7 +336,7 @@ contains
       call MPI_Allreduce(MPI_IN_PLACE, bw_max, 1, MPI_INTEGER, MPI_MAX, par_env%comm, ierr)
       call MPI_Allreduce(bw_avg, sum_bw_avg, 1, CCS_MPI_PRECISION, MPI_SUM, par_env%comm, ierr)
       if(is_root(par_env)) then 
-        print *, "Bandwidth: ", bw_max, sum_bw_avg/par_env%num_procs
+        write (log_unit_out,*) "Bandwidth: ", bw_max, sum_bw_avg/par_env%num_procs
       end if
 
     class default
