@@ -53,7 +53,6 @@ contains
 
     class(io_environment), allocatable, save :: io_env
     class(io_process), allocatable, save :: sol_reader
-
     integer(ccs_long), dimension(1) :: sel_shape
     integer(ccs_long), dimension(1) :: sel_start
     integer(ccs_long), dimension(1) :: sel_count
@@ -75,7 +74,7 @@ contains
     real(ccs_real), dimension(:), pointer :: output_data
     class(field), pointer :: phi
 
-    sol_file = case_name // '.sol.h5'
+    sol_file = case_name // '_sol'
     adios2_file = case_name // adiosconfig
 
     if (present(step)) then
@@ -84,7 +83,6 @@ contains
         call initialise_io(par_env, adios2_file, io_env)
         call configure_io(io_env, "sol_reader", sol_reader)
         call open_file(sol_file, "read", sol_reader)
-
         initial_step = .false.
       end if
     else
@@ -224,7 +222,7 @@ contains
 
     class(field), pointer :: phi
     
-    sol_file = run_options%paths%case_name // '.sol.h5'
+    sol_file = run_options%paths%case_name // '_sol'
     adios2_file = run_options%paths%case_name // adiosconfig
 
     if (present(step)) then

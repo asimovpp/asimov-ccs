@@ -41,7 +41,7 @@ program test_hdf5_reader
   irank = par_env%proc_id
   isize = par_env%num_procs
 
-  test_file = "hdf5_test_file.h5"
+  test_file = "hdf5_test_file"
   adios2_file = "adios2_config.xml"
 
   call initialise_io(par_env, adios2_file, io_env)
