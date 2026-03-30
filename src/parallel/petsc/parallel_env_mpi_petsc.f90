@@ -80,6 +80,7 @@ contains
 
     integer :: ierr ! Error code
 
+    PETSC_COMM_WORLD = par_env%comm ! initialise PETSC_COMM_WORLD
     call PetscOptionsSetValue(PETSC_NULL_OPTIONS,"-no_signal_handler","true",ierr) ! This should prevent PETSc swallowing tracebacks
     call PetscInitialize(PETSC_NULL_CHARACTER, ierr)
 
