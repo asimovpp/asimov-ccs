@@ -56,7 +56,38 @@ LIB_CCS=libccs.a
 # check makedepf90 version
 MAKEDEPF90_SMODS=$(shell makedepf90 -h | grep -q '\-S PATH'; echo $$?)
 
-IGNORE = " "
+INC = -I${CCS_DIR}/include
+LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
+
+ifdef PARHIP
+  INC += -I${PARHIP}/include
+  LIB += -L${PARHIP}/lib -lparhip_interface -Wl,-rpath,${PARHIP}/lib
+else
+  IGNORE += ${CCS_DIR}/src/partitioning/parhip/parhip.c
+  IGNORE += ${CCS_DIR}/src/partitioning/parhip/partitioning_parhip.f90
+endif
+
+ifdef PARMETIS
+  INC += -I${PARMETIS}/include
+  LIB += -L${PARMETIS}/lib -lGKlib -lmetis -lparmetis -Wl,-rpath,${PARMETIS}/lib
+else
+  IGNORE += ${CCS_DIR}/src/partitioning/parmetis/parmetis.c
+  IGNORE += ${CCS_DIR}/src/partitioning/parmetis/partitioning_parmetis.f90
+endif
+
+ifdef CALIPER
+  INC += -I${CALIPER}/include/caliper/fortran
+  LIB += -L${CALIPER}/lib -lcaliper
+else
+    IGNORE += ${CCS_DIR}/src/tools/profile_caliper.f90
+endif
+
+ifdef LIKWID
+  INC += -I${LIKWID}/include/
+  LIB += -L${LIKWID}/lib -llikwid
+else
+    IGNORE += ${CCS_DIR}/src/tools/profile_likwid.f90
+endif
 
 ifeq ($(CCS_PROPRIETARY),yes)
   SRC_DIRS += $(CCS_PROPRIETARY_DIR)/src
@@ -65,7 +96,8 @@ endif
 find_src_files = $(shell find $(dir) -type f -name '*.f90' -o -name '*.c')
 ALL_SRC = $(foreach dir, $(SRC_DIRS), $(find_src_files))
 
-SRC = $(shell $(PY) $(TOOLS)/filter_out.py $(IGNORE) "$(ALL_SRC)")
+#SRC = $(shell $(PY) $(TOOLS)/filter_out.py "$(IGNORE)" "$(ALL_SRC)")
+SRC = $(filter-out $(IGNORE), $(ALL_SRC))
 TMP_OBJ = $(addprefix $(OBJ_DIR)/, $(notdir $(SRC:.f90=.o)))
 OBJ = $(TMP_OBJ:.c=.o)
 
@@ -74,36 +106,14 @@ ifeq ($(NEED_CMP),yes)
   include $(EXE_DEPS)
 endif
 
-INC = -I${CCS_DIR}/include
 FFLAGS += -DACCS_PETSC
 INC += -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include
-LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
 
 INC += -I${RCMF90}/include
 LIB += -L${RCMF90}/lib -lrcm
 
 INC += -I${FYAMLC}/modules 
 LIB += -Wl,-rpath,${FYAMLC}/lib -L${FYAMLC}/lib -lfortran-yaml-c
-
-ifdef PARHIP
-  INC += -I${PARHIP}/include
-  LIB += -L${PARHIP}/lib -lparhip_interface -Wl,-rpath,${PARHIP}/lib
-endif
-
-ifdef PARMETIS
-  INC += -I${PARMETIS}/include
-  LIB += -L${PARMETIS}/lib -lGKlib -lmetis -lparmetis -Wl,-rpath,${PARMETIS}/lib
-endif
-
-ifdef CALIPER
-  INC += -I${CALIPER}/include/caliper/fortran
-  LIB += -L${CALIPER}/lib -lcaliper
-endif
-
-ifdef LIKWID
-  INC += -I${LIKWID}/include/
-  LIB += -L${LIKWID}/lib -llikwid
-endif
 
 ifeq ($(NEED_CMP),yes)
   INC += $(shell $(ADIOS2)/bin/adios2-config --fortran-flags)
