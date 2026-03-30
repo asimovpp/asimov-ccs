@@ -53,7 +53,6 @@ contains
 
     class(io_environment), allocatable, save :: io_env
     class(io_process), allocatable, save :: sol_reader
-
     integer(ccs_long), dimension(1) :: sel_shape
     integer(ccs_long), dimension(1) :: sel_start
     integer(ccs_long), dimension(1) :: sel_count
@@ -80,21 +79,20 @@ contains
     real(ccs_real), dimension(:), pointer :: output_data
     class(field), pointer :: phi
 
-    sol_file = case_name // '.sol.h5'
+    sol_file = case_name // '_sol'
     adios2_file = case_name // adiosconfig
 
     call timer_register("Get natural data (output)", timer_index_nat_data_output)
     call timer_register("Get natural data (grads)", timer_index_nat_data)
     call timer_register("Read output time", timer_index_output)
     call timer_register("Read gradients time", timer_index_grad)
-
+    
     if (present(step)) then
       ! Unsteady case
       if (initial_step) then
         call initialise_io(par_env, adios2_file, io_env)
         call configure_io(io_env, "sol_reader", sol_reader)
         call open_file(sol_file, "read", sol_reader)
-
         initial_step = .false.
       end if
     else
@@ -240,7 +238,7 @@ contains
 
     class(field), pointer :: phi
     
-    sol_file = run_options%paths%case_name // '.sol.h5'
+    sol_file = run_options%paths%case_name // '_sol'
     adios2_file = run_options%paths%case_name // adiosconfig
 
     call timer_register("Get natural data (output)", timer_index_nat_data_output)
