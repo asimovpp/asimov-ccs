@@ -240,9 +240,9 @@ contains
 
     do i_field = 1, size(flow_fields%fields)
       call get_field(flow_fields, i_field, phi)
-      if (phi%name == "p") then
+      if (phi%name == "p" .and. phi%solve) then
         have_p = .true.
-      else if ((phi%name == "u") .or. (phi%name == "v") .or. (phi%name == "w")) then
+      else if (((phi%name == "u") .or. (phi%name == "v") .or. (phi%name == "w")) .and. phi%solve) then
         have_vel = .true.
       end if
     end do
