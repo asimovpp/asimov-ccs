@@ -295,7 +295,7 @@ contains
         else !LUDS
           call get_distance(loc_nb, loc_f, d)
           coeffaF = 1.0_ccs_real
-          if (dabs(phiP) > 0.0_ccs_real) then
+          if (abs(phiP) > 0.0_ccs_real) then
             coeffaF = coeffaF + (dot_product(dphiP, d) / phiP)
           end if
           coeffaP = 0.0_ccs_real
@@ -325,7 +325,7 @@ contains
         else !LUDS
           call get_distance(loc_p, loc_f, d)
           coeffaP = 1.0_ccs_real
-          if (dabs(phiP) > 0.0_ccs_real) then
+          if (abs(phiP) > 0.0_ccs_real) then
             coeffaP = coeffaP + (dot_product(dphiP, d) / phiP)
           end if
           coeffaF = 0.0_ccs_real

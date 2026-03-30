@@ -43,8 +43,6 @@ program scalar_transport
 
   call get_config(par_env, run_options)
   call configure_parallelism(run_options, par_env, shared_env)
-  irank = par_env%proc_id
-  isize = par_env%num_procs
 
   call profiler_begin_region('Total elapsed time')
 

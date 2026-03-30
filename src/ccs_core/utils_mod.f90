@@ -24,6 +24,7 @@ module utils
   use constants, only: cell_centred_central, cell_centred_upwind, face_centred, cell_centred_gamma, &
                        cell_centred_linear_upwind
   use error_codes
+  use kinds, only: CCS_MPI_PRECISION
 
   implicit none
 
@@ -262,7 +263,7 @@ contains
     use constants, only: ndim, ccs_string_len
     use types, only: field, ccs_mesh, cell_locator
     use vec, only: get_vector_data, restore_vector_data
-    use parallel, only: allreduce, error_handling
+    use parallel, only: allreduce, error_handling, is_root
     use parallel_types_mpi, only: parallel_environment_mpi
     use parallel_types, only: parallel_environment
     use meshing, only: get_local_num_cells, create_cell_locator, get_volume
@@ -317,9 +318,9 @@ contains
 
     select type (par_env)
     type is (parallel_environment_mpi)
-      call MPI_AllReduce(ek_local, ek_global, 1, MPI_DOUBLE_PRECISION, MPI_SUM, par_env%comm, ierr)
+      call MPI_AllReduce(ek_local, ek_global, 1, CCS_MPI_PRECISION, MPI_SUM, par_env%comm, ierr)
       call error_handling(ierr, "mpi", par_env)
-      call MPI_AllReduce(volume_local, volume_global, 1, MPI_DOUBLE_PRECISION, MPI_SUM, par_env%comm, ierr)
+      call MPI_AllReduce(volume_local, volume_global, 1, CCS_MPI_PRECISION, MPI_SUM, par_env%comm, ierr)
       call error_handling(ierr, "mpi", par_env)
     class default
       call error_abort("ERROR: Unknown type")
@@ -327,7 +328,7 @@ contains
 
     ek_global = ek_global / volume_global
 
-    if (par_env%proc_id == par_env%root) then
+    if (is_root(par_env)) then
       if (first_time) then
         first_time = .false.
         open (newunit=io_unit, file="tgv2d-ek.log", status="replace", form="formatted")
@@ -350,7 +351,7 @@ contains
     use constants, only: ndim, ccs_string_len
     use types, only: field, ccs_mesh
     use vec, only: get_vector_data, restore_vector_data
-    use parallel, only: allreduce, error_handling
+    use parallel, only: allreduce, error_handling, is_root
     use parallel_types_mpi, only: parallel_environment_mpi
     use parallel_types, only: parallel_environment
     use meshing, only: get_local_num_cells
@@ -402,13 +403,13 @@ contains
 
     select type (par_env)
     type is (parallel_environment_mpi)
-      call MPI_AllReduce(ens_local, ens_global, 1, MPI_DOUBLE_PRECISION, MPI_SUM, par_env%comm, ierr)
+      call MPI_AllReduce(ens_local, ens_global, 1, CCS_MPI_PRECISION, MPI_SUM, par_env%comm, ierr)
       call error_handling(ierr, "mpi", par_env)
     class default
       call error_abort("ERROR: Unknown type")
     end select
 
-    if (par_env%proc_id == par_env%root) then
+    if (is_root(par_env)) then
       if (first_time) then
         first_time = .false.
         open (newunit=io_unit, file="tgv2d-ens.log", status="replace", form="formatted")

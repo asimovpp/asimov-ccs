@@ -475,6 +475,8 @@ contains
   !v Read the geometry data from an input (HDF5) file
   subroutine read_geometry(shared_env, reader_env, geo_reader, mesh)
 
+    use kinds, only: CCS_MPI_PRECISION
+
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: reader_env !< The reader parallel environment
     class(io_process) :: geo_reader                                         !< The IO process for reading the file
@@ -554,7 +556,7 @@ contains
     if (is_valid(reader_env)) then
       call read_scalar(geo_reader, "scalefactor", mesh%geo%scalefactor)
     end if
-    call MPI_Bcast(mesh%geo%scalefactor, 1, MPI_DOUBLE_PRECISION, 0, shared_comm, ierr)
+    call MPI_Bcast(mesh%geo%scalefactor, 1, CCS_MPI_PRECISION, 0, shared_comm, ierr)
 
     ! Starting point for reading chunk of data
     vol_p_start = 0

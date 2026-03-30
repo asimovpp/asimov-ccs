@@ -486,7 +486,7 @@ contains
 
       if (command_argument_count() == 0) then
 
-        if (par_env%proc_id == par_env%root) then
+        if (is_root(par_env)) then
           print *, new_line('a') // "Usage: ./ccs_app [OPTIONS]" // new_line('a')
           call print_help()
           call cleanup_parallel_environment(par_env)
@@ -516,13 +516,13 @@ contains
                 in_dir = trim(arg)
               end if
             case ('--ccs_help')
-              if (par_env%proc_id == par_env%root) then
+              if (is_root(par_env)) then
                 call print_help()
               end if
               call cleanup_parallel_environment(par_env)
               stop 0
             case default
-              if (par_env%proc_id == par_env%root) then
+              if (is_root(par_env)) then
                 print *, "Argument ", trim(arg), " not supported by ASiMoV-CCS."
               end if
               call cleanup_parallel_environment(par_env)
@@ -571,7 +571,7 @@ contains
 
     select type (par_env)
     type is (parallel_environment_mpi)
-      if(par_env%proc_id == par_env%root) then 
+      if(is_root(par_env)) then 
         inquire(file="STOP", EXIST=stop_run)
         if (stop_run) then
           print *, "STOP file found"

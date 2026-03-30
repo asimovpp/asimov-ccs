@@ -72,7 +72,7 @@ contains
     type(cell_locator) :: loc_p
     integer(ccs_int) :: index_global
 
-    real(ccs_long), dimension(:), pointer :: output_data
+    real(ccs_real), dimension(:), pointer :: output_data
     class(field), pointer :: phi
 
     sol_file = case_name // '.sol.h5'

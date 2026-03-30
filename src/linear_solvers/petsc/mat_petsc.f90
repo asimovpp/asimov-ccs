@@ -5,6 +5,7 @@ submodule(mat) mat_petsc
   use kinds, only: ccs_err
   use petsctypes, only: matrix_petsc, vector_petsc
   use parallel_types_mpi, only: parallel_environment_mpi
+  use parallel, only: is_root
   use petscmat, only: MatAssemblyBegin, MatAssemblyEnd, MAT_FLUSH_ASSEMBLY
   use petsc, only: ADD_VALUES, INSERT_VALUES
   use utils, only: debug_print, str, update, exit_print
@@ -68,7 +69,7 @@ contains
         call MatSetFromOptions(M%M, ierr)
 
         if (mat_properties%nnz < 1) then
-          if (par_env%proc_id == par_env%root) then
+          if (is_root(par_env)) then
             call dprint("WARNING: No matrix preallocation set, potentially inefficient.")
           end if
           call MatSetUp(M%M, ierr)
