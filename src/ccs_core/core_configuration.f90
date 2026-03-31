@@ -296,11 +296,6 @@ contains
         print *, "******************************************************************************"
         print *, "* Solving the ", case_name, " case"
         print *, "******************************************************************************"
-        print *, "Solved variables: "
-        !do i = 1, size(run_options%variables%solved_variables)
-        !  print *, "- ", run_options%variables%solved_variables(i)
-        !end do
-        print *, "******************************************************************************"
         print *, "* SIMULATION LENGTH"
         if (dt /= huge(dt)) then
           print *, "* Running for ", num_steps, "timesteps and ", num_iters, "iterations"
@@ -308,15 +303,9 @@ contains
         else
           print *, "* Running for ", num_iters, "iterations"
         end if
-        print *, "******************************************************************************"
-        print *, "* RELAXATION FACTORS"
-        ! write (*, '(1x, a, e10.3)') "* velocity: ", velocity_relax
-        ! write (*, '(1x, a, e10.3)') "* pressure: ", pressure_relax
       end associate
       print *, "******************************************************************************"
       print *, "* SOLVER CONFIGURATION"
-      !print *, "* Velocity: ", trim(run_options%solve%velocity_precon), " + ", trim(run_options%solve%velocity_solver)
-      !print *, "* Pressure: ", trim(run_options%solve%pressure_precon), " + ", trim(run_options%solve%pressure_solver)
       print *, "* Precision: ", CCS_PRECISION_STR
       print *, "******************************************************************************"
       print *, "* REFERENCE VALUES"

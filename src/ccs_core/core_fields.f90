@@ -12,7 +12,7 @@ submodule(core) core_fields
   use vec, only: set_vector_location
   use fields, only: set_field_config_file, set_field_n_boundaries, set_field_store_residuals, &
                     set_field_enable_cell_corrections, set_field_vector_properties, create_field, &
-                    set_field_name, set_field_type, set_is_field_solved, get_field
+                    set_field_name, set_field_type, set_is_field_solved, get_field, print_field_config
   use fortran_yaml_c_interface, only: parse
   use profiler, only: profiler_begin_region, profiler_end_region
 
@@ -85,6 +85,9 @@ contains
     call build_case_fields(par_env, run_options, field_properties, flow_fields)
 
     call profiler_end_region('Field initialisation')
+
+    call print_field_config(par_env, flow_fields)
+
   end subroutine initialise_fields
 
   !> Builds the user specified fields from the case config file
@@ -97,11 +100,6 @@ contains
     integer(ccs_int) :: i
     type(field_spec) :: my_field_properties
     
-    ! Expect to find u, v, w, p, p_prime, scalar
-    if (is_root(par_env)) then
-      print *, "Build field list"
-    end if
-
     ! Create a local copyt of field_properties
     my_field_properties = field_properties
     
@@ -114,9 +112,6 @@ contains
         cycle
       end if
 
-      if (is_root(par_env)) then
-        print *, "Creating field ", trim(run_options%variables%variable_names(i))
-      end if
       call set_field_type(run_options%variables%variable_types(i), my_field_properties)
       call set_field_name(run_options%variables%variable_names(i), my_field_properties)
       call create_field(par_env, my_field_properties, flow_fields)

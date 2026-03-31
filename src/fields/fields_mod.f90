@@ -40,6 +40,7 @@ module fields
   public :: dealloc_fluid_fields
   public :: get_field_name
   public :: count_fields
+  public :: print_field_config
 
   !> Generic interface to get a field from the flow
   interface get_field
@@ -403,5 +404,35 @@ contains
   end subroutine get_field_idx
 
 
+  !v Outputs each field configuration
+  subroutine print_field_config(par_env, flow)
+
+    use parallel, only: is_root
+    class(parallel_environment), intent(in) :: par_env
+    type(fluid), intent(in) :: flow
+    class(field), pointer :: phi
+
+    integer :: ifield, nfields
+    call count_fields(flow, nfields)
+
+    if (is_root(par_env)) then
+        print *, " "
+        print *, "******************************************************************************"
+        print *, "* SOLVER CONFIG"
+        print *, "******************************************************************************"
+        do ifield=1, nfields
+          call get_field(flow, ifield, phi)
+          if (phi%solver_parameters%solve) then
+            print *, "************ ", trim(phi%name), " ************"
+            write(*,'(A, E10.2)')  " Residuals target: ", phi%solver_parameters%res_target
+            write(*,'(A, F4.2)')  " Relaxation factor: ", phi%solver_parameters%relaxation_factor
+            print *, "Solver: ", phi%solver_parameters%solver_name
+            print *, "Preconditioner: ", phi%solver_parameters%precon_name
+          end if
+        end do
+        print *, ""
+    end if
+
+  end subroutine
 
 end module fields
