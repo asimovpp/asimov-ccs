@@ -104,11 +104,9 @@ contains
 
     integer(ccs_int) :: it_start
     integer(ccs_int) :: it_end
-    !real(ccs_real) :: res_target                          !< Target residual
 
     it_start = run_options%solve%it_start
     it_end = run_options%solve%it_end
-    !res_target = run_options%solve%res_target
 
     if (.not. is_mesh_set()) then
       call error_abort("Mesh object needs to be set")
@@ -191,7 +189,7 @@ contains
       call dprint("NONLINEAR: mass imbalance")
       call compute_mass_imbalance(invA, flow, source, residuals)
       call dprint("NONLINEAR: compute p'")
-      call calculate_pressure_correction(par_env, invA, M, source, lin_system, p_prime, p%solver_parameters, lin_solverP)
+      call calculate_pressure_correction(par_env, p%solver_parameters, invA, M, source, lin_system, p_prime, lin_solverP)
 
       ! Update velocity with velocity correction (eq. 6)
       call dprint("NONLINEAR: correct face velocity")
@@ -722,7 +720,7 @@ contains
   !v Solves the pressure correction equation
   !
   !  Solves the pressure correction equation formed by the mass-imbalance.
-  subroutine calculate_pressure_correction(par_env, invA, M, vec, lin_sys, p_prime, solver_parameters, lin_solver)
+  subroutine calculate_pressure_correction(par_env, solver_parameters, invA, M, vec, lin_sys, p_prime, lin_solver)
 
     use fv, only: compute_boundary_coeffs
     use profiler
@@ -730,12 +728,12 @@ contains
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< the parallel environment
+    type(solver_params), intent(in) :: solver_parameters            !< Parameters to setup the solver
     class(ccs_vector), intent(inout) :: invA                        !< inverse diagonal momentum coefficients
     class(ccs_matrix), allocatable, intent(inout) :: M              !< matrix object
     class(ccs_vector), allocatable, intent(inout) :: vec            !< the RHS vector
     type(equation_system), intent(inout) :: lin_sys                 !< linear system object
     class(field), intent(inout) :: p_prime                          !< the pressure correction field
-    type(solver_params), intent(in) :: solver_parameters            !< Parameters to setup the solver
     class(linear_solver), allocatable, intent(inout) :: lin_solver  !< Linear solver that is being reused
 
     ! Local variables

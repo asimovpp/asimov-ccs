@@ -251,6 +251,7 @@ contains
     nullify(phi)
   end subroutine set_is_fluid_field_solved
 
+  ! Sets field solver parameters from run_options and the default values
   subroutine set_field_solver_params(run_options, field_index, flow)
     type(ccs_options), intent(in) :: run_options
     integer(ccs_int), intent(in) :: field_index   !< The index of the field being set

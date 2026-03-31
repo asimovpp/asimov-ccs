@@ -372,10 +372,6 @@ contains
           if (val_present) then
             solver_parameters(i)%precon_name = trim(precon_name)
           end if
-
-          !call get_value(dict_var, "name", variable)
-          !var = adjustl(variable)
-          !solver_parameters(i)%name = trim(var)
         end do
         class default
           call error_abort("Unknown type")

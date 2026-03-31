@@ -217,17 +217,16 @@ module types
     logical :: enable_cell_corrections                            !< Whether or not deffered corrections should be used (non-orthogonality, excentricity etc.)
     character(len=20) :: name
     logical :: output = .false.                                   !< Should field be written in output?
-    !logical :: solve = .true.                                     !< Whether to solve a linear system for this variable or not
     integer(ccs_int) :: idx
     type(solver_params), allocatable :: solver_parameters         !< Parameters to use when transporting the field
   end type field
 
   type, public :: solver_params
-    logical :: solve = .false.
-    real(ccs_real) :: res_target = huge(ccs_real)
-    real(ccs_real) :: relaxation_factor = huge(ccs_real)
-    character(len=ccs_string_len) :: solver_name = ""
-    character(len=ccs_string_len) :: precon_name = ""
+    logical :: solve = .false.                               !< Whether or not to solve said field
+    real(ccs_real) :: res_target = huge(ccs_real)            !< The target residuals under which the iterative solve is considered converged
+    real(ccs_real) :: relaxation_factor = huge(ccs_real)     !< Relaxation factor
+    character(len=ccs_string_len) :: solver_name = ""        !< Solver name passed to the linear solver directly
+    character(len=ccs_string_len) :: precon_name = ""        !< Preconditioner name passed to the linear solver directly
   end type
 
   type, public, extends(field) :: upwind_field

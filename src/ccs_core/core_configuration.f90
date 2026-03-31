@@ -4,7 +4,7 @@ submodule(core) core_configuration
   use read_config, only: get_variable_types, &
                          get_value, &
                          get_variables, get_relaxation_factors, &
-                         get_output_type, & !, get_solve, &
+                         get_output_type, &
                          get_reference_number, &
                          get_boundary_names, get_solver_eq_parameters
   use utils, only: exit_print
@@ -191,7 +191,6 @@ contains
     end if
 
     call get_output_type(config_file, post_type, variables%output_variables)
-    !call get_solve(config_file, variables%solved_variables)
 
   end subroutine get_variable_definitions
 
@@ -231,7 +230,6 @@ contains
     real(ccs_real) :: dt
     logical :: unsteady
     real(ccs_real) :: res_target
-    !real(ccs_real) :: velocity_relax, pressure_relax
     logical :: present, required
 
     ! Default values for error checking
@@ -239,8 +237,6 @@ contains
     num_iters = huge(0)
     dt = huge(0.0_ccs_real)
     res_target = huge(0.0_ccs_real)
-    ! velocity_relax = huge(0.0_ccs_real)
-    ! pressure_relax = huge(0.0_ccs_real)
 
     call get_value(config_file, 'iterations', num_iters)
     if (num_iters == huge(0)) then
@@ -269,13 +265,8 @@ contains
     end if
     solve%default_res_target = res_target
 
+    ! Gets solver parameters per equation
     call get_solver_eq_parameters(config_file, solve%solver_eq_parameters)
-    ! call get_relaxation_factors(config_file, u_relax = velocity_relax, p_relax = pressure_relax)
-    ! if (velocity_relax == huge(0.0) .and. pressure_relax == huge(0.0)) then
-    !   call error_abort("No values assigned to velocity and pressure underrelaxation.")
-    ! end if
-    ! solve%velocity_relax = velocity_relax
-    ! solve%pressure_relax = pressure_relax
 
     solve%it_start = 1
     solve%it_end = num_iters

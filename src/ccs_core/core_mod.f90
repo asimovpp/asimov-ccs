@@ -75,8 +75,6 @@ module core
     real(ccs_real) :: dt = huge(0.0_ccs_real)
     type(solver_params), dimension(:), allocatable :: solver_eq_parameters
     real(ccs_real) :: default_res_target = huge(0.0_ccs_real)
-    ! real(ccs_real) :: velocity_relax = huge(0.0_ccs_real)
-    ! real(ccs_real) :: pressure_relax = huge(0.0_ccs_real)
     character(len=ccs_string_len) :: default_solver = "gmres"
     character(len=ccs_string_len) :: default_precon = "bjacobi"
     character(len=ccs_string_len) :: default_pressure_solver = "cg"
