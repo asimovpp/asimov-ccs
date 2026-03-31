@@ -75,22 +75,22 @@ variables:
     name: u
     type: central
     solve: on
-    relaxation_factor: 0.7
+    relaxation: 0.7
   variable_2:
     name: v
     type: central
     solve: on
-    relaxation_factor: 0.7
+    relaxation: 0.7
   variable_3:
     name: w
     type: central
     solve: on
-    relaxation_factor: 0.7
+    relaxation: 0.7
   variable_4:
     name: p
     type: central
     solve: on
-    relaxation_factor: 0.3
+    relaxation: 0.3
   variable_5:
     name: p_prime
     type: central

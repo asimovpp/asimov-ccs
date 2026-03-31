@@ -69,12 +69,12 @@ variables:
     name: whisky
     type: central
     solve: on
-    relaxation_factor: 0.9
+    relaxation: 0.9
   variable_2:
     name: water
     type: upwind
     solve: on
-    relaxation_factor: 0.9
+    relaxation: 0.9
   variable_3:
     name: u
     type: central

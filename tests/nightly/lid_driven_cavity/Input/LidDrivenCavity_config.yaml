@@ -12,7 +12,7 @@ cps: 16
 # domain size
 L: 1.0
 
-relaxation_factor:
+relaxation:
   u: 0.9
   v: 0.9
   w: 0.9
