@@ -22,12 +22,6 @@ cps: 8
 # domain size
 L: 3.1415926535
 
-relaxation_factor:
-  u: 0.9
-  v: 0.9
-  w: 0.9
-  p: 0.1
-
 target_residual: 1.0e-10
 
 # Frequency (in terms of timesteps) of writing solution to file
@@ -82,18 +76,25 @@ variables:
     name: u
     type: central
     solve: on
+    relaxation: 0.9
   variable_2:
     name: v
     type: central
     solve: on
+    relaxation: 0.9
   variable_3:
     name: w
     type: central
     solve: on
+    relaxation: 0.9
   variable_4:
     name: p
     type: central
     solve: on
+    relaxation: 0.1
+    # target_residual: 1.0e-10
+    # solver_name: cg
+    # precon_name: gamg
   variable_5:
     name: p_prime
     type: central
