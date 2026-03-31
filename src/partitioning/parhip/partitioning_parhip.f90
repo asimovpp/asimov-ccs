@@ -176,12 +176,12 @@ contains
             call MPI_AllReduce(tmp_partition, graph_conn%global_partition, global_num_cells, &
                               MPI_LONG, MPI_SUM, roots_env%comm, ierr)
         class default
-          print *, "ERROR: Unknown parallel environment!"
+          write(log_unit_out,*) "ERROR: Unknown parallel environment!"
         end select
       end if
 
     class default
-      print *, "ERROR: Unknown parallel environment!"
+      write(log_unit_out,*) "ERROR: Unknown parallel environment!"
     end select
 
     call dprint("Number of edgecuts: " // str(edgecuts))
