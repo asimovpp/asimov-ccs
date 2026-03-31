@@ -56,35 +56,6 @@ LIB_CCS=libccs.a
 # check makedepf90 version
 MAKEDEPF90_SMODS=$(shell makedepf90 -h | grep -q '\-S PATH'; echo $$?)
 
-# check config.yaml for optional libraries
-OPT_PARHIP = $(shell $(PY) $(TOOLS)/extra_exists.py $(CCS_DIR)/config.yaml "partitioning_parhip")
-OPT_PARMETIS = $(shell $(PY) $(TOOLS)/extra_exists.py $(CCS_DIR)/config.yaml "partitioning_parmetis")
-OPT_CALIPER = $(shell $(PY) $(TOOLS)/extra_exists.py $(CCS_DIR)/config.yaml "profiler_caliper")
-OPT_LIKWID = $(shell $(PY) $(TOOLS)/extra_exists.py $(CCS_DIR)/config.yaml "profiler_likwid")
-
-# add unused extras to ignore list
-ifeq ($(OPT_PARHIP), 0)
-  IGNORE += parhip.c
-  IGNORE += partitioning_parhip.f90
-endif
-
-ifeq ($(OPT_PARMETIS), 0)
-  IGNORE += parmetis.c
-  IGNORE += partitioning_parmetis.f90
-endif
-
-ifeq ($(OPT_CALIPER), 0)
-  IGNORE += profiler_caliper.f90
-endif
-
-ifeq ($(OPT_LIKWID), 0)
-  IGNORE += profiler_likwid.f90
-endif
-
-ifeq ($(CCS_PROPRIETARY),yes)
-  SRC_DIRS += $(CCS_PROPRIETARY_DIR)/src
-endif
-
 # find source files
 find_src_files = $(shell find $(dir) -type f -name '*.f90' -o -name '*.c')
 ALL_SRC = $(foreach dir, $(SRC_DIRS), $(find_src_files))
