@@ -329,8 +329,8 @@ contains
     real(ccs_real) :: res_target
     real(ccs_real) :: relaxation
     logical :: val_present
-    character(len=:), allocatable :: variable
-    character(len=ccs_string_len) :: var
+    !character(len=:), allocatable :: variable
+    !character(len=ccs_string_len) :: var
 
 
     select type (config_file)
@@ -373,9 +373,9 @@ contains
             solver_parameters(i)%precon_name = trim(precon_name)
           end if
 
-          call get_value(dict_var, "name", variable)
-          var = adjustl(variable)
-          solver_parameters(i)%name = var
+          !call get_value(dict_var, "name", variable)
+          !var = adjustl(variable)
+          !solver_parameters(i)%name = trim(var)
         end do
         class default
           call error_abort("Unknown type")

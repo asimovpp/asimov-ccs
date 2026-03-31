@@ -267,14 +267,19 @@ contains
     end if
 
     if (phi%solver_parameters%solver_name == "") then
-      select case (phi%name)
-        case ("p")
+      if (phi%name == "p" .OR. phi%name == "p_prime") then
           phi%solver_parameters%solver_name = run_options%solve%default_pressure_solver
-          phi%solver_parameters%precon_name = run_options%solve%default_pressure_precon
-        case default
+      else
           phi%solver_parameters%solver_name = run_options%solve%default_solver
+      end if
+    end if
+
+    if (phi%solver_parameters%precon_name == "") then
+      if (phi%name == "p" .OR. phi%name == "p_prime") then
+          phi%solver_parameters%precon_name = run_options%solve%default_pressure_precon
+      else
           phi%solver_parameters%precon_name = run_options%solve%default_precon
-      end select
+      end if
     end if
 
     if (phi%solver_parameters%solve .and. phi%solver_parameters%relaxation_factor == huge(ccs_real)) then
