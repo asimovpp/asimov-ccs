@@ -55,10 +55,10 @@ contains
     do j = 1, nvar
       if (present(errors_secondary)) then
         fmt = '(a12,f12.4,f12.4)'
-        write(*, fmt) trim(variable_labels(j)) // " order: ", orders(j), orders_secondary(j)
+        write(log_unit_out, fmt) trim(variable_labels(j)) // " order: ", orders(j), orders_secondary(j)
       else
         fmt = '(a12,f12.4)'
-        write(*, fmt) trim(variable_labels(j)) // " order: ", orders(j)
+        write(log_unit_out, fmt) trim(variable_labels(j)) // " order: ", orders(j)
       end if
     end do
     write(log_unit_out,*) "----------------------------------------------------"
