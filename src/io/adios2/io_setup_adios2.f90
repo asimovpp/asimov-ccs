@@ -115,18 +115,33 @@ contains
     
     integer(ccs_int) :: ierr
 
+    file_type = ""
+
     select type (io_proc)
     type is (adios2_io_process)
 
-      call adios2_io_engine_type(engine_type, io_proc%io_task, ierr)
-      if (engine_type == "HDF5") then
-        file_type = ".h5"
-      else if (engine_type == "BP4" .or. engine_type == "BP5") then
-        file_type = ".bp"
-      else
-        call error_abort("Unknown ADIOS2 engine type: " // trim(engine_type))
+      if(mode == "write") then
+
+        ! query the engine type - defined in the ADIOS2 XML configuration file
+        call adios2_io_engine_type(engine_type, io_proc%io_task, ierr)
+
+        ! Support for HDF5, BP4 and BP5
+        if (engine_type == "HDF5") then
+          file_type = ".h5"
+        else if (engine_type == "BP4" .or. engine_type == "BP5") then
+          file_type = ".bp"
+        else
+          call error_abort("Unknown ADIOS2 engine type: " // trim(engine_type))
+        end if
+
+        ! Append the correct file extension
+        call adios2_open(io_proc%engine, io_proc%io_task, filename // file_type, get_mode(mode), ierr)
+
+      else if(mode == "read" .or. mode == "append") then
+
+        call adios2_open(io_proc%engine, io_proc%io_task, filename, get_mode(mode), ierr)
+
       end if
-      call adios2_open(io_proc%engine, io_proc%io_task, filename // file_type, get_mode(mode), ierr)
 
     class default
       call error_abort("Unknown IO process handler type")
