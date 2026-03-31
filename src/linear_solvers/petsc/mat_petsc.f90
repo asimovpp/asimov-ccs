@@ -10,6 +10,7 @@ submodule(mat) mat_petsc
   use petsc, only: ADD_VALUES, INSERT_VALUES
   use utils, only: debug_print, str, update, exit_print
   use error_codes
+  use logging, only: log_unit_out
 
   implicit none
 
@@ -130,10 +131,10 @@ contains
     select type (M)
     type is (matrix_petsc)
       call MatGetInfo(M%M, MAT_LOCAL, info, ierr)
-      print *, "---"
-      print *, "nnz allocated: ", info%nz_allocated
-      print *, "nnz used: ", info%nz_used
-      print *, "nnz unneeded: ", info%nz_unneeded
+      write(log_unit_out,*) "---"
+      write(log_unit_out,*) "nnz allocated: ", info%nz_allocated
+      write(log_unit_out,*) "nnz used: ", info%nz_used
+      write(log_unit_out,*) "nnz unneeded: ", info%nz_unneeded
 
     end select
 
@@ -149,10 +150,10 @@ contains
     select type (M)
     type is (matrix_petsc)
       call MatGetInfo(M%M, MAT_LOCAL, info, ierr)
-      print *, "---"
-      print *, "nnz allocated: ", info(MAT_INFO_NZ_ALLOCATED)
-      print *, "nnz used: ", info(MAT_INFO_NZ_USED)
-      print *, "nnz unneeded: ", info(MAT_INFO_NZ_UNNEEDED)
+      write(log_unit_out,*) "---"
+      write(log_unit_out,*) "nnz allocated: ", info(MAT_INFO_NZ_ALLOCATED)
+      write(log_unit_out,*) "nnz used: ", info(MAT_INFO_NZ_USED)
+      write(log_unit_out,*) "nnz unneeded: ", info(MAT_INFO_NZ_UNNEEDED)
     end select
     
 #endif
