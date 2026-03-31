@@ -10,6 +10,7 @@ submodule(io) io_adios2
   use adios2
   use adios2_types, only: adios2_env, adios2_io_process
   use kinds, only: ccs_long
+  use logging, only: log_unit_out
 
   implicit none
 
@@ -564,7 +565,7 @@ contains
       call adios2_define_attribute(adios2_attr, io_proc%io_task, attr_name, attr, ierr)
 
     class default
-      print *, "Unknown IO process handler type"
+      write(log_unit_out,*) "Unknown IO process handler type"
       stop 1
 
     end select
@@ -587,7 +588,7 @@ contains
       call adios2_define_attribute(adios2_attr, io_proc%io_task, attr_name, attr, ierr)
 
     class default
-      print *, "Unknown IO process handler type"
+      write(log_unit_out,*) "Unknown IO process handler type"
       stop 1
 
     end select
@@ -610,7 +611,7 @@ contains
       call adios2_define_attribute(adios2_attr, io_proc%io_task, attr_name, attr, ierr)
 
     class default
-      print *, "Unknown IO process handler type"
+      write(log_unit_out,*) "Unknown IO process handler type"
       stop 1
 
     end select
@@ -633,7 +634,7 @@ contains
       call adios2_define_attribute(adios2_attr, io_proc%io_task, attr_name, attr, ierr)
 
     class default
-      print *, "Unknown IO process handler type"
+      write(log_unit_out,*) "Unknown IO process handler type"
       stop 1
 
     end select
@@ -663,7 +664,7 @@ contains
       call adios2_put(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
 
     class default
-      print *, "Unknown IO process handler type"
+      write(log_unit_out,*) "Unknown IO process handler type"
       stop 1
 
     end select
@@ -693,7 +694,7 @@ contains
       call adios2_put(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
 
     class default
-      print *, "Unknown IO process handler type"
+      write(log_unit_out,*) "Unknown IO process handler type"
       stop 1
 
     end select
@@ -723,7 +724,7 @@ contains
       call adios2_put(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
 
     class default
-      print *, "Unknown IO process handler type"
+      write(log_unit_out,*) "Unknown IO process handler type"
       stop 1
 
     end select
@@ -753,7 +754,7 @@ contains
       call adios2_put(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
 
     class default
-      print *, "Unknown IO process handler type"
+      write(log_unit_out,*) "Unknown IO process handler type"
       stop 1
 
     end select
@@ -787,7 +788,7 @@ contains
       call adios2_put(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
 
     class default
-      print *, "Unknown IO process handler type"
+      write(log_unit_out,*) "Unknown IO process handler type"
       stop 1
 
     end select
@@ -821,7 +822,7 @@ contains
       call adios2_put(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
 
     class default
-      print *, "Unknown IO process handler type"
+      write(log_unit_out,*) "Unknown IO process handler type"
       stop 1
 
     end select
@@ -851,7 +852,7 @@ contains
       call adios2_put(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
 
     class default
-      print *, "Unknown IO process handler type"
+      write(log_unit_out,*) "Unknown IO process handler type"
       stop 1
 
     end select
@@ -881,7 +882,7 @@ contains
       call adios2_put(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
 
     class default
-      print *, "Unknown IO process handler type"
+      write(log_unit_out,*) "Unknown IO process handler type"
       stop 1
 
     end select
@@ -890,8 +891,8 @@ contains
 
   !>  Print out downcast warning
   subroutine downcast_warning()
-    print *, "===> IO Warning:"
-    print *, "===> Downcasting from 64-bit to 32-bit, possible loss of precision."
+    write(log_unit_out,*) "===> IO Warning:"
+    write(log_unit_out,*) "===> Downcasting from 64-bit to 32-bit, possible loss of precision."
   end subroutine
 
 end submodule
