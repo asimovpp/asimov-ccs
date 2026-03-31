@@ -18,6 +18,7 @@ program sandia
   use fields, only: dealloc_fluid_fields
   use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, &
                     timer_print, timer_get_time, timer_print_all, timer_export_csv
+  use logging, only: log_unit_out
 
   implicit none
 
