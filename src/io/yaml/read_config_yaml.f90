@@ -358,7 +358,7 @@ contains
             solver_parameters(i)%relaxation_factor = relaxation
           end if
 
-          call get_value(dict_var, 'res_target', res_target, value_present=val_present, required=.false.)
+          call get_value(dict_var, 'target_residual', res_target, value_present=val_present, required=.false.)
           if (val_present) then
             solver_parameters(i)%res_target = res_target
           end if

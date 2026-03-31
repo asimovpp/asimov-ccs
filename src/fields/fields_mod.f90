@@ -198,6 +198,8 @@ contains
     end if
 
     call allocate_bc_arrays(n_boundaries, phi_ptr%ptr%bcs)
+    
+    allocate(phi_ptr%ptr%solver_parameters)
 
     call add_field(phi_ptr, flow)
     

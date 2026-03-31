@@ -223,7 +223,6 @@ module types
   end type field
 
   type, public :: solver_params
-    character(len=20) :: name
     logical :: solve = .false.
     real(ccs_real) :: res_target = huge(ccs_real)
     real(ccs_real) :: relaxation_factor = huge(ccs_real)

@@ -283,7 +283,7 @@ contains
     end if
 
     if (phi%solver_parameters%solve .and. phi%solver_parameters%relaxation_factor == huge(ccs_real)) then
-      call error_abort("No values assigned to underrelaxation factor for variable "//phi%solver_parameters%name)
+      call error_abort("No values assigned to underrelaxation factor for variable "//phi%name)
     end if
 
     nullify(phi)
