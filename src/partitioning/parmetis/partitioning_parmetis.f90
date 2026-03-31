@@ -7,6 +7,7 @@ submodule(partitioning) partitioning_parmetis
   use parallel_types_mpi, only: parallel_environment_mpi
   use meshing, only: set_local_num_cells, get_local_num_cells, get_global_num_cells
   use parallel, only: is_root, is_valid, create_shared_array, destroy_shared_array, sync
+  use logging, only: log_unit_out
 
   implicit none
 
@@ -159,7 +160,7 @@ contains
     type is (parallel_environment_mpi)
 
       if (is_root(par_env)) then
-        print*, "Partitioning with ParMETIS"
+        write(log_unit_out,*) "Partitioning with ParMETIS"
       end if
 
       comm = par_env%comm
@@ -189,12 +190,12 @@ contains
           call MPI_AllReduce(tmp_partition, graph_conn%global_partition, global_num_cells, &
                             MPI_INTEGER8, MPI_SUM, roots_env%comm, ierr)
         class default
-          print *, "ERROR: Unknown parallel environment!"
+          write(log_unit_out,*) "ERROR: Unknown parallel environment!"
         end select
       end if
 
     class default
-      print *, "ERROR: Unknown parallel environment! "
+      write(log_unit_out,*) "ERROR: Unknown parallel environment! "
     end select
 
     call dprint("Number of edgecuts: " // str(int(edgecuts)))

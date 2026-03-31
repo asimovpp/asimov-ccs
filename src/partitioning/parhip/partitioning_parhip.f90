@@ -8,6 +8,7 @@ submodule(partitioning) partitioning_parhip
   use meshing, only: set_local_num_cells, get_local_num_cells, get_global_num_cells, &
                      get_max_faces
   use parallel, only: is_root, is_valid, create_shared_array, destroy_shared_array, sync
+  use logging, only: log_unit_out
  
   implicit none
 
@@ -146,7 +147,7 @@ contains
     type is (parallel_environment_mpi)
 
       if (is_root(par_env)) then
-        print*, "Partitioning with ParHIP"
+        write(log_unit_out,*) "Partitioning with ParHIP"
       end if
 
       comm = par_env%comm
