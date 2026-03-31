@@ -11,6 +11,7 @@ submodule(solver) solver_petsc
   use petsctypes, only: linear_solver_petsc, matrix_petsc, vector_petsc
   use parallel_types_mpi, only: parallel_environment_mpi
   use utils, only: update, exit_print
+  use logging, only: log_unit_out
 
   implicit none
 
@@ -102,17 +103,17 @@ contains
             call KSPSolve(ksp, b%v, u%v, ierr)
             call update(u)
             if (ierr /= 0) then
-              print*, "ERROR in linear solve."
+              write(log_unit_out,*) "ERROR in linear solve."
               call error_abort("ERROR in linear solve.")
             end if
 
           class default
-            print*,"ERROR: Trying to use non-PETSc vector for solution with PETSc solver."
+            write(log_unit_out,*)"ERROR: Trying to use non-PETSc vector for solution with PETSc solver."
             call error_abort("ERROR: Trying to use non-PETSc vector for solution with PETSc solver.")
           end select
 
         class default
-          print*, "ERROR: Trying to use non-PETSc vector for RHS with PETSc solver."
+          write(log_unit_out,*) "ERROR: Trying to use non-PETSc vector for RHS with PETSc solver."
           call error_abort("ERROR: Trying to use non-PETSc vector for RHS with PETSc solver.")
         end select
 
