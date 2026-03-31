@@ -133,8 +133,8 @@ contains
 
     class(field), pointer :: phi
     
-    xdmf_file = run_options%paths%case_name // '.sol.xmf'
-    sol_file = run_options%paths%case_name // '.sol.h5'
+    xdmf_file = run_options%paths%case_name // '_sol.xmf'
+    sol_file = run_options%paths%case_name // '_sol'
 
     ! On first call, write the header of the XML file
     if (is_root(par_env)) then

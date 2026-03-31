@@ -78,12 +78,15 @@ variables:
   variable_3:
     name: u
     type: central
+    solve: off
   variable_4:
     name: v
     type: central
+    solve: off
   variable_5:
     name: w
     type: central
+    solve: off
 
 boundaries:
   n_boundaries: 4
