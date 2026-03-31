@@ -580,51 +580,6 @@ contains
 
   end subroutine
 
-  !v Get relaxation factor values
-  !
-  !  Get relaxation factors
-  module subroutine get_relaxation_factors(config_file, u_relax, v_relax, p_relax, te_relax, ed_relax)
-    class(*), pointer, intent(in) :: config_file        !< the entry point to the config file
-    real(ccs_real), optional, intent(inout) :: u_relax  !< relaxation factor for u
-    real(ccs_real), optional, intent(inout) :: v_relax  !< relaxation factor for v
-    real(ccs_real), optional, intent(inout) :: p_relax  !< relaxation factor for p
-    real(ccs_real), optional, intent(inout) :: te_relax !< relaxation factor for te
-    real(ccs_real), optional, intent(inout) :: ed_relax !< relaxation factor for ed
-
-    class(*), pointer :: dict
-    type(type_error), allocatable :: io_err
-
-    select type (config_file)
-    type is (type_dictionary)
-
-      dict => config_file%get_dictionary('relaxation_factor', required=.false., error=io_err)
-
-      if (present(u_relax)) then
-        call get_value(dict, "u", u_relax)
-      end if
-
-      if (present(v_relax)) then
-        call get_value(dict, "v", v_relax)
-      end if
-
-      if (present(p_relax)) then
-        call get_value(dict, "p", p_relax)
-      end if
-
-      if (present(te_relax)) then
-        call get_value(dict, "te", te_relax)
-      end if
-
-      if (present(ed_relax)) then
-        call get_value(dict, "ed", ed_relax)
-      end if
-
-    class default
-      call error_abort("Unknown type")
-    end select
-
-  end subroutine
-
   !> Get output file format
   module subroutine get_plot_format(config_file, plot_format)
     class(*), pointer, intent(in) :: config_file                !< the entry point to the config file
