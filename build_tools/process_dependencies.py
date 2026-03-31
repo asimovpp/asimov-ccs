@@ -10,16 +10,19 @@ def filter_dependencies(dependencies, chosen_options, all_options):
   """filters out unused optional libraries present in all_options
   but absent from chosen_options"""
 
+  out = {}
   for filename in dependencies:
-    basename = filename[-2:]
-    # remove unused options if they're dict keys
-    if basename in all_options and basename not in chosen_options:
-      dependencies.pop(filename, None)
-    # remove unused options if they're an item in dict values
-    for dependency in dependencies[filename]:
-      if dependency in all_options and dependency not in chosen_options:
-        dependencies[filename].remove(dependency)
-  return dependencies
+    # keep only options if they're dict keys
+    if filename in all_options and filename in chosen_options:
+      out[filename] = dependencies[filename]
+    # keep non-option files
+    elif filename not in chosen_options:
+      out[filename] = dependencies[filename]
+      # but remove unused options if they're an item in dict values
+      for dependency in dependencies[filename]:
+        if dependency in all_options and dependency not in chosen_options:
+          out[filename].remove(dependency)
+  return out
 
 
 def parse_dependencies(filename):
