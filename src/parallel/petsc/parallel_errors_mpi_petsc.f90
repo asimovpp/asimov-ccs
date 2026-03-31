@@ -10,6 +10,7 @@ submodule(parallel) parallel_errors_mpi_petsc
   use utils, only: exit_print
   use mpi
   use parallel_types_mpi, only: parallel_environment_mpi
+  use logging, only: log_unit_out
 
   implicit none
 
@@ -35,14 +36,14 @@ contains
 
         if (error_code /= MPI_SUCCESS) then
           call mpi_error_string(error_code, error_message, length, ierr)
-          write (*, *) error_message
+          write(log_unit_out,*) error_message
           call mpi_abort(par_env%comm, error_code, ierr)
         end if
 
       else if (error_category == "petsc") then
 
         if (error_code /= 0) then
-          write (*, *) "PETSc error: ", error_code
+          write(log_unit_out,*) "PETSc error: ", error_code
           call mpi_abort(par_env%comm, error_code, ierr)
         end if
 
