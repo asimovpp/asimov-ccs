@@ -156,8 +156,8 @@ def get_option_list(configfile):
 
   out = []
   # flatten list
-  for option in options:
-    out.extend(options[option])
+  for o in options:
+    out.extend(options[o])
 
   return out
 
