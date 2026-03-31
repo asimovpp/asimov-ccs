@@ -186,6 +186,7 @@ contains
                        create_cell_locator, &
                        get_global_index
     use utils, only: get_natural_data
+    use parallel, only: is_root
 
     ! Arguments
     class(parallel_environment), allocatable, target, intent(in) :: par_env  !< The parallel environment
@@ -199,6 +200,12 @@ contains
     character(len=:), allocatable :: sol_file     ! Solution file name
     character(len=:), allocatable :: adios2_file  ! ADIOS2 config file name
     character(len=:), allocatable :: data_name    ! String for storing data path in file
+    
+    ! Variables for per timestep file naming
+    character(len=10) :: step_str
+    character(len=10) :: format_str
+    character(len=10) :: mag_str
+    integer :: mag 
 
     class(io_environment), allocatable, save :: io_env
     class(io_process), allocatable, save :: sol_writer
@@ -222,7 +229,18 @@ contains
 
     class(field), pointer :: phi
     
-    sol_file = run_options%paths%case_name // '_sol'
+    ! How many decimal digits in maxstep? compute and convert to string
+    mag = floor(log10(real(abs(maxstep)))) + 1
+    write(mag_str,*) mag
+
+    ! create the format string for the file numbering
+    format_str = "(I" // mag_str // "." // mag_str // ")"
+    ! do not use format_str right now - keep it simple
+    write(step_str, '(I3.3)') step
+    if (is_root(par_env)) print*, "step_str = ", step_str
+
+    sol_file = run_options%paths%case_name // '_sol_' // trim(step_str)
+    ! sol_file = run_options%paths%case_name // '_sol'
     adios2_file = run_options%paths%case_name // adiosconfig
 
     if (present(step)) then
