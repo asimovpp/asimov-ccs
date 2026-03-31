@@ -228,8 +228,8 @@ program poisson
   ! Create linear solver & set options
   call set_equation_system(par_env, b, u, M, poisson_eq)
   call create_solver(poisson_eq, poisson_solver)
-  call set_solver_method(run_options%solve%pressure_solver, poisson_solver)
-  call set_solver_precon(run_options%solve%pressure_precon, poisson_solver)
+  call set_solver_method(run_options%solve%default_pressure_solver, poisson_solver)
+  call set_solver_precon(run_options%solve%default_pressure_precon, poisson_solver)
   call solve(poisson_solver)
 
   ! Check solution
