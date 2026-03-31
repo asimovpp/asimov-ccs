@@ -282,7 +282,7 @@ contains
     class(parallel_environment), intent(in) :: par_env
     type(ccs_options), intent(in) :: run_options
 
-    integer :: i
+    !integer :: i
 
     if (is_root(par_env)) then
       associate(case_name => run_options%paths%case_name, &
@@ -290,18 +290,16 @@ contains
            num_iters => run_options%solve%num_iters, &
            dt => run_options%solve%dt, &
            cps => run_options%mesh%cps, &
-           domain_size => run_options%mesh%domain_size) !, &
-           ! velocity_relax => run_options%solve%velocity_relax, &
-           ! pressure_relax => run_options%solve%pressure_relax)
+           domain_size => run_options%mesh%domain_size)
         ! XXX: this should eventually be replaced by something nicely formatted that uses "write"
         print *, " "
         print *, "******************************************************************************"
         print *, "* Solving the ", case_name, " case"
         print *, "******************************************************************************"
         print *, "Solved variables: "
-        do i = 1, size(run_options%variables%solved_variables)
-          print *, "- ", run_options%variables%solved_variables(i)
-        end do
+        !do i = 1, size(run_options%variables%solved_variables)
+        !  print *, "- ", run_options%variables%solved_variables(i)
+        !end do
         print *, "******************************************************************************"
         print *, "* SIMULATION LENGTH"
         if (dt /= huge(dt)) then

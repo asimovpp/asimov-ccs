@@ -121,7 +121,6 @@ contains
       call set_field_name(run_options%variables%variable_names(i), my_field_properties)
       call create_field(par_env, my_field_properties, flow_fields)
       call add_fluid_field_to_outputlist(run_options, i, flow_fields)
-      call set_is_fluid_field_solved(run_options, i, flow_fields)
       call set_field_solver_params(run_options, i, flow_fields)
     end do
 
@@ -193,7 +192,6 @@ contains
         call create_field(par_env, my_field_properties, flow_fields)
 
         call add_fluid_field_to_outputlist(run_options, field_index, flow_fields)
-        call set_is_fluid_field_solved(run_options, field_index, flow_fields)
         field_index = field_index + 1
       end if
     end do
@@ -233,23 +231,7 @@ contains
     end if
     nullify(phi)
   end subroutine add_fluid_field_to_outputlist
-
-  !> Sets the solve flag for field specified by field index
-  subroutine set_is_fluid_field_solved(run_options, field_index, flow)
-    type(ccs_options), intent(in) :: run_options  !< Object containing relevant options for setting whether the field should be solved
-    integer(ccs_int), intent(in) :: field_index   !< The index of the field being set
-    type(fluid), intent(inout) :: flow            !< The fluid fields object being initialised
-    
-    class(field), pointer :: phi
-    
-    call get_field(flow, field_index, phi)
-    if (any(phi%name == run_options%variables%solved_variables)) then
-      call set_is_field_solved(.true., phi)
-    else
-      call set_is_field_solved(.false., phi)
-    end if
-    nullify(phi)
-  end subroutine set_is_fluid_field_solved
+  
 
   ! Sets field solver parameters from run_options and the default values
   subroutine set_field_solver_params(run_options, field_index, flow)

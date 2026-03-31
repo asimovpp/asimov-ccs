@@ -57,12 +57,8 @@ module core
     character(len=ccs_string_len), dimension(:), allocatable :: variable_names
     integer(ccs_int), dimension(:), allocatable :: variable_types
     character(len=ccs_string_len), dimension(:), allocatable :: output_variables
-    character(len=ccs_string_len), dimension(:), allocatable :: solved_variables
+    !character(len=ccs_string_len), dimension(:), allocatable :: solved_variables
     logical :: restart = .false.
-    real(ccs_real), dimension(:), allocatable :: res_target
-    real(ccs_real), dimension(:), allocatable :: relaxation
-    character(len=ccs_string_len), dimension(:), allocatable :: solver_name
-    character(len=ccs_string_len), dimension(:), allocatable :: precon_name
   end type variable_options
 
   !v Options for solver configuration
