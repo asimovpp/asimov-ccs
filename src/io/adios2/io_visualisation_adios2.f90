@@ -203,7 +203,7 @@ contains
     
     ! Variables for per timestep file naming
     character(len=10) :: step_str
-    character(len=10) :: format_str
+    character(len=20) :: format_str
     character(len=10) :: mag_str
     integer :: mag 
 
@@ -229,35 +229,33 @@ contains
 
     class(field), pointer :: phi
     
-    ! How many decimal digits in maxstep? compute and convert to string
+    ! How many decimal digits in maxstep? Convert to string
     mag = floor(log10(real(abs(maxstep)))) + 1
-    write(mag_str,*) mag
-
-    ! create the format string for the file numbering
-    format_str = "(I" // mag_str // "." // mag_str // ")"
+    ! Convert to string
+    write(mag_str,'(I0)') mag
+    ! Create the format string for the file numbering
+    format_str = trim("(I" // trim(mag_str) // "." // trim(mag_str) // ")")
     ! do not use format_str right now - keep it simple
-    write(step_str, '(I3.3)') step
-    if (is_root(par_env)) print*, "step_str = ", step_str
+    write(step_str, trim(format_str)) step
 
-    sol_file = run_options%paths%case_name // '_sol_' // trim(step_str)
-    ! sol_file = run_options%paths%case_name // '_sol'
+    sol_file = trim(run_options%paths%case_name // '_sol_' // step_str)
     adios2_file = run_options%paths%case_name // adiosconfig
 
-    if (present(step)) then
-      ! Unsteady case
-      if (initial_step) then
+    ! if (present(step)) then
+    !   ! Unsteady case
+    !   if (initial_step) then
         call initialise_io(par_env, adios2_file, io_env)
         call configure_io(io_env, "sol_writer", sol_writer)
         call open_file(sol_file, "write", sol_writer)
 
-        initial_step = .false.
-      end if
-    else
-      ! Steady case
-      call initialise_io(par_env, adios2_file, io_env)
-      call configure_io(io_env, "sol_writer", sol_writer)
-      call open_file(sol_file, "write", sol_writer)
-    end if
+    !     initial_step = .false.
+    !   end if
+    ! else
+    !   ! Steady case
+    !   call initialise_io(par_env, adios2_file, io_env)
+    !   call configure_io(io_env, "sol_writer", sol_writer)
+    !   call open_file(sol_file, "write", sol_writer)
+    ! end if
 
     call get_global_num_cells(global_num_cells)
 
