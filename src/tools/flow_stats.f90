@@ -1,12 +1,20 @@
 !v Set of tools to measure flow statistics
 module flow_stats
 
-  use kinds, only: ccs_real
-  use types, only: parallel_environment, fluid
+  use kinds, only: ccs_real, ccs_int
+  use types, only: fluid, cell_locator, field
+  use parallel_types, only: parallel_environment
+
+  use fields, only: get_field
+  use meshing, only: get_local_num_cells, get_global_num_cells, create_cell_locator, get_volume
+  use parallel, only: is_root
+  use timestepping, only: get_timestep, timestepping_is_active
+  use vec, only: get_vector_data_readonly, restore_vector_data_readonly
 
   implicit none
   
   private
+  public :: report_cfl
 
 contains
 
@@ -14,21 +22,52 @@ contains
     class(parallel_environment), intent(in) :: par_env
     type(fluid), intent(in) :: flow
 
-    if (.not. transient) then
+    class(field), pointer :: u, v, w
+    real(ccs_real), dimension(:), pointer :: u_data, v_data, w_data
+
+    real(ccs_real) :: cfl_max, cfl_avg, cfl_i
+    real(ccs_real) :: dt
+    real(ccs_real) :: dx, V_p
+    type(cell_locator) :: loc_p
+
+    real(ccs_real) :: vel
+
+    integer(ccs_int) :: i, nlocal, nglobal
+
+    if (.not. timestepping_is_active()) then
        return
     end if
+
+    dt = get_timestep()
 
     cfl_max = 0.0_ccs_real
     cfl_avg = 0.0_ccs_real
 
+    call get_field(flow, "u", u)
+    call get_field(flow, "v", v)
+    call get_field(flow, "w", w)
+    call get_vector_data_readonly(u%values, u_data)
+    call get_vector_data_readonly(v%values, v_data)
+    call get_vector_data_readonly(w%values, w_data)
+
+    call get_local_num_cells(nlocal)
+    call get_global_num_cells(nglobal)
     do i = 1, nlocal
-       vel = get_uscale(u, v, w)
+       vel = get_uscale(u_data(i), v_data(i), w_data(i))
+
+       call create_cell_locator(i, loc_p)
+       call get_volume(loc_p, V_p)
        dx = get_lscale(V_p)
        
        cfl_i = cfl(vel, dt, dx)
        cfl_max = max(cfl_i, cfl_max)
        cfl_avg = cfl_avg + cfl_i / nglobal
     end do
+
+    call restore_vector_data_readonly(u%values, u_data)
+    call restore_vector_data_readonly(v%values, v_data)
+    call restore_vector_data_readonly(w%values, w_data)
+    nullify(u, v, w)
 
     if (is_root(par_env)) then
        print *, "CFL Max: ", cfl_max
