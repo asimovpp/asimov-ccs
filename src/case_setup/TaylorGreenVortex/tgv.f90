@@ -38,8 +38,6 @@ program tgv
 
   ! Launch MPI
   call initialise_parallel_environment(par_env)
-
-  call initialise_logging(par_env, "ccs.log")
   
   call timer_init()
 
