@@ -25,6 +25,7 @@ module utils
                        cell_centred_linear_upwind
   use error_codes
   use kinds, only: CCS_MPI_PRECISION
+  use logging, only: log_unit_out
 
   implicit none
 
@@ -190,9 +191,9 @@ contains
     call mpi_initialized(init_flag, ierror)
     if (init_flag) then
       call mpi_comm_rank(MPI_COMM_WORLD, rank, ierror)
-      print *, trim(filename), "(", int2str(line), ")[", int2str(rank), "] : ", msg
+      write(log_unit_out,*) trim(filename), "(", int2str(line), ")[", int2str(rank), "] : ", msg
     else
-      print *, trim(filename), "(", int2str(line), ") : ", msg
+      write(log_unit_out,*) trim(filename), "(", int2str(line), ") : ", msg
     end if
   end subroutine
 
