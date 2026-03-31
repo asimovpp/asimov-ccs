@@ -19,7 +19,6 @@ module logging
   subroutine initialise_logging(par_env, file_name)
     use parallel_types, only: parallel_environment
     use parallel, only: is_root
-    use utils, only: exit_print
 
     implicit none
 
@@ -30,7 +29,8 @@ module logging
     if (is_root(par_env)) then
       open(newunit=log_unit_out, file=file_name, status="replace", iostat=ierr)
       if (ierr /= 0) then
-        call error_abort("ERROR: Could not open log file " // file_name)
+        write(log_unit_out,*) "ERROR: Could not open log file " // file_name
+        stop 1
       end if
       initialised = .true.
     end if
@@ -41,7 +41,6 @@ module logging
   subroutine finalise_logging(par_env)
     use parallel_types, only: parallel_environment
     use parallel, only: is_root
-    use utils, only: exit_print
 
     implicit none
 
@@ -51,7 +50,7 @@ module logging
     if (is_root(par_env)) then
       close(log_unit_out, iostat=ierr)
       if (ierr /= 0) then
-        write(error_unit, *) "ERROR: Could not close log file."
+        write(log_unit_out, *) "ERROR: Could not close log file."
       end if
       initialised = .false.
     end if

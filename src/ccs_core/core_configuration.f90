@@ -8,6 +8,7 @@ submodule(core) core_configuration
                          get_reference_number, &
                          get_boundary_names
   use utils, only: exit_print
+  use logging, only: log_unit_out
 
   implicit none
 
@@ -222,7 +223,6 @@ contains
   
   !> Parses the solver options from the configuration file
   subroutine get_solver_options(config_file, solve)
-    use logging, only: log_unit_out
 
     class(*), pointer, intent(in) :: config_file !< Configuration file handle
     type(solver_options), intent(out) :: solve   !< Object for solver options
