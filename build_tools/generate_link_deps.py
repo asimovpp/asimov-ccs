@@ -1,7 +1,9 @@
-import sys
-import os
 import logging as log
+import os
+import sys
+
 import yaml
+
 import process_dependencies as pdeps
 
 # define must-appear-together sets
@@ -137,6 +139,30 @@ def get_min_link_rule(link_obj, mindeps):
   return link_obj + ": " + " ".join(["${OBJ_DIR}/" + os.path.basename(x) + ".o" for x in mindeps.keys()])
 
 
+def get_option_list(configfile):
+  """returns flattened list of options in input yaml file"""
+  options = []
+  # file is config_mapping
+  if "bases" in configfile:
+    options = configfile["bases"]["mpi"]["options"]
+  # file is config
+  elif "main" in configfile:
+    # avoid errors in config without any options
+    if "options" in configfile:
+      options = configfile["options"]
+  else:
+    # malformed config file
+    raise ValueError("Config file does not contain 'bases' or 'main' section")
+
+  out = []
+  # flatten list
+  for option in options:
+    out.extend(options[option])
+
+  return out
+
+
+
 if __name__ == "__main__":
   if sys.version_info[0] < 3:
     raise Exception("Must be using Python 3")
@@ -158,7 +184,15 @@ if __name__ == "__main__":
     config = yaml.load(f, Loader=yaml.FullLoader)
   log.debug("config read:\n%s", pretty_print(config))
 
-  deps = pdeps.parse_dependencies(sys.argv[2])
+  # read all available options from config_mapping file
+  all_options = get_option_list(config_mapping)
+  # read used options -- full app compile or test compile
+  chosen_options = get_option_list(config)
+
+  # Parse dependency tree
+  unfiltered_deps = pdeps.parse_dependencies(sys.argv[2])
+  # Remove unused options from dependecy tree
+  deps = pdeps.filter_dependencies(unfiltered_deps, chosen_options, all_options)
 
   mapped_config = apply_config_mapping(config, config_mapping)
   log.debug("mapped config:\n%s", pretty_print(mapped_config))
