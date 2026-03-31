@@ -5,7 +5,7 @@
 module read_config
 
   use kinds, only: ccs_real, ccs_int
-  use types, only: bc_config, field
+  use types, only: bc_config, field, solver_params
   use constants, only: ccs_string_len
 
   implicit none
@@ -32,6 +32,7 @@ module read_config
   public :: get_boundary_names
   public :: get_store_residuals
   public :: get_enable_cell_corrections
+  public :: get_solver_eq_parameters
 
   interface get_value
     module procedure get_integer_value
@@ -258,5 +259,11 @@ module read_config
       character(len=*), intent(in) :: filename
       logical, intent(out) :: enable_cell_corrections
     end subroutine
+
+    module subroutine get_solver_eq_parameters(config_file, solver_parameters)
+      class(*), pointer, intent(in) :: config_file                      !< the entry point to the config file
+      type(solver_params), dimension(:), allocatable, intent(out) :: solver_parameters
+    end subroutine
+
   end interface
 end module read_config

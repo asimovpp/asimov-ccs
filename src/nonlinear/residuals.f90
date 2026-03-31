@@ -94,6 +94,23 @@ contains
 
   end subroutine
 
+  !v Check if a particular residual is below the res_target
+  logical function is_converged(residuals, res_target, ifield, norm) result(converged)
+    type(ccs_residuals), intent(in) :: residuals
+    real(ccs_real), intent(in) :: res_target
+    integer(ccs_int), intent(in) :: ifield
+    integer, intent(in) :: norm
+
+ 
+    select case (norm)
+    case (L2)
+      converged = residuals%L2(ifield) <= res_target
+    case (Linfty)
+      converged = residuals%Linfty(ifield) <= res_target
+    end select
+
+  end function
+
   !v Get the maximum residuals for a specific norm
   real(ccs_real) function get_max_residuals(residuals, norm) result(max_value)
     type(ccs_residuals), intent(in) :: residuals

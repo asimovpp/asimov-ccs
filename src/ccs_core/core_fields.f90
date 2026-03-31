@@ -122,6 +122,7 @@ contains
       call create_field(par_env, my_field_properties, flow_fields)
       call add_fluid_field_to_outputlist(run_options, i, flow_fields)
       call set_is_fluid_field_solved(run_options, i, flow_fields)
+      call set_field_solver_params(run_options, i, flow_fields)
     end do
 
     if (is_root(par_env)) then
@@ -249,5 +250,39 @@ contains
     end if
     nullify(phi)
   end subroutine set_is_fluid_field_solved
+
+  subroutine set_field_solver_params(run_options, field_index, flow)
+    type(ccs_options), intent(in) :: run_options
+    integer(ccs_int), intent(in) :: field_index   !< The index of the field being set
+    type(fluid), intent(inout) :: flow            !< The fluid fields object being initialised
+
+    class(field), pointer :: phi
+
+    call get_field(flow, field_index, phi)
+    phi%solver_parameters = run_options%solve%solver_eq_parameters(field_index)
+
+    ! Set values to default if not specified per field
+    if (phi%solver_parameters%res_target == huge(ccs_real)) then
+      phi%solver_parameters%res_target = run_options%solve%default_res_target
+    end if
+
+    if (phi%solver_parameters%solver_name == "") then
+      select case (phi%name)
+        case ("p")
+          phi%solver_parameters%solver_name = run_options%solve%default_pressure_solver
+          phi%solver_parameters%precon_name = run_options%solve%default_pressure_precon
+        case default
+          phi%solver_parameters%solver_name = run_options%solve%default_solver
+          phi%solver_parameters%precon_name = run_options%solve%default_precon
+      end select
+    end if
+
+    if (phi%solver_parameters%solve .and. phi%solver_parameters%relaxation_factor == huge(ccs_real)) then
+      call error_abort("No values assigned to underrelaxation factor for variable "//phi%solver_parameters%name)
+    end if
+
+    nullify(phi)
+
+  end subroutine
 
 end submodule core_fields

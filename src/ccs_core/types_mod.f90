@@ -6,6 +6,7 @@ module types
 
   use kinds, only: ccs_int, ccs_real, ccs_long
   use parallel_types, only: parallel_environment
+  use constants, only: ccs_string_len
 
   implicit none
 
@@ -216,8 +217,19 @@ module types
     logical :: enable_cell_corrections                            !< Whether or not deffered corrections should be used (non-orthogonality, excentricity etc.)
     character(len=20) :: name
     logical :: output = .false.                                   !< Should field be written in output?
-    logical :: solve = .true.                                     !< Whether to solve a linear system for this variable or not
+    !logical :: solve = .true.                                     !< Whether to solve a linear system for this variable or not
+    integer(ccs_int) :: idx
+    type(solver_params), allocatable :: solver_parameters         !< Parameters to use when transporting the field
   end type field
+
+  type, public :: solver_params
+    character(len=20) :: name
+    logical :: solve = .false.
+    real(ccs_real) :: res_target = huge(ccs_real)
+    real(ccs_real) :: relaxation_factor = huge(ccs_real)
+    character(len=ccs_string_len) :: solver_name = ""
+    character(len=ccs_string_len) :: precon_name = ""
+  end type
 
   type, public, extends(field) :: upwind_field
   end type

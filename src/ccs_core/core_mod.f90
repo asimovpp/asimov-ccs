@@ -6,7 +6,7 @@ module core
 
   use constants, only: ccs_string_len
   use kinds, only: ccs_int, ccs_real
-  use types, only: fluid
+  use types, only: fluid, solver_params
 
   use parallel_types, only: parallel_environment
   use constants, only: ccs_string_len
@@ -59,6 +59,10 @@ module core
     character(len=ccs_string_len), dimension(:), allocatable :: output_variables
     character(len=ccs_string_len), dimension(:), allocatable :: solved_variables
     logical :: restart = .false.
+    real(ccs_real), dimension(:), allocatable :: res_target
+    real(ccs_real), dimension(:), allocatable :: relaxation
+    character(len=ccs_string_len), dimension(:), allocatable :: solver_name
+    character(len=ccs_string_len), dimension(:), allocatable :: precon_name
   end type variable_options
 
   !v Options for solver configuration
@@ -69,13 +73,14 @@ module core
     integer(ccs_int) :: it_start
     integer(ccs_int) :: it_end
     real(ccs_real) :: dt = huge(0.0_ccs_real)
-    real(ccs_real) :: res_target = huge(0.0_ccs_real)
-    real(ccs_real) :: velocity_relax = huge(0.0_ccs_real)
-    real(ccs_real) :: pressure_relax = huge(0.0_ccs_real)
-    character(len=ccs_string_len) :: velocity_solver = "gmres"
-    character(len=ccs_string_len) :: velocity_precon = "bjacobi"
-    character(len=ccs_string_len) :: pressure_solver = "cg"
-    character(len=ccs_string_len) :: pressure_precon = "gamg"
+    type(solver_params), dimension(:), allocatable :: solver_eq_parameters
+    real(ccs_real) :: default_res_target = huge(0.0_ccs_real)
+    ! real(ccs_real) :: velocity_relax = huge(0.0_ccs_real)
+    ! real(ccs_real) :: pressure_relax = huge(0.0_ccs_real)
+    character(len=ccs_string_len) :: default_solver = "gmres"
+    character(len=ccs_string_len) :: default_precon = "bjacobi"
+    character(len=ccs_string_len) :: default_pressure_solver = "cg"
+    character(len=ccs_string_len) :: default_pressure_precon = "gamg"
   end type solver_options
 
   !v Options for parallelism

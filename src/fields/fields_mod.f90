@@ -109,7 +109,7 @@ contains
     logical, intent(in) :: solve      !< flag indicating whether to solve for the given field
     type(field), intent(inout) :: phi !< Field variable
 
-    phi%solve = solve
+    phi%solver_parameters%solve = solve
     
   end subroutine set_is_field_solved
 
@@ -118,7 +118,7 @@ contains
     class(field), intent(in) :: phi !< Field variable
     logical, intent(out) :: solve   !< flag indicating whether to solve for the given field
 
-    solve = phi%solve
+    solve = phi%solver_parameters%solve
     
   end subroutine get_is_field_solved
 

@@ -119,7 +119,7 @@ contains
 
        call get_field(flow, field_name, phi)
 
-       if (.not. phi%solve) then
+       if (.not. phi%solver_parameters%solve) then
          cycle
        end if
 

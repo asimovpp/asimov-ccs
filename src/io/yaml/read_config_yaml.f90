@@ -14,6 +14,7 @@ submodule(read_config) read_config_utils
                             type_list_item, &
                             type_scalar
   use boundary_conditions, only: set_bc_real_value, set_bc_id, set_bc_type
+  use types, only: solver_params
 
   implicit none
 
@@ -312,10 +313,9 @@ contains
   !  certain variables will not be solved by setting in to "off"
   !
   !  @todo extend list of variables
-  module subroutine get_solve(config_file, solved_variables)
-    
+  module subroutine get_solver_eq_parameters(config_file, solver_parameters)
     class(*), pointer, intent(in) :: config_file                      !< the entry point to the config file
-    character(len=ccs_string_len), dimension(:), allocatable, intent(out) :: solved_variables
+    type(solver_params), dimension(:), allocatable, intent(out) :: solver_parameters
 
     class(*), pointer :: dict
     class(*), pointer :: dict_var
@@ -324,17 +324,22 @@ contains
     integer :: i
     character(len=25) :: key
     character(len=:), allocatable :: solved
+    character(len=:), allocatable :: solver_name
+    character(len=:), allocatable :: precon_name
+    real(ccs_real) :: res_target
+    real(ccs_real) :: relaxation
+    logical :: val_present
     character(len=:), allocatable :: variable
     character(len=ccs_string_len) :: var
-    logical :: val_present
 
-   allocate(solved_variables(0))
-    
+
     select type (config_file)
     type is (type_dictionary)
 
       dict => config_file%get_dictionary('variables', required=.true., error=io_err)
       call get_value(dict, "n_variables", n_var)
+
+      allocate(solver_parameters(n_var))
 
       select type (dict)
       type is(type_dictionary)
@@ -343,12 +348,34 @@ contains
           dict_var => dict%get_dictionary(key, required=.true., error=io_err)
           call get_value(dict_var, 'solve', solved, value_present=val_present, required=.false.)
           if (val_present) then
-            if (trim(solved) == "on") then
-              call get_value(dict_var, "name", variable)
-              var = adjustl(variable)
-              solved_variables = [solved_variables, var]
-            end if
+            solver_parameters(i)%solve = (trim(solved) == "on")
+          else
+            solver_parameters(i)%solve = .false.
           end if
+
+          call get_value(dict_var, 'relaxation', relaxation, value_present=val_present, required=.false.)
+          if (val_present) then
+            solver_parameters(i)%relaxation_factor = relaxation
+          end if
+
+          call get_value(dict_var, 'res_target', res_target, value_present=val_present, required=.false.)
+          if (val_present) then
+            solver_parameters(i)%res_target = res_target
+          end if
+
+          call get_value(dict_var, 'solver_name', solver_name, value_present=val_present, required=.false.)
+          if (val_present) then
+            solver_parameters(i)%solver_name = trim(solver_name)
+          end if
+
+          call get_value(dict_var, 'precon_name', precon_name, value_present=val_present, required=.false.)
+          if (val_present) then
+            solver_parameters(i)%precon_name = trim(precon_name)
+          end if
+
+          call get_value(dict_var, "name", variable)
+          var = adjustl(variable)
+          solver_parameters(i)%name = var
         end do
         class default
           call error_abort("Unknown type")
