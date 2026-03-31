@@ -22,6 +22,7 @@ module poiseuille_core
   use utils, only: str, exit_print, reset_outputlist_counter
   use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, &
                     timer_print, timer_get_time, timer_print_all, timer_reset
+  use logging, only: log_unit_out
 
   implicit none
 
@@ -57,7 +58,7 @@ module poiseuille_core
     ! Read case name and runtime parameters from configuration file
     call get_config(par_env, run_options)
 
-    if (is_root(par_env)) print *, "Starting ", run_options%paths%case_name, " case!"
+    if (is_root(par_env)) write(log_unit_out,*) "Starting ", run_options%paths%case_name, " case!"
 
     if (present(input_mesh)) then
       mesh = input_mesh
@@ -67,11 +68,11 @@ module poiseuille_core
     end if
 
     ! Initialise fields
-    if (is_root(par_env)) print *, "Initialise fields"
+    if (is_root(par_env)) write(log_unit_out,*) "Initialise fields"
     call initialise_fields(par_env, run_options, flow_fields)
 
     ! Create and initialise field vectors
-    if (is_root(par_env)) print *, "Initialise field vectors"
+    if (is_root(par_env)) write(log_unit_out,*) "Initialise field vectors"
     
     
     ! Set to 1st boundary condition (inlet)
@@ -81,11 +82,11 @@ module poiseuille_core
     nullify(u)
 
     ! Initialise velocity field
-    if (is_root(par_env)) print *, "Initialise velocity field"
+    if (is_root(par_env)) write(log_unit_out,*) "Initialise velocity field"
     call initialise_flow(par_env, run_options, flow_fields, get_init_flow, get_init_mass_flux)
 
     ! Solve using SIMPLE algorithm
-    if (is_root(par_env)) print *, "Start SIMPLE"
+    if (is_root(par_env)) write(log_unit_out,*) "Start SIMPLE"
 
     call timer_stop(timer_index_init)
 

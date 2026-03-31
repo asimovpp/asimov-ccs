@@ -19,6 +19,7 @@ program bfs
   use utils, only: str
   use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, timer_print, &
                     timer_get_time, timer_print_all, timer_export_csv
+  use logging, only: log_unit_out
 
   implicit none
 
@@ -46,12 +47,12 @@ program bfs
 
   call timer_register_start("Init time", timer_index_init)
 
-  if (is_root(par_env)) print *, "Starting ", run_options%paths%case_name, " case!"
+  if (is_root(par_env)) write(log_unit_out,*) "Starting ", run_options%paths%case_name, " case!"
 
   call initialise_mesh(par_env, shared_env, run_options)
 
   ! Initialise fields
-  if (is_root(par_env)) print *, "Initialise fields"
+  if (is_root(par_env)) write(log_unit_out,*) "Initialise fields"
   call initialise_fields(par_env, run_options, flow_fields)
 
   ! Read and set BC profiles
@@ -66,7 +67,7 @@ program bfs
   nullify(u)
 
   ! Initialise velocity field
-  if (is_root(par_env)) print *, "Initialise velocity field"
+  if (is_root(par_env)) write(log_unit_out,*) "Initialise velocity field"
   call initialise_flow(par_env, run_options, flow_fields, get_init_flow, get_init_mass_flux)
 
   ! Solve using SIMPLE algorithm

@@ -25,6 +25,7 @@ program scalar_transport
   use fields, only: get_field, dealloc_fluid_fields
   use timers, only: timer_init, timer_register_start, timer_stop, &
                     timer_print_all, timer_export_csv
+  use logging, only: log_unit_out
 
   implicit none
 
@@ -49,21 +50,21 @@ program scalar_transport
 
   call timer_register_start("Init time", timer_index_init)
 
-  if (is_root(par_env)) print *, "Starting ", run_options%paths%case_name, " case!"
+  if (is_root(par_env)) write(log_unit_out,*) "Starting ", run_options%paths%case_name, " case!"
 
   call initialise_mesh(par_env, shared_env, run_options)
 
   ! Initialise fields
-  if (is_root(par_env)) print *, "Initialise fields"
+  if (is_root(par_env)) write(log_unit_out,*) "Initialise fields"
 
   call initialise_fields(par_env, run_options, flow_fields)
 
   ! Initialise velocity field
-  if (is_root(par_env)) print *, "Initialise flow field"
+  if (is_root(par_env)) write(log_unit_out,*) "Initialise flow field"
   call initialise_flow(par_env, run_options, flow_fields, get_init_flow, get_init_mass_flux)
 
   ! Solve using SIMPLE algorithm
-  if (is_root(par_env)) print *, "Start scalar solver"
+  if (is_root(par_env)) write(log_unit_out,*) "Start scalar solver"
 
   call timer_stop(timer_index_init)
 

@@ -159,6 +159,7 @@ program poisson
                       is_root
   use timers, only: timer_init, timer_register_start, timer_stop, &
                     timer_print_all, timer_export_csv
+  use logging, only: log_unit_out
 
   implicit none
 
@@ -241,7 +242,7 @@ program poisson
 
   err_norm = norm(u, 2) * mesh%geo%h
   if (is_root(par_env)) then
-    print *, "Norm of error = ", err_norm
+    write(log_unit_out,*) "Norm of error = ", err_norm
   end if
 
   ! Clean up

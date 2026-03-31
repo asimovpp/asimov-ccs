@@ -16,6 +16,7 @@ program ldc
   use parallel_types, only: parallel_environment
   use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, timer_print, timer_print_all
   use fields, only: dealloc_fluid_fields
+  use logging, only: log_unit_out
 
   implicit none
 
@@ -37,17 +38,17 @@ program ldc
 
   call get_config(par_env, run_options)
   call configure_parallelism(run_options, par_env, shared_env)
-  if (is_root(par_env)) print *, "Starting ", run_options%paths%case_name, " case!"
+  if (is_root(par_env)) write(log_unit_out,*) "Starting ", run_options%paths%case_name, " case!"
 
   ! Create a mesh
   call initialise_mesh(par_env, shared_env, run_options)
 
   ! Initialise fields
-  if (is_root(par_env)) print *, "Initialise fields"
+  if (is_root(par_env)) write(log_unit_out,*) "Initialise fields"
   call initialise_fields(par_env, run_options, flow_fields)
 
   ! Initialise velocity field
-  if (is_root(par_env)) print *, "Initialise velocity field"
+  if (is_root(par_env)) write(log_unit_out,*) "Initialise velocity field"
   call initialise_flow(par_env, run_options, flow_fields, get_init_flow, get_init_mass_flux)
 
   call timer_stop(timer_index_init)
