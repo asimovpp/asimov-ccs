@@ -104,7 +104,7 @@ contains
 
     integer(ccs_int) :: it_start
     integer(ccs_int) :: it_end
-    real(ccs_real) :: res_target                          !< Target residual
+    !real(ccs_real) :: res_target                          !< Target residual
 
     it_start = run_options%solve%it_start
     it_end = run_options%solve%it_end
@@ -184,14 +184,14 @@ contains
 
       ! Solve momentum equation with guessed pressure and velocity fields (eq. 4)
       call dprint("NONLINEAR: guess velocity")
-      call calculate_velocity(par_env, run_options, flow, eval_sources, M, source, &
+      call calculate_velocity(par_env, flow, eval_sources, M, source, &
                               lin_system, invA, workvec, sourcevec, res, residuals)
 
       ! Calculate pressure correction from mass imbalance (sub. eq. 11 into eq. 8)
       call dprint("NONLINEAR: mass imbalance")
       call compute_mass_imbalance(invA, flow, source, residuals)
       call dprint("NONLINEAR: compute p'")
-      call calculate_pressure_correction(par_env, run_options, invA, M, source, lin_system, p_prime, lin_solverP)
+      call calculate_pressure_correction(par_env, invA, M, source, lin_system, p_prime, lin_solverP)
 
       ! Update velocity with velocity correction (eq. 6)
       call dprint("NONLINEAR: correct face velocity")
@@ -251,12 +251,11 @@ contains
   !  Given an initial guess of a pressure field form the momentum equations (as scalar
   !  equations) and solve to obtain an intermediate velocity field u* that will not
   !  satisfy continuity.
-  subroutine calculate_velocity(par_env, run_options, flow, eval_sources, M, vec, &
+  subroutine calculate_velocity(par_env, flow, eval_sources, M, vec, &
                                 lin_sys, invA, workvec, sourcevec, res, residuals)
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< the parallel environment
-    type(ccs_options), intent(in) :: run_options
     type(fluid), intent(inout) :: flow                   !< Container for flow fields
     interface
       !v Subroutine to evaluate source terms, case-specific.
@@ -305,7 +304,7 @@ contains
     ! ----------
     if (u_sol) then
       call zero_vector(invAu)
-      call calculate_velocity_component(flow, par_env, run_options, eval_sources, p, 1, M, vec, lin_sys, u, invAu, &
+      call calculate_velocity_component(flow, par_env, eval_sources, p, 1, M, vec, lin_sys, u, invAu, &
            workvec, sourcevec, res, residuals)
       call axpy(1.0_ccs_real, invAu, invA)
       call vec_reciprocal(invAu)
@@ -316,7 +315,7 @@ contains
     ! ----------
     if (v_sol) then
       call zero_vector(invAv)
-      call calculate_velocity_component(flow, par_env, run_options, eval_sources, p, 2, M, vec, lin_sys, v, invAv, &
+      call calculate_velocity_component(flow, par_env, eval_sources, p, 2, M, vec, lin_sys, v, invAv, &
            workvec, sourcevec, res, residuals)
       call axpy(1.0_ccs_real, invAv, invA)
       call vec_reciprocal(invAv)
@@ -327,7 +326,7 @@ contains
     ! ----------
     if (w_sol) then
       call zero_vector(invAw)
-      call calculate_velocity_component(flow, par_env, run_options, eval_sources, p, 3, M, vec, lin_sys, w, invAw, &
+      call calculate_velocity_component(flow, par_env, eval_sources, p, 3, M, vec, lin_sys, w, invAw, &
            workvec, sourcevec, res, residuals)
       call axpy(1.0_ccs_real, invAw, invA)
       call vec_reciprocal(invAw)
@@ -341,7 +340,7 @@ contains
 
   end subroutine calculate_velocity
 
-  subroutine calculate_velocity_component(flow, par_env, run_options, eval_sources, p, component, M, vec, &
+  subroutine calculate_velocity_component(flow, par_env, eval_sources, p, component, M, vec, &
                                           lin_sys, u, invA, workvec, sourcevec, input_res, residuals)
 
     use timestepping, only: apply_timestep
@@ -350,7 +349,6 @@ contains
     ! Arguments
     type(fluid), intent(inout) :: flow                   !< Container for flow fields
     class(parallel_environment), allocatable, intent(in) :: par_env
-    type(ccs_options), intent(in) :: run_options
     interface
       !v Subroutine to evaluate source terms, case-specific.
       !
@@ -724,7 +722,7 @@ contains
   !v Solves the pressure correction equation
   !
   !  Solves the pressure correction equation formed by the mass-imbalance.
-  subroutine calculate_pressure_correction(par_env, run_options, invA, M, vec, lin_sys, p_prime, lin_solver)
+  subroutine calculate_pressure_correction(par_env, invA, M, vec, lin_sys, p_prime, lin_solver)
 
     use fv, only: compute_boundary_coeffs
     use profiler
@@ -732,7 +730,6 @@ contains
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< the parallel environment
-    type(ccs_options), intent(in) :: run_options                    !< runtime options
     class(ccs_vector), intent(inout) :: invA                        !< inverse diagonal momentum coefficients
     class(ccs_matrix), allocatable, intent(inout) :: M              !< matrix object
     class(ccs_vector), allocatable, intent(inout) :: vec            !< the RHS vector
