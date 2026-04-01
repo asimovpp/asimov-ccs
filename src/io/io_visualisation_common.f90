@@ -8,8 +8,8 @@ submodule(io_visualisation) io_visualisation_common
 #include "ccs_macros.inc"
 
   use constants, only: ndim
-  use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, &
-                    timer_print, timer_get_time, timer_print_all
+
+  use profiler, only: profiler_begin_region, profiler_end_region
 
   use core, only: ccs_options, build_mesh_2d, build_mesh_3d, read_input_mesh
   use types, only: field
@@ -42,8 +42,6 @@ contains
   !> Read the flow solution 
   module subroutine read_solution(par_env, case_name, mesh, flow, step, maxstep)
 
-    use parallel, only: timer
-    
     ! Arguments
     class(parallel_environment), intent(in) :: par_env     !< The parallel environment
     character(len=:), allocatable, intent(in) :: case_name !< The case name
@@ -51,29 +49,24 @@ contains
     type(fluid), intent(inout) :: flow                     !< The flow variables
     integer(ccs_int), optional, intent(in) :: step         !< The current time-step count
     integer(ccs_int), optional, intent(in) :: maxstep      !< The maximum time-step count
-    integer(ccs_int) :: timer_index_read_field
 
-    call timer_register("Read fields time", timer_index_read_field)
-    
     ! Read the required fields ('heavy' data)
     if (present(step) .and. present(maxstep)) then
       ! Unsteady case
-      call timer_start(timer_index_read_field)
+      call profiler_begin_region("Read fields time")
       call read_fields(par_env, case_name, mesh, flow, step, maxstep)
-      call timer_stop(timer_index_read_field)
+      call profiler_end_region("Read fields time")
     else
       ! Steady case
-      call timer_start(timer_index_read_field)
+      call profiler_begin_region("Read fields time")
       call read_fields(par_env, case_name, mesh, flow)
-      call timer_stop(timer_index_read_field)
+      call profiler_end_region("Read fields time")
     end if
 
   end subroutine
 
   !> Write the flow solution for the current time-step to file
   module subroutine write_solution(par_env, run_options, mesh, flow, step, maxstep, dt)
-
-    use parallel, only: timer
 
     ! Arguments
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
@@ -83,36 +76,31 @@ contains
     integer(ccs_int), optional, intent(in) :: step                          !< The current time-step count
     integer(ccs_int), optional, intent(in) :: maxstep                       !< The maximum time-step count
     real(ccs_real), optional, intent(in) :: dt                              !< The time-step size
-    integer(ccs_int) :: timer_index_write_field
-    integer(ccs_int) :: timer_index_write_xdmf
-
-    call timer_register("Write fields time", timer_index_write_field)
-    call timer_register("Write xdmf time", timer_index_write_xdmf)
 
     ! Write the required fields ('heavy' data)
     if (present(step) .and. present(maxstep)) then
       ! Unsteady case
-      call timer_start(timer_index_write_field)
+      call profiler_begin_region("Write fields time")
       call write_fields(par_env, run_options, mesh, flow, step, maxstep)
-      call timer_stop(timer_index_write_field)
+      call profiler_end_region("Write fields time")
     else
       ! Steady case
-      call timer_start(timer_index_write_field)
+      call profiler_begin_region("Write fields time")
       call write_fields(par_env, run_options, mesh, flow)
-      call timer_stop(timer_index_write_field)
+      call profiler_end_region("Write fields time")
     end if
 
     ! Write the XML descriptor ('light' data)
     if (present(step) .and. present(maxstep) .and. present(dt)) then
       ! Unsteady case
-      call timer_start(timer_index_write_xdmf)
+      call profiler_begin_region("Write xdmf time")
       call write_xdmf(par_env, run_options, flow, step, maxstep, dt)
-      call timer_stop(timer_index_write_xdmf)
+      call profiler_end_region("Write xdmf time")
     else
       ! Steady case
-      call timer_start(timer_index_write_xdmf)
+      call profiler_begin_region("Write xdmf time")
       call write_xdmf(par_env, run_options, flow)
-      call timer_stop(timer_index_write_xdmf)
+      call profiler_end_region("Write xdmf time")
     end if
 
   end subroutine
@@ -145,8 +133,8 @@ contains
 
     class(field), pointer :: phi
     
-    xdmf_file = run_options%paths%case_name // '.sol.xmf'
-    sol_file = run_options%paths%case_name // '.sol.h5'
+    xdmf_file = run_options%paths%case_name // '_sol.xmf'
+    sol_file = run_options%paths%case_name // '_sol'
 
     ! On first call, write the header of the XML file
     if (is_root(par_env)) then

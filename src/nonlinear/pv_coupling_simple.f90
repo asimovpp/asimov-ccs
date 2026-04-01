@@ -346,7 +346,7 @@ contains
                                           lin_sys, u, invA, workvec, sourcevec, input_res, residuals)
 
     use timestepping, only: apply_timestep
-    use timers, only: timer_register_start, timer_stop
+    use profiler
 
     ! Arguments
     type(fluid), intent(inout) :: flow                   !< Container for flow fields
@@ -382,7 +382,6 @@ contains
 
     ! Local variables
     class(linear_solver), allocatable :: lin_solver
-    integer(ccs_int) :: timer_coeffs
 
     ! First zero matrix/RHS
     call zero(vec)
@@ -413,9 +412,9 @@ contains
     call get_field(flow, "viscosity", viscosity)
     call get_field(flow, "density", density)
     
-    call timer_register_start("Building coefficients", timer_coeffs)
+    call profiler_begin_region("Compute fluxes")
     call compute_fluxes(u, mf, viscosity, density, component, M, vec)
-    call timer_stop(timer_coeffs)
+    call profiler_end_region("Compute fluxes")
 
     call apply_timestep(u, workvec, M, vec)
 
@@ -728,7 +727,8 @@ contains
   !  Solves the pressure correction equation formed by the mass-imbalance.
   subroutine calculate_pressure_correction(par_env, run_options, invA, M, vec, lin_sys, p_prime, lin_solver)
 
-    use timers, only: timer_register_start, timer_stop
+    use fv, only: compute_boundary_coeffs
+    use profiler
     use fv_equations, only: poisson_equation
 
     ! Arguments
@@ -756,9 +756,7 @@ contains
 
     type(poisson_equation) :: pois_eqn
 
-    integer(ccs_int) :: timer_coeffs
-
-    call timer_register_start("Building coefficients", timer_coeffs)
+    call profiler_begin_region("Building coefficients")
     ! First zero matrix
     call zero(M)
 
@@ -818,7 +816,8 @@ contains
     call update(M)
     call update(vec)
     call finalise(M)
-    call timer_stop(timer_coeffs)
+
+    call profiler_end_region("Building coefficients")
 
     ! Create linear solver
     call dprint("P': create lin sys")

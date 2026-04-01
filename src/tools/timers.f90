@@ -1,4 +1,4 @@
-!v Set of tools used to analyse discretisation errors
+!v Timer utilities
 module timers
 #include "ccs_macros.inc"
 

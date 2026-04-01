@@ -20,8 +20,7 @@ module poiseuille_core
   use meshing, only: get_total_num_cells, set_mesh_object, get_global_num_cells, nullify_mesh_object, get_local_num_cells
   use io_visualisation, only: reset_io_visualisation
   use utils, only: str, exit_print, reset_outputlist_counter
-  use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, &
-                    timer_print, timer_get_time, timer_print_all, timer_reset
+  use profiler, only: profiler_init, profiler_shutdown, profiler_begin_region, profiler_end_region
   use logging, only: log_unit_out
 
   implicit none
@@ -45,15 +44,12 @@ module poiseuille_core
     class(field), pointer :: u
     type(bc_profile), allocatable :: profile
 
-    integer(ccs_int) :: timer_index_total
-    integer(ccs_int) :: timer_index_init
-
     type(fluid) :: flow_fields
 
     type(ccs_options) :: run_options
 
-    call timer_register_start("Elapsed time", timer_index_total)
-    call timer_register_start("Init time", timer_index_init)
+    call profiler_begin_region('Total elapsed time')
+    call profiler_begin_region('Total initialisation')
 
     ! Read case name and runtime parameters from configuration file
     call get_config(par_env, run_options)
@@ -88,7 +84,7 @@ module poiseuille_core
     ! Solve using SIMPLE algorithm
     if (is_root(par_env)) write(log_unit_out,*) "Start SIMPLE"
 
-    call timer_stop(timer_index_init)
+    call profiler_end_region('Total initialisation')
 
     pois_error_L2_global = 0.0_ccs_real
     pois_error_Linf_global = 0.0_ccs_real
@@ -97,15 +93,12 @@ module poiseuille_core
     error_Linf = pois_error_Linf_global
     
     ! Clean-up
-
-    call timer_stop(timer_index_total)
-
-    call timer_print_all(par_env)
+    call profiler_end_region('Total elapsed time')
+    call profiler_shutdown(par_env)
 
     call reset_timestepping()
     call reset_outputlist_counter()
     call reset_io_visualisation()
-    call timer_reset()
     call dealloc_fluid_fields(flow_fields)
     call nullify_mesh_object()
 

@@ -95,6 +95,16 @@ ifdef PARMETIS
   LIB += -L${PARMETIS}/lib -lGKlib -lmetis -lparmetis -Wl,-rpath,${PARMETIS}/lib
 endif
 
+ifdef CALIPER
+  INC += -I${CALIPER}/include/caliper/fortran
+  LIB += -L${CALIPER}/lib -lcaliper
+endif
+
+ifdef LIKWID
+  INC += -I${LIKWID}/include/
+  LIB += -L${LIKWID}/lib -llikwid
+endif
+
 ifeq ($(NEED_CMP),yes)
   INC += $(shell $(ADIOS2)/bin/adios2-config --fortran-flags)
   LIB += $(shell $(ADIOS2)/bin/adios2-config --fortran-libs)

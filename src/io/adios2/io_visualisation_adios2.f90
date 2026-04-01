@@ -8,9 +8,9 @@ submodule(io_visualisation) io_visualisation_adios2
                 write_array, read_array
   use adios2
   use adios2_types, only: adios2_io_process
+  use profiler, only: profiler_begin_region, profiler_end_region
   use utils, only: exit_print, update, set_values
   use fields, only: get_field
-  use timers, only: timer_register, timer_start, timer_stop
   use types, only: field
   
   implicit none
@@ -53,7 +53,6 @@ contains
 
     class(io_environment), allocatable, save :: io_env
     class(io_process), allocatable, save :: sol_reader
-
     integer(ccs_long), dimension(1) :: sel_shape
     integer(ccs_long), dimension(1) :: sel_start
     integer(ccs_long), dimension(1) :: sel_count
@@ -65,11 +64,6 @@ contains
     real(ccs_real), dimension(:), allocatable, target :: data
     real(ccs_real), dimension(:), allocatable :: re_order_data
 
-    integer(ccs_int) :: timer_index_nat_data_output
-    integer(ccs_int) :: timer_index_nat_data
-    integer(ccs_int) :: timer_index_output
-    integer(ccs_int) :: timer_index_grad
-
     integer(ccs_int) :: i
 
     integer(ccs_long) :: steps
@@ -80,13 +74,8 @@ contains
     real(ccs_real), dimension(:), pointer :: output_data
     class(field), pointer :: phi
 
-    sol_file = case_name // '.sol.h5'
+    sol_file = case_name // '_sol'
     adios2_file = case_name // adiosconfig
-
-    call timer_register("Get natural data (output)", timer_index_nat_data_output)
-    call timer_register("Get natural data (grads)", timer_index_nat_data)
-    call timer_register("Read output time", timer_index_output)
-    call timer_register("Read gradients time", timer_index_grad)
 
     if (present(step)) then
       ! Unsteady case
@@ -94,7 +83,6 @@ contains
         call initialise_io(par_env, adios2_file, io_env)
         call configure_io(io_env, "sol_reader", sol_reader)
         call open_file(sol_file, "read", sol_reader)
-
         initial_step = .false.
       end if
     else
@@ -129,14 +117,14 @@ contains
     steps = steps - 1  ! Set to max. step (count starts from 0)
 
     ! Loop over output list and write out
-    call timer_start(timer_index_output)
+    call profiler_begin_region("Read output time")
     do i = 1, size(flow%fields)
       call get_field(flow, i, phi)
       if (phi%output) then
         ! XXX: This seems unnecessary?
-        call timer_start(timer_index_nat_data_output)
+        call profiler_begin_region("Get natural data (output)")
         call get_natural_data(par_env, mesh, phi%values, data)
-        call timer_stop(timer_index_nat_data_output)
+        call profiler_end_region("Get natural data (output)")
 
         data_name = "/" // trim(phi%name)
 
@@ -165,7 +153,7 @@ contains
       nullify(phi)
     end do
     
-    call timer_stop(timer_index_output)
+    call profiler_end_region("Read output time")
 
     if (allocated(data)) then
       deallocate (data)
@@ -198,7 +186,6 @@ contains
                        create_cell_locator, &
                        get_global_index
     use utils, only: get_natural_data
-    use parallel, only: timer
 
     ! Arguments
     class(parallel_environment), allocatable, target, intent(in) :: par_env  !< The parallel environment
@@ -226,11 +213,6 @@ contains
 
     real(ccs_real), dimension(:), allocatable :: data
 
-    integer(ccs_int) :: timer_index_nat_data_output
-    integer(ccs_int) :: timer_index_nat_data
-    integer(ccs_int) :: timer_index_output
-    integer(ccs_int) :: timer_index_grad
-
     integer(ccs_int) :: i
 
     integer(ccs_int) :: global_num_cells
@@ -240,13 +222,8 @@ contains
 
     class(field), pointer :: phi
     
-    sol_file = run_options%paths%case_name // '.sol.h5'
+    sol_file = run_options%paths%case_name // '_sol'
     adios2_file = run_options%paths%case_name // adiosconfig
-
-    call timer_register("Get natural data (output)", timer_index_nat_data_output)
-    call timer_register("Get natural data (grads)", timer_index_nat_data)
-    call timer_register("Write output time", timer_index_output)
-    call timer_register("Write gradients time", timer_index_grad)
 
     if (present(step)) then
       ! Unsteady case
@@ -288,60 +265,60 @@ contains
     call begin_step(sol_writer)
 
     ! Loop over output list and write out
-    call timer_start(timer_index_output)
+    call profiler_begin_region("Write output time")
     do i = 1, size(flow%fields)
       call get_field(flow, i, phi)
       if (phi%output) then
       
-        call timer_start(timer_index_nat_data_output)
+        call profiler_begin_region("Get natural data (output)")
         call get_natural_data(par_env, mesh, phi%values, data)
-        call timer_stop(timer_index_nat_data_output)
+        call profiler_end_region("Get natural data (output)")
         data_name = "/" // trim(phi%name)
         call write_array(sol_writer, data_name, sel_shape, sel_start, sel_count, data)
 
         ! Store residuals if available
         if (allocated(phi%residuals)) then
-          call timer_start(timer_index_nat_data_output)
+          call profiler_begin_region("Get natural data (output)")
           call get_natural_data(par_env, mesh, phi%residuals, data)
-          call timer_stop(timer_index_nat_data_output)
+          call profiler_end_region("Get natural data (output)")
           data_name = "/" // trim(phi%name // "_res")
           call write_array(sol_writer, data_name, sel_shape, sel_start, sel_count, data)
         end if
       end if
     end do
-    call timer_stop(timer_index_output)
+    call profiler_end_region("Write output time")
    
 
     ! Write out gradients, if required (e.g. for calculating enstrophy)
     if (run_options%io%write_gradients) then
-      call timer_start(timer_index_grad)
+      call profiler_begin_region("Write gradients time")
       do i = 1, size(flow%fields)
         call get_field(flow, i, phi)
 
         if (phi%output) then
           ! x-gradient
-          call timer_start(timer_index_nat_data)
+          call profiler_begin_region("Get natural data (grads)")
           call get_natural_data(par_env, mesh, phi%x_gradients, data)
-          call timer_stop(timer_index_nat_data)
+          call profiler_end_region("Get natural data (grads)")
           data_name = "/d" // trim(phi%name) // "dx"
           call write_array(sol_writer, data_name, sel_shape, sel_start, sel_count, data)
 
           ! y-gradient
-          call timer_start(timer_index_nat_data)
+          call profiler_begin_region("Get natural data (grads)")
           call get_natural_data(par_env, mesh, phi%y_gradients, data)
-          call timer_stop(timer_index_nat_data)
+          call profiler_end_region("Get natural data (grads)")
           data_name = "/d" // trim(phi%name) // "dy"
           call write_array(sol_writer, data_name, sel_shape, sel_start, sel_count, data)
 
           ! z-gradient
-          call timer_start(timer_index_nat_data)
+          call profiler_begin_region("Get natural data (grads)")
           call get_natural_data(par_env, mesh, phi%z_gradients, data)
-          call timer_stop(timer_index_nat_data)
+          call profiler_end_region("Get natural data (grads)")
           data_name = "/d" // trim(phi%name) // "dz"
           call write_array(sol_writer, data_name, sel_shape, sel_start, sel_count, data)
         end if
       end do
-      call timer_stop(timer_index_grad)
+      call profiler_end_region("Write gradients time")
     end if
 
     if (allocated(data)) then
