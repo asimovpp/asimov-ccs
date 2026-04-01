@@ -179,27 +179,33 @@ contains
     type is (adios2_io_process)
 
       call adios2_inquire_variable(adios2_var, io_proc%io_task, var_name, ierr)
-      call adios2_set_selection(adios2_var, 1, global_start, count, ierr)
 
-      if (present(step)) then
-        call adios2_set_step_selection(adios2_var, step, step_count, ierr)
-      endif
+      if(adios2_var%valid .eqv. .true.) then
+        call adios2_set_selection(adios2_var, 1, global_start, count, ierr)
 
-      if (adios2_var%type == adios2_type_integer8) then
+        if (present(step)) then
+          call adios2_set_step_selection(adios2_var, step, step_count, ierr)
+        endif
 
-        allocate (tmp_var64(size(var)))
+        if (adios2_var%type == adios2_type_integer8) then
 
-        call downcast_warning()
-        call adios2_get(io_proc%engine, adios2_var, tmp_var64, adios2_mode_sync, ierr)
-        var = int(tmp_var64, int32)
+          allocate (tmp_var64(size(var)))
 
-      else if (adios2_var%type == adios2_type_integer4) then
+          call downcast_warning()
+          call adios2_get(io_proc%engine, adios2_var, tmp_var64, adios2_mode_sync, ierr)
+          var = int(tmp_var64, int32)
 
-        call adios2_get(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
+        else if (adios2_var%type == adios2_type_integer4) then
+
+          call adios2_get(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
+
+        else
+          call error_abort("IO Error: unsuported integer type")
+        end if
 
       else
-        call error_abort("IO Error: unsuported integer type")
-      end if
+        error stop "Variable not found."
+      end if 
 
     class default
       call error_abort("Unknown IO process handler type")
@@ -228,26 +234,32 @@ contains
     type is (adios2_io_process)
 
       call adios2_inquire_variable(adios2_var, io_proc%io_task, var_name, ierr)
-      call adios2_set_selection(adios2_var, 1, global_start, count, ierr)
+      
+      if(adios2_var%valid .eqv. .true.) then
+        call adios2_set_selection(adios2_var, 1, global_start, count, ierr)
 
-      if (present(step)) then
-        call adios2_set_step_selection(adios2_var, step, step_count, ierr)
-      endif
+        if (present(step)) then
+          call adios2_set_step_selection(adios2_var, step, step_count, ierr)
+        endif
 
-      if (adios2_var%type == adios2_type_integer4) then
+        if (adios2_var%type == adios2_type_integer4) then
 
-        allocate (tmp_var32(size(var)))
+          allocate (tmp_var32(size(var)))
 
-        call adios2_get(io_proc%engine, adios2_var, tmp_var32, adios2_mode_sync, ierr)
-        var = int(tmp_var32, int64)
+          call adios2_get(io_proc%engine, adios2_var, tmp_var32, adios2_mode_sync, ierr)
+          var = int(tmp_var32, int64)
 
-      else if (adios2_var%type == adios2_type_integer8) then
+        else if (adios2_var%type == adios2_type_integer8) then
 
-        call adios2_get(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
+          call adios2_get(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
+
+        else
+          call error_abort("IO Error: unsuported integer type")
+        end if
 
       else
-        call error_abort("IO Error: unsuported integer type")
-      end if
+        error stop "Variable not found."
+      end if 
 
     class default
       call error_abort("Unknown IO process handler type")
@@ -276,27 +288,34 @@ contains
     type is (adios2_io_process)
 
       call adios2_inquire_variable(adios2_var, io_proc%io_task, var_name, ierr)
-      call adios2_set_selection(adios2_var, 2, global_start, count, ierr)
 
-      if (present(step)) then
-        call adios2_set_step_selection(adios2_var, step, step_count, ierr)
-      endif
+      if(adios2_var%valid .eqv. .true.) then
 
-      if (adios2_var%type == adios2_type_integer8) then
+        call adios2_set_selection(adios2_var, 2, global_start, count, ierr)
 
-        allocate (tmp_var64(size(var, dim=1), size(var, dim=2)))
+        if (present(step)) then
+          call adios2_set_step_selection(adios2_var, step, step_count, ierr)
+        endif
 
-        call downcast_warning()
-        call adios2_get(io_proc%engine, adios2_var, tmp_var64, adios2_mode_sync, ierr)
-        var = int(tmp_var64, int32)
+        if (adios2_var%type == adios2_type_integer8) then
 
-      else if (adios2_var%type == adios2_type_integer4) then
+          allocate (tmp_var64(size(var, dim=1), size(var, dim=2)))
 
-        call adios2_get(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
+          call downcast_warning()
+          call adios2_get(io_proc%engine, adios2_var, tmp_var64, adios2_mode_sync, ierr)
+          var = int(tmp_var64, int32)
+
+        else if (adios2_var%type == adios2_type_integer4) then
+
+          call adios2_get(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
+
+        else
+          call error_abort("IO Error: unsuported integer type")
+        end if
 
       else
-        call error_abort("IO Error: unsuported integer type")
-      end if
+        error stop "Variable not found."
+      end if 
 
     class default
       call error_abort("Unknown IO process handler type")
@@ -325,26 +344,33 @@ contains
     type is (adios2_io_process)
 
       call adios2_inquire_variable(adios2_var, io_proc%io_task, var_name, ierr)
-      call adios2_set_selection(adios2_var, 2, global_start, count, ierr)
 
-      if (present(step)) then
-        call adios2_set_step_selection(adios2_var, step, step_count, ierr)
-      endif
+      if(adios2_var%valid .eqv. .true.) then
 
-      if (adios2_var%type == adios2_type_integer4) then
+        call adios2_set_selection(adios2_var, 2, global_start, count, ierr)
 
-        allocate (tmp_var32(size(var, dim=1), size(var, dim=2)))
+        if (present(step)) then
+          call adios2_set_step_selection(adios2_var, step, step_count, ierr)
+        endif
 
-        call adios2_get(io_proc%engine, adios2_var, tmp_var32, adios2_mode_sync, ierr)
-        var = int(tmp_var32, int64)
+        if (adios2_var%type == adios2_type_integer4) then
 
-      else if (adios2_var%type == adios2_type_integer8) then
+          allocate (tmp_var32(size(var, dim=1), size(var, dim=2)))
 
-        call adios2_get(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
+          call adios2_get(io_proc%engine, adios2_var, tmp_var32, adios2_mode_sync, ierr)
+          var = int(tmp_var32, int64)
+
+        else if (adios2_var%type == adios2_type_integer8) then
+
+          call adios2_get(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
+
+        else
+          call error_abort("IO Error: unsuported integer type")
+        end if
 
       else
-        call error_abort("IO Error: unsuported integer type")
-      end if
+        error stop "Variable not found."
+      end if 
 
     class default
       call error_abort("Unknown IO process handler type")
@@ -373,27 +399,34 @@ contains
     type is (adios2_io_process)
 
       call adios2_inquire_variable(adios2_var, io_proc%io_task, var_name, ierr)
-      call adios2_set_selection(adios2_var, 1, global_start, count, ierr)
 
-      if (present(step)) then
-        call adios2_set_step_selection(adios2_var, step, step_count, ierr)
-      endif
+      if(adios2_var%valid .eqv. .true.) then
 
-      if (adios2_var%type == adios2_type_dp) then
+        call adios2_set_selection(adios2_var, 1, global_start, count, ierr)
 
-        allocate (tmp_var64(size(var)))
+        if (present(step)) then
+          call adios2_set_step_selection(adios2_var, step, step_count, ierr)
+        endif
 
-        call downcast_warning()
-        call adios2_get(io_proc%engine, adios2_var, tmp_var64, adios2_mode_sync, ierr)
-        var = real(tmp_var64, real32)
+        if (adios2_var%type == adios2_type_dp) then
 
-      else if (adios2_var%type == adios2_type_real) then
+          allocate (tmp_var64(size(var)))
 
-        call adios2_get(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
+          call downcast_warning()
+          call adios2_get(io_proc%engine, adios2_var, tmp_var64, adios2_mode_sync, ierr)
+          var = real(tmp_var64, real32)
+
+        else if (adios2_var%type == adios2_type_real) then
+
+          call adios2_get(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
+
+        else
+          call error_abort("IO Error: unsuported real type")
+        end if
 
       else
-        call error_abort("IO Error: unsuported real type")
-      end if
+        error stop "Variable not found."
+      end if 
 
     class default
       call error_abort("Unknown IO process handler type")
@@ -422,26 +455,33 @@ contains
     type is (adios2_io_process)
 
       call adios2_inquire_variable(adios2_var, io_proc%io_task, var_name, ierr)
-      call adios2_set_selection(adios2_var, 1, global_start, count, ierr)
 
-      if (present(step)) then
-        call adios2_set_step_selection(adios2_var, step, step_count, ierr)
-      endif
+      if(adios2_var%valid .eqv. .true.) then
 
-      if (adios2_var%type == adios2_type_real) then
+        call adios2_set_selection(adios2_var, 1, global_start, count, ierr)
 
-        allocate (tmp_var32(size(var)))
+        if (present(step)) then
+          call adios2_set_step_selection(adios2_var, step, step_count, ierr)
+        endif
 
-        call adios2_get(io_proc%engine, adios2_var, tmp_var32, adios2_mode_sync, ierr)
-        var = real(tmp_var32, real64)
+        if (adios2_var%type == adios2_type_real) then
 
-      else if (adios2_var%type == adios2_type_dp) then
+          allocate (tmp_var32(size(var)))
 
-        call adios2_get(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
+          call adios2_get(io_proc%engine, adios2_var, tmp_var32, adios2_mode_sync, ierr)
+          var = real(tmp_var32, real64)
+
+        else if (adios2_var%type == adios2_type_dp) then
+
+          call adios2_get(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
+
+        else
+          call error_abort("IO Error: unsuported real type")
+        end if
 
       else
-        call error_abort("IO Error: unsuported real type")
-      end if
+        error stop "Variable not found."
+      end if 
 
     class default
       call error_abort("Unknown IO process handler type")
@@ -470,27 +510,34 @@ contains
     type is (adios2_io_process)
 
       call adios2_inquire_variable(adios2_var, io_proc%io_task, var_name, ierr)
-      call adios2_set_selection(adios2_var, 2, global_start, count, ierr)
 
-      if (present(step)) then
-        call adios2_set_step_selection(adios2_var, step, step_count, ierr)
-      endif
+      if(adios2_var%valid .eqv. .true.) then
 
-      if (adios2_var%type == adios2_type_dp) then
+        call adios2_set_selection(adios2_var, 2, global_start, count, ierr)
 
-        allocate (tmp_var64(size(var, dim=1), size(var, dim=2)))
+        if (present(step)) then
+          call adios2_set_step_selection(adios2_var, step, step_count, ierr)
+        endif
 
-        call downcast_warning()
-        call adios2_get(io_proc%engine, adios2_var, tmp_var64, adios2_mode_sync, ierr)
-        var = real(tmp_var64, real32)
+        if (adios2_var%type == adios2_type_dp) then
 
-      else if (adios2_var%type == adios2_type_real) then
+          allocate (tmp_var64(size(var, dim=1), size(var, dim=2)))
 
-        call adios2_get(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
+          call downcast_warning()
+          call adios2_get(io_proc%engine, adios2_var, tmp_var64, adios2_mode_sync, ierr)
+          var = real(tmp_var64, real32)
+
+        else if (adios2_var%type == adios2_type_real) then
+
+          call adios2_get(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
+
+        else
+          call error_abort("IO Error: unsuported real type")
+        end if
 
       else
-        call error_abort("IO Error: unsuported real type")
-      end if
+        error stop "Variable not found."
+      end if 
 
     class default
       call error_abort("Unknown IO process handler type")
@@ -520,26 +567,32 @@ contains
 
       call adios2_inquire_variable(adios2_var, io_proc%io_task, var_name, ierr)
 
-      call adios2_set_selection(adios2_var, 2, global_start, count, ierr)
+      if(adios2_var%valid .eqv. .true.) then
 
-      if (present(step)) then
-        call adios2_set_step_selection(adios2_var, step, step_count, ierr)
-      endif
+        call adios2_set_selection(adios2_var, 2, global_start, count, ierr)
 
-      if (adios2_var%type == adios2_type_real) then
+        if (present(step)) then
+          call adios2_set_step_selection(adios2_var, step, step_count, ierr)
+        endif
 
-        allocate (tmp_var32(size(var, dim=1), size(var, dim=2)))
+        if (adios2_var%type == adios2_type_real) then
 
-        call adios2_get(io_proc%engine, adios2_var, tmp_var32, adios2_mode_sync, ierr)
-        var = real(tmp_var32, real64)
+          allocate (tmp_var32(size(var, dim=1), size(var, dim=2)))
 
-      else if (adios2_var%type == adios2_type_dp) then
+          call adios2_get(io_proc%engine, adios2_var, tmp_var32, adios2_mode_sync, ierr)
+          var = real(tmp_var32, real64)
 
-        call adios2_get(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
+        else if (adios2_var%type == adios2_type_dp) then
+
+          call adios2_get(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
+
+        else
+          call error_abort("IO Error: unsuported real type")
+        end if
 
       else
-        call error_abort("IO Error: unsuported real type")
-      end if
+        error stop "Variable not found."
+      end if 
 
     class default
       call error_abort("Unknown IO process handler type")
