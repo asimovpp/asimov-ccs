@@ -8,7 +8,7 @@ submodule(pv_coupling) pv_coupling_simple
   use kinds, only: ccs_int, ccs_real
   use types, only: vector_spec, ccs_vector, matrix_spec, ccs_matrix, equation_system, &
                    linear_solver, bc_config, vector_values, cell_locator, ccs_residuals, &
-                   face_locator, neighbour_locator, matrix_values, matrix_values_spec, upwind_field
+                   face_locator, neighbour_locator, matrix_values, matrix_values_spec, upwind_field, field_ptr
   use fv, only: compute_fluxes, calc_mass_flux, update_gradient
   use vec, only: create_vector, vec_reciprocal, scale_vec, &
                  get_vector_data, get_vector_data_readonly, restore_vector_data, restore_vector_data_readonly, &
@@ -93,6 +93,7 @@ contains
     logical :: v_sol !< solve v velocity field
     logical :: w_sol !< solve w velocity field
     logical :: p_sol !< solve pressure field
+    type(field_ptr), dimension(4) :: grad_fields
     class(field), pointer :: u       !< velocity fields in x direction
     class(field), pointer :: v       !< velocity fields in y direction
     class(field), pointer :: w       !< velocity field in z direction
@@ -104,6 +105,7 @@ contains
 
     integer(ccs_int) :: it_start
     integer(ccs_int) :: it_end
+    integer(ccs_int) :: nfields
     real(ccs_real) :: res_target                          !< Target residual
 
     it_start = run_options%solve%it_start
@@ -113,8 +115,8 @@ contains
     if (.not. is_mesh_set()) then
       call error_abort("Mesh object needs to be set")
     end if
-    
-    call get_field(flow, "u", u) 
+
+    call get_field(flow, "u", u)
     call get_field(flow, "v", v)
     call get_field(flow, "w", w)
     call get_field(flow, "p", p)
@@ -174,10 +176,24 @@ contains
 
     ! Get pressure gradient
     call dprint("NONLINEAR: compute gradients")
-    call update_gradient(p)
-    if (u_sol) call update_gradient(u)
-    if (v_sol) call update_gradient(v)
-    if (w_sol) call update_gradient(w)
+    nfields = 1
+    grad_fields(nfields)%ptr => p
+    if (u_sol) then
+      nfields = nfields + 1
+      grad_fields(nfields)%ptr => u
+    end if
+    if (v_sol) then
+      nfields = nfields + 1
+      grad_fields(nfields)%ptr => v
+    end if
+    if (w_sol) then
+      nfields = nfields + 1
+      grad_fields(nfields)%ptr => w
+    end if
+    call update_gradient(grad_fields(1:nfields))
+    do i = 1, size(grad_fields)
+      nullify(grad_fields(i)%ptr)
+    end do
 
     outerloop: do i = it_start, it_end
       call dprint("NONLINEAR: iteration " // str(i))
@@ -243,7 +259,9 @@ contains
     deallocate(invAu)
     deallocate(invAv)
     deallocate(invAw)
-    
+
+    nullify(u, v, w, p, p_prime, mf, viscosity, density)
+
   end subroutine solve_nonlinear
 
   !v Computes the guessed velocity fields based on a frozen pressure field
@@ -1012,6 +1030,9 @@ contains
     class(field), pointer :: u       !< The x velocities being corrected
     class(field), pointer :: v       !< The y velocities being corrected
     class(field), pointer :: w       !< The z velocities being corrected
+    type(field_ptr), dimension(3) :: grad_fields
+
+    nullify(u, v, w, p_prime)
 
     call get_field(flow, "u", u)
     call get_field(flow, "v", v)
@@ -1040,9 +1061,15 @@ contains
     call update(v%values)
     call update(w%values)
 
-    call update_gradient(u)
-    call update_gradient(v)
-    call update_gradient(w)
+    grad_fields(1)%ptr => u
+    grad_fields(2)%ptr => v
+    grad_fields(3)%ptr => w
+    call update_gradient(grad_fields)
+
+    nullify(grad_fields(1)%ptr)
+    nullify(grad_fields(2)%ptr)
+    nullify(grad_fields(3)%ptr)
+    nullify(u, v, w, p_prime)
 
   end subroutine update_velocity
 
