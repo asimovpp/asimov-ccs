@@ -180,7 +180,7 @@ contains
 
       call adios2_inquire_variable(adios2_var, io_proc%io_task, var_name, ierr)
 
-      if(adios2_var%valid .eqv. .true.) then
+      if(adios2_var%valid) then
         call adios2_set_selection(adios2_var, 1, global_start, count, ierr)
 
         if (present(step)) then
@@ -235,7 +235,7 @@ contains
 
       call adios2_inquire_variable(adios2_var, io_proc%io_task, var_name, ierr)
       
-      if(adios2_var%valid .eqv. .true.) then
+      if(adios2_var%valid) then
         call adios2_set_selection(adios2_var, 1, global_start, count, ierr)
 
         if (present(step)) then
@@ -289,7 +289,7 @@ contains
 
       call adios2_inquire_variable(adios2_var, io_proc%io_task, var_name, ierr)
 
-      if(adios2_var%valid .eqv. .true.) then
+      if(adios2_var%valid) then
 
         call adios2_set_selection(adios2_var, 2, global_start, count, ierr)
 
@@ -345,7 +345,7 @@ contains
 
       call adios2_inquire_variable(adios2_var, io_proc%io_task, var_name, ierr)
 
-      if(adios2_var%valid .eqv. .true.) then
+      if(adios2_var%valid) then
 
         call adios2_set_selection(adios2_var, 2, global_start, count, ierr)
 
@@ -400,7 +400,7 @@ contains
 
       call adios2_inquire_variable(adios2_var, io_proc%io_task, var_name, ierr)
 
-      if(adios2_var%valid .eqv. .true.) then
+      if(adios2_var%valid) then
 
         call adios2_set_selection(adios2_var, 1, global_start, count, ierr)
 
@@ -456,7 +456,7 @@ contains
 
       call adios2_inquire_variable(adios2_var, io_proc%io_task, var_name, ierr)
 
-      if(adios2_var%valid .eqv. .true.) then
+      if(adios2_var%valid) then
 
         call adios2_set_selection(adios2_var, 1, global_start, count, ierr)
 
@@ -511,7 +511,7 @@ contains
 
       call adios2_inquire_variable(adios2_var, io_proc%io_task, var_name, ierr)
 
-      if(adios2_var%valid .eqv. .true.) then
+      if(adios2_var%valid) then
 
         call adios2_set_selection(adios2_var, 2, global_start, count, ierr)
 
@@ -567,7 +567,7 @@ contains
 
       call adios2_inquire_variable(adios2_var, io_proc%io_task, var_name, ierr)
 
-      if(adios2_var%valid .eqv. .true.) then
+      if(adios2_var%valid) then
 
         call adios2_set_selection(adios2_var, 2, global_start, count, ierr)
 
