@@ -207,9 +207,6 @@ contains
     
     ! Variables for per timestep file naming in unsteady case
     character(len=10) :: step_str
-    ! character(len=20) :: format_str
-    ! character(len=10) :: mag_str
-    ! integer :: mag 
 
     class(io_environment), allocatable, save :: io_env
     class(io_process), allocatable, save :: sol_writer
