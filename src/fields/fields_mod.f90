@@ -408,6 +408,7 @@ contains
   subroutine print_field_config(par_env, flow)
 
     use parallel, only: is_root
+    use ccs_base, only: L2, Linfty
     class(parallel_environment), intent(in) :: par_env
     type(fluid), intent(in) :: flow
     class(field), pointer :: phi
@@ -424,11 +425,17 @@ contains
           call get_field(flow, ifield, phi)
           if (phi%solver_parameters%solve) then
             print *, "************ ", trim(phi%name), " ************"
-            write(*,'(A, E10.2)')  " Residuals target: ", phi%solver_parameters%res_target
-            write(*,'(A, F4.2)')  " Relaxation factor: ", phi%solver_parameters%relaxation_factor
-            print *, "Solver: ", phi%solver_parameters%solver_name
-            print *, "Preconditioner: ", phi%solver_parameters%precon_name
-          end if
+            write(*,'(A, E10.2)')  "   Residuals target: ", phi%solver_parameters%res_target
+            select case(phi%solver_parameters%res_norm)
+              case (L2)
+                print *, "  Residuals norm: L2"
+              case (Linfty)
+                print *, "  Residuals norm: Linfty"
+            end select
+            write(*,'(A, F4.2)')  "   Relaxation factor: ", phi%solver_parameters%relaxation_factor
+            print *, "  Solver: ", phi%solver_parameters%solver_name
+            print *, "  Preconditioner: ", phi%solver_parameters%precon_name
+         end if
         end do
         print *, ""
     end if
