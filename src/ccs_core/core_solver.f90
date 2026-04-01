@@ -159,8 +159,6 @@ contains
       check_stop_run = .true.
     else if (stop_on_request(par_env, run_options, t, flow_fields)) then
       check_stop_run = .true.
-    else if (stop_on_sigterm(par_env, run_options, t, flow_fields)) then
-      check_stop_run = .true.
     else
       check_stop_run = .false.
     end if
@@ -212,7 +210,7 @@ contains
       end if
       call dump_run(par_env, run_options, t, flow_fields)
 
-      stop_on_sigterm = .true.
+      stop_on_request = .true.
     else
       stop_on_request = .false.
     end if
