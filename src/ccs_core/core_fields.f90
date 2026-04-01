@@ -236,11 +236,8 @@ contains
 
     class(field), pointer :: phi
 
-    call get_field(flow, field_index, phi)
-    ! check if equation name match
-    if (run_options%solve%solver_eq_parameters(field_index)%name /= phi%name) then
-      call error_abort("Solver and field name don't match for "//run_options%solve%solver_eq_parameters(field_index)%name// " and "//phi%name)
-    end if
+    ! Get field using the run_options equation name
+    call get_field(flow, run_options%solve%solver_eq_parameters(field_index)%name, phi)
     phi%solver_parameters = run_options%solve%solver_eq_parameters(field_index)
     nullify(phi)
 
