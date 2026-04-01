@@ -277,7 +277,7 @@ contains
   !v Sets defaults when values aren't specified in the config file, either from constants module or
   !   from globally set default in the config file
   subroutine set_defaults_solver_eq_parameters(solve, solver_parameters)
-    use constants, only: default_solver, default_precon, default_pressure_solver, default_pressure_precon
+    use constants, only: default_solver, default_precon, default_pressure_solver, default_pressure_precon, default_res_norm
           
       type(solver_options), intent(in) :: solve   !< Object for solver options
       type(solver_params), dimension(:), intent(inout) :: solver_parameters
@@ -306,6 +306,10 @@ contains
           else
               solver_parameters(ifield)%precon_name = default_precon
           end if
+        end if
+
+        if (solver_parameters(ifield)%res_norm == -1) then
+          solver_parameters(ifield)%res_norm = default_res_norm
         end if
 
         if (solver_parameters(ifield)%name == "p_prime" .and. solver_parameters(ifield)%solve) then

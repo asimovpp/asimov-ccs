@@ -5,6 +5,7 @@
 module constants
 
   use kinds, only: ccs_int, ccs_real
+  use ccs_base, only: L2
 
   implicit none
 
@@ -51,5 +52,6 @@ module constants
   character(len=ccs_string_len), public, parameter :: default_precon = "bjacobi"
   character(len=ccs_string_len), public, parameter :: default_pressure_solver = "cg"
   character(len=ccs_string_len), public, parameter :: default_pressure_precon = "gamg"
+  integer, public, parameter :: default_res_norm = L2
 
 end module constants

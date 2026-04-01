@@ -348,6 +348,12 @@ contains
         do i = 1, n_var
           write (key, '(A, I0)') "variable_", i
           dict_var => dict%get_dictionary(key, required=.true., error=io_err)
+
+          ! Get name of variable
+          call get_value(dict_var, "name", variable)
+          var = adjustl(variable)
+          solver_parameters(i)%name = trim(var)
+
           call get_value(dict_var, 'solve', solved, value_present=val_present, required=.false.)
           if (val_present) then
             solver_parameters(i)%solve = (trim(solved) == "on")
@@ -373,10 +379,8 @@ contains
             case ("Linfty")
               solver_parameters(i)%res_norm = Linfty
             case default
-              call error_abort("Unknown residual norm for "//key//", should be L2 or Linfty")
+              call error_abort("Unknown residual norm for " // trim(solver_parameters(i)%name) // ", should be L2 or Linfty")
             end select
-          else
-            solver_parameters(i)%res_norm = L2 !< set default to L2
           end if
 
           call get_value(dict_var, 'solver_name', solver_name, value_present=val_present, required=.false.)
@@ -389,10 +393,6 @@ contains
             solver_parameters(i)%precon_name = trim(precon_name)
           end if
 
-          ! Get name of variable too
-          call get_value(dict_var, "name", variable)
-          var = adjustl(variable)
-          solver_parameters(i)%name = trim(var)
         end do
         class default
           call error_abort("Unknown type")
