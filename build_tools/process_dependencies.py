@@ -8,7 +8,10 @@ def trim(s):
 
 def filter_dependencies(dependencies, chosen_options, all_options):
   """filters out unused optional libraries present in all_options
-  but absent from chosen_options"""
+  but absent from chosen_options. N.B. this assumes that file
+  file extensions have already been trimmed, i.e.
+    'foo.o'->'foo'
+  """
 
   out = {}
   for filename in dependencies:
