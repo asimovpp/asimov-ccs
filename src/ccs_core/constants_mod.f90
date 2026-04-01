@@ -46,5 +46,10 @@ module constants
   integer, public, parameter :: ccs_split_type_low_high = -2 
 
   integer(ccs_int), public, parameter :: ccs_string_len = 128
+  
+  character(len=ccs_string_len), public, parameter :: default_solver = "gmres"
+  character(len=ccs_string_len), public, parameter :: default_precon = "bjacobi"
+  character(len=ccs_string_len), public, parameter :: default_pressure_solver = "cg"
+  character(len=ccs_string_len), public, parameter :: default_pressure_precon = "gamg"
 
 end module constants

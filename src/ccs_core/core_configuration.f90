@@ -261,17 +261,63 @@ contains
 
     call get_value(config_file, 'target_residual', res_target)
     if (res_target == huge(0.0)) then
-      call error_abort("No value assigned to target residual.")
+      call error_abort("No value assigned to default target residual.")
     end if
     solve%default_res_target = res_target
 
     ! Gets solver parameters per equation
     call get_solver_eq_parameters(config_file, solve%solver_eq_parameters)
+    call set_defaults_solver_eq_parameters(solve, solve%solver_eq_parameters)
 
     solve%it_start = 1
     solve%it_end = num_iters
 
   end subroutine get_solver_options
+
+  !v Sets defaults when values aren't specified in the config file, either from constants module or
+  !   from globally set default in the config file
+  subroutine set_defaults_solver_eq_parameters(solve, solver_parameters)
+    use constants, only: default_solver, default_precon, default_pressure_solver, default_pressure_precon
+          
+      type(solver_options), intent(in) :: solve   !< Object for solver options
+      type(solver_params), dimension(:), intent(inout) :: solver_parameters
+      integer(ccs_int) :: nfields, ifield
+
+      nfields = size(solver_parameters)
+
+      do ifield=1, nfields
+
+        ! Set values to default if not specified per field
+        if (solver_parameters(ifield)%res_target == huge(ccs_real)) then
+          solver_parameters(ifield)%res_target = solve%default_res_target
+        end if
+
+        if (solver_parameters(ifield)%solver_name == "") then
+          if (solver_parameters(ifield)%name == "p") then
+              solver_parameters(ifield)%solver_name = default_pressure_solver
+          else
+              solver_parameters(ifield)%solver_name = default_solver
+          end if
+        end if
+
+        if (solver_parameters(ifield)%precon_name == "") then
+          if (solver_parameters(ifield)%name == "p") then
+              solver_parameters(ifield)%precon_name = default_pressure_precon
+          else
+              solver_parameters(ifield)%precon_name = default_precon
+          end if
+        end if
+
+        if (solver_parameters(ifield)%name == "p_prime" .and. solver_parameters(ifield)%solve) then
+          print *, "Warning, p_prime shouldn't be set to solve, solver config should be set under 'p' instead."
+        end if
+
+        if (solver_parameters(ifield)%solve .and. solver_parameters(ifield)%relaxation_factor == huge(ccs_real)) then
+          call error_abort("No values assigned to relaxation factor for variable "//solver_parameters(ifield)%name)
+        end if
+
+      end do
+  end subroutine
 
   ! Print test case configuration
   subroutine print_configuration(par_env, run_options)
