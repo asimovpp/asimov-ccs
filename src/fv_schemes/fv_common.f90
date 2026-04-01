@@ -4,10 +4,10 @@
 submodule(fv) fv_common
 #include "ccs_macros.inc"
   use constants, only: insert_mode, add_mode
-  use types, only: vector_values, matrix_values_spec, matrix_values, neighbour_locator, bc_profile, field
+  use types, only: vector_values, matrix_values_spec, matrix_values, neighbour_locator, bc_profile, field, field_ptr
   use vec, only: get_vector_data, restore_vector_data, &
                  get_vector_data_readonly, restore_vector_data_readonly, &
-                 create_vector_values
+                 create_vector_values, begin_ghost_update_vector, end_ghost_update_vector
 
   use mat, only: create_matrix_values, set_matrix_values_spec_nrows, set_matrix_values_spec_ncols
   use utils, only: clear_entries, set_entry, set_row, set_col, set_values, set_mode, update
@@ -574,56 +574,106 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
   !v Performs an update of the gradients of a field.
   !  @note This will perform a parallel update of the gradient fields to ensure halo cells are
   !  correctly updated on other PEs. @endnote
-  module subroutine update_gradient(phi)
+  module subroutine update_gradient_field(phi)
 
-    use meshing, only: get_local_num_cells
-    use profiler
+    class(field), target, intent(inout) :: phi !< the field whose gradients we want to update
+    type(field_ptr), dimension(1) :: fields
 
-    class(field), intent(inout) :: phi !< the field whose gradients we want to update
-    real(ccs_real), dimension(:), allocatable :: x_gradients
-    real(ccs_real), dimension(:), allocatable :: y_gradients
-    real(ccs_real), dimension(:), allocatable :: z_gradients
+    fields(1)%ptr => phi
+    call update_gradient_fields(fields)
 
-    real(ccs_real), dimension(:), pointer :: gradients_data    ! Data array for gradients
+  end subroutine update_gradient_field
+
+  !v Performs an update of the gradients for several fields, overlapping communication between fields.
+  module subroutine update_gradient_fields(fields)
+
+    type(field_ptr), dimension(:), intent(inout) :: fields !< the fields whose gradients we want to update
+    real(ccs_real), dimension(:, :), allocatable :: gradients
     integer(ccs_int) :: local_num_cells
-
     integer(ccs_int) :: i
-    type(cell_locator) :: loc_p
-    real(ccs_real), dimension(3) :: grad_p ! Gradient at cell centre
+    integer(ccs_int) :: nfields
 
     call profiler_begin_region("Compute gradient")
 
-    call get_local_num_cells(local_num_cells)
-    allocate (x_gradients(local_num_cells))
-    allocate (y_gradients(local_num_cells))
-    allocate (z_gradients(local_num_cells))
+    nfields = size(fields)
+    if (nfields == 0) then
+      call profiler_end_region("Compute gradient")
+      return
+    end if
 
-    do i = 1, local_num_cells
-      call create_cell_locator(i, loc_p)
-      call compute_gradient_at_point(phi, loc_p, grad_p)
-      x_gradients(i) = grad_p(1)
-      y_gradients(i) = grad_p(2)
-      z_gradients(i) = grad_p(3)
+    call get_local_num_cells(local_num_cells)
+    allocate (gradients(local_num_cells, ndim))
+
+    do i = 1, nfields
+      call compute_gradients(fields(i)%ptr, gradients)
+      call set_gradients(fields(i)%ptr, gradients)
+      call start_gradient_halo(fields(i)%ptr)
     end do
 
-    call get_vector_data(phi%x_gradients, gradients_data)
-    gradients_data(1:local_num_cells) = x_gradients(:)
-    call restore_vector_data(phi%x_gradients, gradients_data)
-    call update(phi%x_gradients) ! XXX: opportunity to overlap update with later compute (begin/compute/end)
-
-    call get_vector_data(phi%y_gradients, gradients_data)
-    gradients_data(1:local_num_cells) = y_gradients(:)
-    call restore_vector_data(phi%y_gradients, gradients_data)
-    call update(phi%y_gradients) ! yyy: opportunity to overlap update with later compute (begin/compute/end)
-
-    call get_vector_data(phi%z_gradients, gradients_data)
-    gradients_data(1:local_num_cells) = z_gradients(:)
-    call restore_vector_data(phi%z_gradients, gradients_data)
-    call update(phi%z_gradients) ! zzz: opportunity to overlap update with later compute (begin/compute/end)
+    do i = 1, nfields
+      call finish_gradient_halo(fields(i)%ptr)
+    end do
 
     call profiler_end_region("Compute gradient")
 
-  end subroutine update_gradient
+  end subroutine update_gradient_fields
+
+  subroutine compute_gradients(phi, gradients)
+    class(field), intent(in) :: phi
+    real(ccs_real), dimension(:, :), intent(out) :: gradients
+
+    integer(ccs_int) :: i
+    integer(ccs_int) :: local_num_cells
+    type(cell_locator) :: loc_p
+    real(ccs_real), dimension(ndim) :: grad_p
+
+    local_num_cells = size(gradients, 1)
+    do i = 1, local_num_cells
+      call create_cell_locator(i, loc_p)
+      call compute_gradient_at_point(phi, loc_p, grad_p)
+      gradients(i, :) = grad_p(:)
+    end do
+  end subroutine compute_gradients
+
+  subroutine set_gradients(phi, gradients)
+    class(field), intent(inout) :: phi
+    real(ccs_real), dimension(:, :), intent(in) :: gradients
+
+    real(ccs_real), dimension(:), pointer :: x_gradient_data
+    real(ccs_real), dimension(:), pointer :: y_gradient_data
+    real(ccs_real), dimension(:), pointer :: z_gradient_data
+    integer(ccs_int) :: local_num_cells
+
+    local_num_cells = size(gradients, 1)
+
+    call get_vector_data(phi%x_gradients, x_gradient_data)
+    call get_vector_data(phi%y_gradients, y_gradient_data)
+    call get_vector_data(phi%z_gradients, z_gradient_data)
+
+    x_gradient_data(1:local_num_cells) = gradients(:, 1)
+    y_gradient_data(1:local_num_cells) = gradients(:, 2)
+    z_gradient_data(1:local_num_cells) = gradients(:, 3)
+
+    call restore_vector_data(phi%x_gradients, x_gradient_data)
+    call restore_vector_data(phi%y_gradients, y_gradient_data)
+    call restore_vector_data(phi%z_gradients, z_gradient_data)
+  end subroutine set_gradients
+
+  subroutine start_gradient_halo(phi)
+    class(field), intent(inout) :: phi
+
+    call begin_ghost_update_vector(phi%x_gradients)
+    call begin_ghost_update_vector(phi%y_gradients)
+    call begin_ghost_update_vector(phi%z_gradients)
+  end subroutine start_gradient_halo
+
+  subroutine finish_gradient_halo(phi)
+    class(field), intent(inout) :: phi
+
+    call end_ghost_update_vector(phi%x_gradients)
+    call end_ghost_update_vector(phi%y_gradients)
+    call end_ghost_update_vector(phi%z_gradients)
+  end subroutine finish_gradient_halo
 
   !> Helper subroutine to calculate a gradient at a point (cell centre)
   pure subroutine compute_gradient_at_point(phi, loc_p, gradients)
@@ -655,7 +705,7 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
 
     real(ccs_real) :: V
 
-    gradients(:) = 0.0_ccs_int
+    gradients(:) = 0.0_ccs_real
 
     call get_local_index(loc_p, index_p)
     call get_centre(loc_p, x_p)
