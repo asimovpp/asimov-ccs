@@ -228,7 +228,7 @@ contains
   end subroutine add_fluid_field_to_outputlist
   
 
-  ! Sets field solver parameters from run_options and the default values
+  ! Sets field solver parameters from run_options
   subroutine set_field_solver_params(run_options, field_index, flow)
     type(ccs_options), intent(in) :: run_options
     integer(ccs_int), intent(in) :: field_index   !< The index of the field being set
@@ -237,33 +237,11 @@ contains
     class(field), pointer :: phi
 
     call get_field(flow, field_index, phi)
+    ! check if equation name match
+    if (run_options%solve%solver_eq_parameters(field_index)%name /= phi%name) then
+      call error_abort("Solver and field name don't match for "//run_options%solve%solver_eq_parameters(field_index)%name// " and "//phi%name)
+    end if
     phi%solver_parameters = run_options%solve%solver_eq_parameters(field_index)
-
-    ! Set values to default if not specified per field
-    if (phi%solver_parameters%res_target == huge(ccs_real)) then
-      phi%solver_parameters%res_target = run_options%solve%default_res_target
-    end if
-
-    if (phi%solver_parameters%solver_name == "") then
-      if (phi%name == "p" .OR. phi%name == "p_prime") then
-          phi%solver_parameters%solver_name = run_options%solve%default_pressure_solver
-      else
-          phi%solver_parameters%solver_name = run_options%solve%default_solver
-      end if
-    end if
-
-    if (phi%solver_parameters%precon_name == "") then
-      if (phi%name == "p" .OR. phi%name == "p_prime") then
-          phi%solver_parameters%precon_name = run_options%solve%default_pressure_precon
-      else
-          phi%solver_parameters%precon_name = run_options%solve%default_precon
-      end if
-    end if
-
-    if (phi%solver_parameters%solve .and. phi%solver_parameters%relaxation_factor == huge(ccs_real)) then
-      call error_abort("No values assigned to underrelaxation factor for variable "//phi%name)
-    end if
-
     nullify(phi)
 
   end subroutine
