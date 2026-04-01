@@ -283,7 +283,7 @@ contains
       type(solver_params), dimension(:), intent(inout) :: solver_parameters
       integer(ccs_int) :: nfields, ifield
 
-      nfields = size(solver_parameters)
+      nfields = size(solver%solver_parameters)
 
       do ifield=1, nfields
 
@@ -326,8 +326,6 @@ contains
 
     class(parallel_environment), intent(in) :: par_env
     type(ccs_options), intent(in) :: run_options
-
-    !integer :: i
 
     if (is_root(par_env)) then
       associate(case_name => run_options%paths%case_name, &
