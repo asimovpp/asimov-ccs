@@ -75,12 +75,10 @@ module io
     end subroutine
 
     !> Configure the IO process
-    module subroutine configure_io(io_env, process_name, io_proc, sim_time, delta_t)
+    module subroutine configure_io(io_env, process_name, io_proc)
       class(io_environment), intent(in) :: io_env            !< IO environment
       character(len=*), intent(in) :: process_name           !< name of the IO process to be configured
       class(io_process), allocatable, intent(out) :: io_proc !< the configured IO process
-      real(ccs_real), optional, intent(in) :: sim_time
-      real(ccs_real), optional, intent(in) :: delta_t
     end subroutine
 
     !> Open file

@@ -207,9 +207,9 @@ contains
     
     ! Variables for per timestep file naming in unsteady case
     character(len=10) :: step_str
-    character(len=20) :: format_str
-    character(len=10) :: mag_str
-    integer :: mag 
+    ! character(len=20) :: format_str
+    ! character(len=10) :: mag_str
+    ! integer :: mag 
 
     class(io_environment), allocatable, save :: io_env
     class(io_process), allocatable, save :: sol_writer
@@ -237,33 +237,22 @@ contains
     adios2_file = run_options%paths%case_name // adiosconfig
 
     call initialise_io(par_env, adios2_file, io_env)
+    call configure_io(io_env, "sol_writer", sol_writer)
 
     if (present(step) .and. present(maxstep)) then
 
-      ! How many decimal digits in maxstep? Convert to string
-      mag = floor(log10(real(maxstep))) + 1
-      ! Convert to string
-      write(mag_str,'(I0)') mag
-      ! Create the format string for the file numbering
-      format_str = trim("(I" // trim(mag_str) // "." // trim(mag_str) // ")")
-      ! do not use format_str right now - keep it simple
-      write(step_str, trim(format_str)) step
-
-      simulation_time = run_options%solve%dt * step
-      call configure_io(io_env, "sol_writer", sol_writer, simulation_time, run_options%solve%dt)
+      step_str = timestep_suffix(step, maxstep)
       ! Unsteady case
-      sol_file = trim(run_options%paths%case_name // '_sol_' // step_str)
+      sol_file = trim(run_options%paths%case_name // '_sol_' // trim(step_str))
 
     else
 
-      call configure_io(io_env, "sol_writer", sol_writer)
       ! Steady case
       sol_file = trim(run_options%paths%case_name // '_sol')
 
     end if
 
     call open_file(sol_file, "write", sol_writer)
-
 
     call get_global_num_cells(global_num_cells)
 
@@ -400,5 +389,27 @@ contains
 
     end select
   end subroutine end_step
+
+  ! Create a timestep suffix string for the solution file
+  function timestep_suffix (step, maxstep) result(step_str)
+
+    integer(ccs_int), intent(in) :: step
+    integer(ccs_int), intent(in) :: maxstep
+    character(len=10) :: step_str
+
+    character(len=20) :: format_str
+    character(len=10) :: mag_str
+    integer :: mag 
+
+    ! How many decimal digits in maxstep? Convert to string
+    mag = floor(log10(real(maxstep))) + 1
+    ! Convert to string
+    write(mag_str,'(I0)') mag
+    ! Create the format string for the file numbering
+    format_str = trim("(I" // trim(mag_str) // "." // trim(mag_str) // ")")
+    ! do not use format_str right now - keep it simple
+    write(step_str, trim(format_str)) step
+
+  end function
 
 end submodule
