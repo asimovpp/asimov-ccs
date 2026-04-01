@@ -58,7 +58,7 @@ contains
     call get_local_num_cells(nlocal)
     call get_global_num_cells(nglobal)
     do i = 1, nlocal
-       vel = get_uscale(u_data(i), v_data(i), w_data(i))
+       vel = norm2([u_data(i), v_data(i), w_data(i)])
 
        call create_cell_locator(i, loc_p)
        call get_volume(loc_p, V_p)
@@ -90,12 +90,6 @@ contains
     
   end subroutine report_cfl
 
-  pure real(ccs_real) function get_uscale(u, v, w) result(vel)
-    real(ccs_real), intent(in) :: u, v, w
-
-    vel = sqrt(u**2 + v**2 + w**2)
-  end function get_uscale
-  
   pure real(ccs_real) function get_lscale(vol) result(l)
     real(ccs_real), intent(in) :: vol
 
