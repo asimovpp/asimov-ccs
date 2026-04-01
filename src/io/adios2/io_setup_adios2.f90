@@ -72,13 +72,15 @@ contains
   end subroutine
 
   !> Configure the IO process
-  module subroutine configure_io(io_env, process_name, io_proc)
+  module subroutine configure_io(io_env, process_name, io_proc, sim_time)
     class(io_environment), intent(in) :: io_env            !< ADIOS2 IO environment
     character(len=*), intent(in) :: process_name           !< name of the IO process to be configured - must match a name
     !< defined in the ADIOS2 configuration XML file
     class(io_process), allocatable, intent(out) :: io_proc !< the configured ADIOS2 IO process
+    real(ccs_real), optional, intent(in) :: sim_time
 
     integer(ccs_int) :: ierr
+    type(adios2_attribute) :: time_attr
 
     allocate (adios2_io_process :: io_proc)
 
@@ -89,6 +91,7 @@ contains
       type is (adios2_io_process)
 
         call adios2_declare_io(io_proc%io_task, io_env%adios, process_name, ierr)
+        call adios2_define_attribute(time_attr, io_proc%io_task, "simulation time", sim_time, ierr)
 
       class default
 

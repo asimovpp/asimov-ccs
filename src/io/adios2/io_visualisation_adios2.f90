@@ -223,6 +223,7 @@ contains
     integer(ccs_long), dimension(2) :: sel2_count
 
     real(ccs_real), dimension(:), allocatable :: data
+    real(ccs_real) :: simulation_time
 
     integer(ccs_int) :: i
 
@@ -233,6 +234,10 @@ contains
 
     class(field), pointer :: phi
     
+    adios2_file = run_options%paths%case_name // adiosconfig
+
+    call initialise_io(par_env, adios2_file, io_env)
+
     if (present(step) .and. present(maxstep)) then
 
       ! How many decimal digits in maxstep? Convert to string
@@ -244,20 +249,19 @@ contains
       ! do not use format_str right now - keep it simple
       write(step_str, trim(format_str)) step
 
+      simulation_time = run_options%solve%dt * step
+      call configure_io(io_env, "sol_writer", sol_writer, simulation_time)
       ! Unsteady case
       sol_file = trim(run_options%paths%case_name // '_sol_' // step_str)
 
     else
 
+      call configure_io(io_env, "sol_writer", sol_writer)
       ! Steady case
       sol_file = trim(run_options%paths%case_name // '_sol')
 
     end if
 
-    adios2_file = run_options%paths%case_name // adiosconfig
-
-    call initialise_io(par_env, adios2_file, io_env)
-    call configure_io(io_env, "sol_writer", sol_writer)
     call open_file(sol_file, "write", sol_writer)
 
 
