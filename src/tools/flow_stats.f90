@@ -1,9 +1,12 @@
 !v Set of tools to measure flow statistics
 module flow_stats
 
+  use mpi
+  
   use kinds, only: ccs_real, ccs_int
   use types, only: fluid, cell_locator, field
   use parallel_types, only: parallel_environment
+  use parallel_types_mpi, only: parallel_environment_mpi
 
   use fields, only: get_field
   use meshing, only: get_local_num_cells, get_global_num_cells, create_cell_locator, get_volume
@@ -33,6 +36,8 @@ contains
     real(ccs_real) :: vel
 
     integer(ccs_int) :: i, nlocal, nglobal
+
+    integer :: ierr
 
     if (.not. timestepping_is_active()) then
        return
@@ -68,6 +73,15 @@ contains
     call restore_vector_data_readonly(v%values, v_data)
     call restore_vector_data_readonly(w%values, w_data)
     nullify(u, v, w)
+
+    !! Reduce the MAX/AVG CFL numbers
+    select type(par_env)
+    type is(parallel_environment_mpi)
+       call MPI_Allreduce(MPI_IN_PLACE, cfl_max, 1, MPI_DOUBLE, MPI_MAX, par_env%comm, ierr)
+       call MPI_Allreduce(MPI_IN_PLACE, cfl_avg, 1, MPI_DOUBLE, MPI_SUM, par_env%comm, ierr)
+    class default
+       error stop "Unsupported parallel environment"
+    end select
 
     if (is_root(par_env)) then
        print *, "CFL Max: ", cfl_max
