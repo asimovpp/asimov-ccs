@@ -8,7 +8,7 @@ submodule(pv_coupling) pv_coupling_simple
   use kinds, only: ccs_int, ccs_real
   use types, only: vector_spec, ccs_vector, matrix_spec, ccs_matrix, equation_system, &
                    linear_solver, bc_config, vector_values, cell_locator, ccs_residuals, &
-                   face_locator, neighbour_locator, matrix_values, matrix_values_spec, upwind_field, solver_params, field_ptr
+                   face_locator, neighbour_locator, matrix_values, matrix_values_spec, upwind_field, field_ptr
   use fv, only: compute_fluxes, calc_mass_flux, update_gradient
   use vec, only: create_vector, vec_reciprocal, scale_vec, &
                  get_vector_data, get_vector_data_readonly, restore_vector_data, restore_vector_data_readonly, &
@@ -205,7 +205,7 @@ contains
       call dprint("NONLINEAR: mass imbalance")
       call compute_mass_imbalance(invA, flow, source, residuals)
       call dprint("NONLINEAR: compute p'")
-      call calculate_pressure_correction(par_env, p%solver_parameters, invA, M, source, lin_system, p_prime, lin_solverP)
+      call calculate_pressure_correction(par_env, invA, M, source, lin_system, p_prime, lin_solverP)
 
       ! Update velocity with velocity correction (eq. 6)
       call dprint("NONLINEAR: correct face velocity")
@@ -740,7 +740,7 @@ contains
   !v Solves the pressure correction equation
   !
   !  Solves the pressure correction equation formed by the mass-imbalance.
-  subroutine calculate_pressure_correction(par_env, solver_parameters, invA, M, vec, lin_sys, p_prime, lin_solver)
+  subroutine calculate_pressure_correction(par_env, invA, M, vec, lin_sys, p_prime, lin_solver)
 
     use fv, only: compute_boundary_coeffs
     use profiler
@@ -748,7 +748,6 @@ contains
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< the parallel environment
-    type(solver_params), intent(in) :: solver_parameters            !< Parameters to setup the solver
     class(ccs_vector), intent(inout) :: invA                        !< inverse diagonal momentum coefficients
     class(ccs_matrix), allocatable, intent(inout) :: M              !< matrix object
     class(ccs_vector), allocatable, intent(inout) :: vec            !< the RHS vector
@@ -844,8 +843,8 @@ contains
     call create_solver(lin_sys, lin_solver)
 
     ! Customise linear solver
-    call set_solver_method(solver_parameters%solver_name, lin_solver)
-    call set_solver_precon(solver_parameters%precon_name, lin_solver)
+    call set_solver_method(p_prime%solver_parameters%solver_name, lin_solver)
+    call set_solver_precon(p_prime%solver_parameters%precon_name, lin_solver)
 
     ! Solve the linear system
     call dprint("P': solve")

@@ -267,7 +267,7 @@ contains
 
     ! Gets solver parameters per equation
     call get_solver_eq_parameters(config_file, solve%solver_eq_parameters)
-    call set_defaults_solver_eq_parameters(solve, solve%solver_eq_parameters)
+    call set_defaults_solver_eq_parameters(solve)
 
     solve%it_start = 1
     solve%it_end = num_iters
@@ -276,47 +276,98 @@ contains
 
   !v Sets defaults when values aren't specified in the config file, either from constants module or
   !   from globally set default in the config file
-  subroutine set_defaults_solver_eq_parameters(solve, solver_parameters)
+  subroutine set_defaults_solver_eq_parameters(solve)
     use constants, only: default_solver, default_precon, default_pressure_solver, default_pressure_precon
           
-      type(solver_options), intent(in) :: solve   !< Object for solver options
-      type(solver_params), dimension(:), intent(inout) :: solver_parameters
-      integer(ccs_int) :: nfields, ifield
+      type(solver_options), intent(inout) :: solve   !< Object for solver options
+      integer(ccs_int) :: nfields, ifield, ifield_p, ifield_p_prime
 
-      nfields = size(solver%solver_parameters)
+      nfields = size(solve%solver_eq_parameters)
+      ifield_p = 0
+      ifield_p_prime = 0
 
       do ifield=1, nfields
 
-        ! Set values to default if not specified per field
-        if (solver_parameters(ifield)%res_target == huge(ccs_real)) then
-          solver_parameters(ifield)%res_target = solve%default_res_target
+        call set_default_residuals_target(solve%solver_eq_parameters(ifield)%res_target, solve%default_res_target)
+        call set_default_solver(solve%solver_eq_parameters(ifield))
+        call set_default_precon(solve%solver_eq_parameters(ifield))
+        call check_relaxation_factor_set(solve%solver_eq_parameters(ifield))
+        
+        if (solve%solver_eq_parameters(ifield)%name == "p") then
+          ifield_p = ifield
         end if
-
-        if (solver_parameters(ifield)%solver_name == "") then
-          if (solver_parameters(ifield)%name == "p") then
-              solver_parameters(ifield)%solver_name = default_pressure_solver
-          else
-              solver_parameters(ifield)%solver_name = default_solver
-          end if
+        if (solve%solver_eq_parameters(ifield)%name == "p_prime") then
+          ifield_p_prime = ifield
         end if
-
-        if (solver_parameters(ifield)%precon_name == "") then
-          if (solver_parameters(ifield)%name == "p") then
-              solver_parameters(ifield)%precon_name = default_pressure_precon
-          else
-              solver_parameters(ifield)%precon_name = default_precon
-          end if
-        end if
-
-        if (solver_parameters(ifield)%name == "p_prime" .and. solver_parameters(ifield)%solve) then
-          print *, "Warning, p_prime shouldn't be set to solve, solver config should be set under 'p' instead."
-        end if
-
-        if (solver_parameters(ifield)%solve .and. solver_parameters(ifield)%relaxation_factor == huge(ccs_real)) then
-          call error_abort("No values assigned to relaxation factor for variable "//solver_parameters(ifield)%name)
-        end if
-
       end do
+
+      ! Copy p solver options to p_prime
+      if (ifield_p == 0 .OR. ifield_p_prime == 0) then
+        call error_abort("p or p_prime variable missing from config")
+      end if
+      call copy_solver_parameters(solve%solver_eq_parameters(ifield_p), solve%solver_eq_parameters(ifield_p_prime))
+
+  end subroutine
+
+  !v Copies solver parameters from one object to an other while keeping the name 
+  subroutine copy_solver_parameters(in_solver_parameters, out_solver_parameters)
+    type(solver_params), intent(in) :: in_solver_parameters
+    type(solver_params), intent(inout) :: out_solver_parameters
+    character(len=ccs_string_len) :: name
+
+    name = out_solver_parameters%name
+    out_solver_parameters = in_solver_parameters
+    out_solver_parameters%name = trim(name)
+
+  end subroutine
+
+  !v Set residuals target from default if not set already
+  subroutine set_default_residuals_target(res_target, default_res_target)
+    real(ccs_real), intent(inout) :: res_target
+    real(ccs_real), intent(in) :: default_res_target
+
+    if (res_target == huge(ccs_real)) then
+      res_target = default_res_target
+    end if
+  end subroutine
+
+  !v Set preconditioner from default if not set already
+  subroutine set_default_precon(solver_parameters)
+    use constants, only: default_precon, default_pressure_precon 
+
+    type(solver_params), intent(inout) :: solver_parameters
+
+    if (solver_parameters%precon_name == "") then
+      if (solver_parameters%name == "p") then
+          solver_parameters%precon_name = default_pressure_precon
+      else
+          solver_parameters%precon_name = default_precon
+      end if
+    end if
+  end subroutine
+
+  !v Set solver from default if not set already
+  subroutine set_default_solver(solver_parameters)
+    use constants, only: default_solver, default_pressure_solver 
+
+    type(solver_params), intent(inout) :: solver_parameters
+
+    if (solver_parameters%solver_name == "") then
+      if (solver_parameters%name == "p") then
+          solver_parameters%solver_name = default_pressure_solver
+      else
+          solver_parameters%solver_name = default_solver
+      end if
+    end if
+
+  end subroutine
+
+  subroutine check_relaxation_factor_set(solver_parameters)
+      type(solver_params), intent(inout) :: solver_parameters
+
+      if (solver_parameters%solve .and. solver_parameters%relaxation_factor == huge(ccs_real)) then
+        call error_abort("No values assigned to relaxation factor for variable "//solver_parameters%name)
+      end if
   end subroutine
 
   ! Print test case configuration
