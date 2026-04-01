@@ -10,7 +10,6 @@ program tgv2d
   use parallel, only: initialise_parallel_environment, cleanup_parallel_environment, &
                       create_new_par_env
   use profiler, only: profiler_init, profiler_shutdown
-  use logging, only: initialise_logging, finalise_logging
 
   implicit none
 
