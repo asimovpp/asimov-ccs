@@ -26,7 +26,6 @@ contains
     type(fluid), intent(in) :: flow
 
     class(field), pointer :: u, v, w
-    real(ccs_real), dimension(:), pointer :: u_data, v_data, w_data
 
     real(ccs_real) :: cfl_max, cfl_avg, cfl_i
     real(ccs_real) :: dt
@@ -51,14 +50,11 @@ contains
     call get_field(flow, "u", u)
     call get_field(flow, "v", v)
     call get_field(flow, "w", w)
-    call get_vector_data_readonly(u%values, u_data)
-    call get_vector_data_readonly(v%values, v_data)
-    call get_vector_data_readonly(w%values, w_data)
 
     call get_local_num_cells(nlocal)
     call get_global_num_cells(nglobal)
     do i = 1, nlocal
-       vel = norm2([u_data(i), v_data(i), w_data(i)])
+       vel = norm2([u%values_ro(i), v%values_ro(i), w%values_ro(i)])
 
        call create_cell_locator(i, loc_p)
        call get_volume(loc_p, V_p)
@@ -69,9 +65,6 @@ contains
        cfl_avg = cfl_avg + cfl_i / nglobal
     end do
 
-    call restore_vector_data_readonly(u%values, u_data)
-    call restore_vector_data_readonly(v%values, v_data)
-    call restore_vector_data_readonly(w%values, w_data)
     nullify(u, v, w)
 
     !! Reduce the MAX/AVG CFL numbers
