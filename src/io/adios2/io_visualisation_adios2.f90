@@ -223,7 +223,6 @@ contains
     integer(ccs_long), dimension(2) :: sel2_count
 
     real(ccs_real), dimension(:), allocatable :: data
-    real(ccs_real) :: simulation_time
 
     integer(ccs_int) :: i
 
