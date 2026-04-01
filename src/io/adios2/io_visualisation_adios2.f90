@@ -250,7 +250,7 @@ contains
       write(step_str, trim(format_str)) step
 
       simulation_time = run_options%solve%dt * step
-      call configure_io(io_env, "sol_writer", sol_writer, simulation_time)
+      call configure_io(io_env, "sol_writer", sol_writer, simulation_time, run_options%solve%dt)
       ! Unsteady case
       sol_file = trim(run_options%paths%case_name // '_sol_' // step_str)
 
