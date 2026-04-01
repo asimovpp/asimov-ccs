@@ -63,7 +63,9 @@ contains
     integer(ccs_int) :: it_start, it_end
 
     logical:: diverged = .false.
-    
+
+    call create_signal_handler()
+
     if (run_options%solve%unsteady) then
       call activate_timestepping()
       call set_timestep(run_options%solve%dt)
@@ -157,6 +159,8 @@ contains
       check_stop_run = .true.
     else if (stop_on_request(par_env, run_options, t, flow_fields)) then
       check_stop_run = .true.
+    else if (stop_on_sigterm(par_env, run_options, t, flow_fields)) then
+      check_stop_run = .true.
     else
       check_stop_run = .false.
     end if
@@ -185,7 +189,7 @@ contains
     
   end function stop_if_diverged
 
-  !> Checks for stop condition due to STOP file and dumps solution if this occurs.
+  !> Checks for stop condition due to STOP file or SIGTERM and dumps solution if this occurs.
   logical function stop_on_request(par_env, run_options, t, flow_fields)
 
     use parallel, only: query_stop_run
@@ -202,6 +206,13 @@ contains
       call dump_run(par_env, run_options, t, flow_fields)
 
       stop_on_request = .true.
+    else if (query_stop_run_sigterm(par_env)) then
+      if (is_root(par_env)) then
+        print *, "INFO: Received SIGTERM signal"
+      end if
+      call dump_run(par_env, run_options, t, flow_fields)
+
+      stop_on_sigterm = .true.
     else
       stop_on_request = .false.
     end if
