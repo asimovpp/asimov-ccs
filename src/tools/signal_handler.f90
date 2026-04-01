@@ -39,6 +39,6 @@ contains
   subroutine catch_signal(signum) bind(c)
     integer(kind=c_int), intent(in), value :: signum
     sigterm_issued = .true.
-  end subroutine print_and_exit
+  end subroutine catch_signal
 
-end module
+end module signal_handler
