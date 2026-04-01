@@ -238,7 +238,7 @@ contains
   !v Begin a ghost update of a PETSc vector
   !
   !  Begins the ghost update to allow overlapping comms and compute
-  subroutine begin_ghost_update_vector(v)
+  module subroutine begin_ghost_update_vector(v)
 
     use petsc, only: VecGhostUpdateBegin
 
@@ -259,12 +259,12 @@ contains
 
     end select
 
-  end subroutine
+  end subroutine begin_ghost_update_vector
 
   !v End a ghost update of a PETSc vector.
   !
   !  Ends the ghost update to allow overlapping comms and compute.
-  subroutine end_ghost_update_vector(v)
+  module subroutine end_ghost_update_vector(v)
 
     use petsc, only: VecGhostUpdateEnd
 
@@ -285,7 +285,7 @@ contains
 
     end select
 
-  end subroutine
+  end subroutine end_ghost_update_vector
 
   !v Perform the AXPY vector operation using PETSc
   !

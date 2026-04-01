@@ -5,7 +5,7 @@
 module fv
 
   use kinds, only: ccs_real, ccs_int
-  use types, only: ccs_matrix, ccs_vector, ccs_mesh, field, upwind_field, central_field, &
+  use types, only: ccs_matrix, ccs_vector, ccs_mesh, field, field_ptr, upwind_field, central_field, &
                    gamma_field, linear_upwind_field, bc_config, face_locator, cell_locator, &
                    neighbour_locator, bc_profile, fluid
   use constants, only: ndim
@@ -38,6 +38,11 @@ module fv
     module procedure calc_mass_flux_uvw
     module procedure calc_mass_flux_no_uvw
   end interface calc_mass_flux
+
+  interface update_gradient
+    module procedure update_gradient_field
+    module procedure update_gradient_fields
+  end interface update_gradient
 
   interface
 
@@ -147,9 +152,14 @@ module fv
     !v Performs an update of the gradients of a field.
     !  @note This will perform a parallel update of the gradient fields to ensure halo cells are
     !  correctly updated on other PEs. @endnote
-    module subroutine update_gradient(phi)
-      class(field), intent(inout) :: phi !< the field whose gradients we want to update
-    end subroutine update_gradient
+    module subroutine update_gradient_field(phi)
+      class(field), target, intent(inout) :: phi !< the field whose gradients we want to update
+    end subroutine update_gradient_field
+
+    !v Performs an update of the gradients for several fields, overlapping communication between fields.
+    module subroutine update_gradient_fields(fields)
+      type(field_ptr), dimension(:), intent(inout) :: fields !< the fields whose gradients we want to update
+    end subroutine update_gradient_fields
 
     !> Computes the value of the scalar field on the boundary
     pure module subroutine compute_boundary_values(phi, component, loc_p, loc_f, normal, bc_value)

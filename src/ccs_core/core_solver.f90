@@ -28,6 +28,7 @@ contains
   module subroutine run_solver(par_env, run_options, eval_sources, postproc, flow_fields)
 
     use timestepping, only: activate_timestepping, set_timestep
+    use flow_stats, only: report_cfl
 
     class(parallel_environment), allocatable, intent(in) :: par_env !< The parallel environment
     type(ccs_options), intent(in) :: run_options                    !< The runtime configuration
@@ -79,6 +80,7 @@ contains
       call profiler_begin_region("Solver time inc I/O")
 
       ! XXX: Coupler update here
+      call report_cfl(par_env, flow_fields)
       call advance_step(par_env, run_options, eval_sources, flow_fields, diverged)
       ! XXX: Or coupler update here?
       

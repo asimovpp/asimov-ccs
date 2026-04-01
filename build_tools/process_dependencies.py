@@ -1,7 +1,31 @@
-import sys, os
+import os
+import sys
+
 
 def trim(s):
   return s[:-2]
+
+
+def filter_dependencies(dependencies, chosen_options, all_options):
+  """filters out unused optional libraries present in all_options
+  but absent from chosen_options. N.B. this assumes that file
+  file extensions have already been trimmed, i.e.
+    'foo.o'->'foo'
+  """
+
+  out = {}
+  for filename in dependencies:
+    # keep only options if they're dict keys
+    if filename in all_options and filename in chosen_options:
+      out[filename] = dependencies[filename]
+    # keep non-option files
+    elif filename not in chosen_options:
+      out[filename] = dependencies[filename]
+      # but remove unused options if they're an item in dict values
+      for dependency in dependencies[filename]:
+        if dependency in all_options and dependency not in chosen_options:
+          out[filename].remove(dependency)
+  return out
 
 
 def parse_dependencies(filename):
@@ -51,8 +75,8 @@ def draw_dependencies(deps):
 
 
 def draw_dependencies_interactive(deps):
-  from pyvis.network import Network
   import networkx as nx
+  from pyvis.network import Network
   nt = Network('1000px', '1000px', directed=True)
   nt.toggle_physics(False)
 

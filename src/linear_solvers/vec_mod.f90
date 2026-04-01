@@ -22,6 +22,8 @@ module vec
   public :: update_vector
   public :: begin_update_vector
   public :: end_update_vector
+  public :: begin_ghost_update_vector
+  public :: end_ghost_update_vector
   public :: vec_axpy
   public :: vec_aypx
   public :: vec_norm
@@ -104,6 +106,20 @@ module vec
     module subroutine end_update_vector(v)
       class(ccs_vector), intent(inout) :: v !< the vector
     end subroutine end_update_vector
+
+    !v Interface to begin a ghost update of a vector.
+    !
+    !  Begins the ghost update to allow overlapping comms and compute.
+    module subroutine begin_ghost_update_vector(v)
+      class(ccs_vector), intent(inout) :: v !< the vector
+    end subroutine begin_ghost_update_vector
+
+    !v Interface to end a ghost update of a vector.
+    !
+    !  Ends the ghost update to allow overlapping comms and compute.
+    module subroutine end_ghost_update_vector(v)
+      class(ccs_vector), intent(inout) :: v !< the vector
+    end subroutine end_ghost_update_vector
 
     !v Interface to perform the AXPY vector operation.
     !
