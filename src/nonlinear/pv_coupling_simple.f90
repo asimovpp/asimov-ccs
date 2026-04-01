@@ -35,6 +35,7 @@ submodule(pv_coupling) pv_coupling_simple
   use residuals, only: compute_residuals, compute_global_residuals, init_residuals, normalise_residuals, &
                        get_max_residuals, print_residuals, is_converged
   use parallel, only: is_root
+  use logging, only: log_unit_out
 
   implicit none
 
@@ -231,9 +232,9 @@ contains
       if (converged) then
         call dprint("NONLINEAR: converged!")
         if (is_root(par_env)) then
-          write (*, *)
-          write (*, '(a)') 'Converged!'
-          write (*, *)
+          write (log_unit_out, *)
+          write (log_unit_out, '(a)') 'Converged!'
+          write (log_unit_out, *)
         end if
         exit outerloop
       end if
@@ -241,9 +242,9 @@ contains
       if (present(diverged)) then
         if (diverged) then
           if (is_root(par_env)) then
-            write (*, *)
-            write (*, '(a)') 'Diverged!'
-            write (*, *)
+            write (log_unit_out, *)
+            write (log_unit_out, '(a)') 'Diverged!'
+            write (log_unit_out, *)
           end if
         exit outerloop
         end if

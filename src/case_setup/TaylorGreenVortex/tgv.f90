@@ -16,6 +16,7 @@ program tgv
                    str, debug_print
   use fields, only: get_field, add_field, dealloc_fluid_fields, set_is_field_solved
   use profiler, only: profiler_init, profiler_shutdown, profiler_begin_region, profiler_end_region
+  use logging, only: log_unit_out
 
   implicit none
 
@@ -32,27 +33,28 @@ program tgv
   call profiler_init()
 
   call get_config(par_env, run_options)
+
   call configure_parallelism(run_options, par_env, shared_env)
 
   call profiler_begin_region('Total elapsed time')
-  if (is_root(par_env)) print *, "Starting ", run_options%paths%case_name, " case!"
+  if (is_root(par_env)) write (log_unit_out,*) "Starting ", run_options%paths%case_name, " case!"
 
   call profiler_begin_region('Total initialisation')
   call initialise_mesh(par_env, shared_env, run_options)
-  
+
   ! Initialise fields
-  if (is_root(par_env)) print *, "Initialise fields"
+  if (is_root(par_env)) write (log_unit_out,*) "Initialise fields"
 
   call initialise_fields(par_env, run_options, flow_fields)
   
   ! Initialise velocity field
-  if (is_root(par_env)) print *, "Initialise velocity field"
+  if (is_root(par_env)) write (log_unit_out,*) "Initialise velocity field"
   call initialise_flow(par_env, run_options, flow_fields, get_init_flow, get_init_mass_flux)
-  
+
   call profiler_end_region('Total initialisation')
-  
+
   call run_solver(par_env, run_options, eval_sources, postproc_tgv, flow_fields)
-  
+
   call profiler_end_region('Total elapsed time')
   call profiler_shutdown(par_env)
 

@@ -24,6 +24,7 @@ program scalar_transport
   use utils, only: exit_print, add_field_to_outputlist
   use fields, only: get_field, dealloc_fluid_fields
   use profiler, only: profiler_init, profiler_shutdown, profiler_begin_region, profiler_end_region
+  use logging, only: log_unit_out
 
   implicit none
 
@@ -45,21 +46,21 @@ program scalar_transport
 
   call profiler_begin_region('Total initialisation')
 
-  if (is_root(par_env)) print *, "Starting ", run_options%paths%case_name, " case!"
+  if (is_root(par_env)) write(log_unit_out,*) "Starting ", run_options%paths%case_name, " case!"
 
   call initialise_mesh(par_env, shared_env, run_options)
 
   ! Initialise fields
-  if (is_root(par_env)) print *, "Initialise fields"
+  if (is_root(par_env)) write(log_unit_out,*) "Initialise fields"
 
   call initialise_fields(par_env, run_options, flow_fields)
 
   ! Initialise velocity field
-  if (is_root(par_env)) print *, "Initialise flow field"
+  if (is_root(par_env)) write(log_unit_out,*) "Initialise flow field"
   call initialise_flow(par_env, run_options, flow_fields, get_init_flow, get_init_mass_flux)
 
   ! Solve using SIMPLE algorithm
-  if (is_root(par_env)) print *, "Start scalar solver"
+  if (is_root(par_env)) write(log_unit_out,*) "Start scalar solver"
 
   call profiler_end_region('Total initialisation')
 

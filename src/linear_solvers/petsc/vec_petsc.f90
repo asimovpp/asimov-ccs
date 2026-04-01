@@ -15,6 +15,7 @@ submodule(vec) vec_petsc
   use petsc, only: ADD_VALUES, INSERT_VALUES, SCATTER_FORWARD
   use utils, only: debug_print, exit_print, str
   use error_codes
+  use logging, only: log_unit_out
 
   implicit none
 
@@ -135,7 +136,7 @@ contains
         ! First check if safe to set
         if (v%modeset) then
           if (val_dat%setter_mode /= v%mode) then
-            print *, ""
+            write(log_unit_out,*) ""
             call error_abort("ERROR: trying to set vector using different mode without updating.")
           end if
         else

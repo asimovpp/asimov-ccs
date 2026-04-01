@@ -48,6 +48,7 @@ module mesh_utils
                      set_topo_object, nullify_topo_object
   use bc_constants
   use reordering, only: reorder_cells, print_bandwidth
+  use logging, only: log_unit_out
 
   implicit none
 
@@ -141,7 +142,7 @@ contains
     geo_file = case_name // "_mesh" // geoext
     adios2_file = case_name // adiosconfig
     if (is_root(par_env)) then
-      print *, "Mesh file:", geo_file
+      write(log_unit_out,*) "Mesh file:", geo_file
     end if
 
     call create_shared_roots_comm(par_env, shared_env, reader_env)
@@ -196,10 +197,10 @@ contains
     integer :: ierr
     
     if (is_root(par_env)) then
-      print *, "=========================="
-      print *, "Boundary ID map"
+      write(log_unit_out,*) "=========================="
+      write(log_unit_out,*) "Boundary ID map"
       do i = 1, size(mesh%bnd_names)
-        print *, i, trim(mesh%bnd_names(i))
+        write(log_unit_out,*) i, trim(mesh%bnd_names(i))
       end do
     end if
 
@@ -235,8 +236,8 @@ contains
     call sync(par_env)
 
     if (is_root(par_env)) then
-      print *, "Boundary name list / ID compatibility: PASS"
-      print *, "=========================="
+      write(log_unit_out,*) "Boundary name list / ID compatibility: PASS"
+      write(log_unit_out,*) "=========================="
     end if
     
   end subroutine check_mesh_bnd_names
@@ -2277,7 +2278,7 @@ contains
 
     call get_total_num_cells(total_num_cells)
     if (total_num_cells /= (size(mesh%topo%global_indices) + size(new_halos))) then
-      print *, total_num_cells, size(mesh%topo%global_indices), size(new_halos)
+      write(log_unit_out,*) total_num_cells, size(mesh%topo%global_indices), size(new_halos)
       call error_abort("ERROR: Local total cell count and size of global indices + new halos not in agreement")
     end if
 
@@ -2567,78 +2568,78 @@ contains
     integer(ccs_int) :: i          ! loop counters
     integer(ccs_int) :: nb_elem = 10
 
-    print *, par_env%proc_id, "############################# Print Geometry ########################################"
+    write(log_unit_out,*) par_env%proc_id, "############################# Print Geometry ########################################"
 
-    print *, par_env%proc_id, "h                  : ", mesh%geo%h
-    print *, par_env%proc_id, "scalefactor        : ", mesh%geo%scalefactor
-    print *, ""
+    write(log_unit_out,*) par_env%proc_id, "h                  : ", mesh%geo%h
+    write(log_unit_out,*) par_env%proc_id, "scalefactor        : ", mesh%geo%scalefactor
+    write(log_unit_out,*) ""
 
     associate (local_offset => mesh%topo%shared_array_local_offset, &
                total_offset => mesh%topo%shared_array_total_offset)
 
       if (associated(mesh%geo%volumes)) then
-        print *, par_env%proc_id, "volumes     : ", mesh%geo%volumes(1 + total_offset:nb_elem + total_offset)
+        write(log_unit_out,*) par_env%proc_id, "volumes     : ", mesh%geo%volumes(1 + total_offset:nb_elem + total_offset)
       else
-        print *, par_env%proc_id, "volumes     : UNALLOCATED"
+        write(log_unit_out,*) par_env%proc_id, "volumes     : UNALLOCATED"
       end if
 
       if (allocated(mesh%geo%face_interpol)) then
-        print *, par_env%proc_id, "face_interpol          : ", mesh%geo%face_interpol(1:nb_elem)
+        write(log_unit_out,*) par_env%proc_id, "face_interpol          : ", mesh%geo%face_interpol(1:nb_elem)
       else
-        print *, par_env%proc_id, "face_interpol          : UNALLOCATED"
+        write(log_unit_out,*) par_env%proc_id, "face_interpol          : UNALLOCATED"
       end if
 
-      print *, ""
+      write(log_unit_out,*) ""
       if (associated(mesh%geo%face_areas)) then
         do i = 1, nb_elem
-          print *, par_env%proc_id, "face_areas(1:" // str(nb_elem / 2) // ", " // str(i) // ")", &
+          write(log_unit_out,*) par_env%proc_id, "face_areas(1:" // str(nb_elem / 2) // ", " // str(i) // ")", &
             mesh%geo%face_areas(1:nb_elem / 2, i + local_offset)
         end do
       else
-        print *, par_env%proc_id, "face_areas             : UNALLOCATED"
+        write(log_unit_out,*) par_env%proc_id, "face_areas             : UNALLOCATED"
       end if
 
-      print *, ""
+      write(log_unit_out,*) ""
       if (associated(mesh%geo%x_p)) then
         do i = 1, nb_elem
-          print *, par_env%proc_id, "x_p(:)", mesh%geo%x_p(:, i + total_offset)
+          write(log_unit_out,*) par_env%proc_id, "x_p(:)", mesh%geo%x_p(:, i + total_offset)
         end do
       else
-        print *, par_env%proc_id, "x_p                    : UNALLOCATED"
+        write(log_unit_out,*) par_env%proc_id, "x_p                    : UNALLOCATED"
       end if
 
-      print *, ""
+      write(log_unit_out,*) ""
       if (associated(mesh%geo%x_f)) then
         do i = 1, nb_elem
-          print *, par_env%proc_id, "x_f(2, 1:" // str(nb_elem / 2) // ", " // str(i) // ")", &
+          write(log_unit_out,*) par_env%proc_id, "x_f(2, 1:" // str(nb_elem / 2) // ", " // str(i) // ")", &
             mesh%geo%x_f(2, 1:nb_elem / 2, i + local_offset)
         end do
       else
-        print *, par_env%proc_id, "x_f                    : UNALLOCATED"
+        write(log_unit_out,*) par_env%proc_id, "x_f                    : UNALLOCATED"
       end if
 
-      print *, ""
+      write(log_unit_out,*) ""
       if (associated(mesh%geo%face_normals)) then
         do i = 1, nb_elem
-          print *, par_env%proc_id, "face_normals(2, 1:" // str(nb_elem / 2) // ", " // str(i) // ")", &
+          write(log_unit_out,*) par_env%proc_id, "face_normals(2, 1:" // str(nb_elem / 2) // ", " // str(i) // ")", &
             mesh%geo%face_normals(2, 1:nb_elem / 2, i + local_offset)
         end do
       else
-        print *, par_env%proc_id, "face_normals          : UNALLOCATED"
+        write(log_unit_out,*) par_env%proc_id, "face_normals          : UNALLOCATED"
       end if
 
-      print *, ""
+      write(log_unit_out,*) ""
       if (associated(mesh%geo%vert_coords)) then
         do i = 1, nb_elem
-          print *, par_env%proc_id, "vert_coords(2, 1:" // str(nb_elem / 2) // ", " // str(i) // ")", &
+          write(log_unit_out,*) par_env%proc_id, "vert_coords(2, 1:" // str(nb_elem / 2) // ", " // str(i) // ")", &
             mesh%geo%vert_coords(2, 1:nb_elem / 2, i + local_offset)
         end do
       else
-        print *, par_env%proc_id, "vert_coords           : UNALLOCATED"
+        write(log_unit_out,*) par_env%proc_id, "vert_coords           : UNALLOCATED"
       end if
     end associate
 
-    print *, par_env%proc_id, "############################# End Print Geometry ########################################"
+    write(log_unit_out,*) par_env%proc_id, "############################# End Print Geometry ########################################"
 
   end subroutine print_geo
 
@@ -2656,7 +2657,7 @@ contains
     integer(ccs_int) :: global_num_faces, num_faces, max_faces
     integer(ccs_int) :: vert_per_cell, global_num_vertices
 
-    print *, par_env%proc_id, "############################# Print Topology ########################################"
+    write(log_unit_out,*) par_env%proc_id, "############################# Print Topology ########################################"
 
     call get_local_num_cells(local_num_cells)
     call get_global_num_cells(global_num_cells)
@@ -2668,108 +2669,108 @@ contains
     call get_vert_per_cell(vert_per_cell)
     call get_global_num_vertices(global_num_vertices)
 
-    print *, par_env%proc_id, "global_num_cells    : ", global_num_cells
-    print *, par_env%proc_id, "local_num_cells     : ", local_num_cells
-    print *, par_env%proc_id, "halo_num_cells      : ", halo_num_cells
-    print *, par_env%proc_id, "total_num_cells     : ", total_num_cells
-    print *, par_env%proc_id, "global_num_vertices : ", global_num_vertices
-    print *, par_env%proc_id, "vert_per_cell       : ", vert_per_cell
-    print *, par_env%proc_id, "global_num_faces    : ", global_num_faces
-    print *, par_env%proc_id, "num_faces           : ", num_faces
-    print *, par_env%proc_id, "max_faces           : ", max_faces
-    print *, ""
+    write(log_unit_out,*) par_env%proc_id, "global_num_cells    : ", global_num_cells
+    write(log_unit_out,*) par_env%proc_id, "local_num_cells     : ", local_num_cells
+    write(log_unit_out,*) par_env%proc_id, "halo_num_cells      : ", halo_num_cells
+    write(log_unit_out,*) par_env%proc_id, "total_num_cells     : ", total_num_cells
+    write(log_unit_out,*) par_env%proc_id, "global_num_vertices : ", global_num_vertices
+    write(log_unit_out,*) par_env%proc_id, "vert_per_cell       : ", vert_per_cell
+    write(log_unit_out,*) par_env%proc_id, "global_num_faces    : ", global_num_faces
+    write(log_unit_out,*) par_env%proc_id, "num_faces           : ", num_faces
+    write(log_unit_out,*) par_env%proc_id, "max_faces           : ", max_faces
+    write(log_unit_out,*) ""
 
     if (allocated(mesh%topo%global_indices)) then
-      print *, par_env%proc_id, "global_indices     : ", mesh%topo%global_indices(1:nb_elem)
+      write(log_unit_out,*) par_env%proc_id, "global_indices     : ", mesh%topo%global_indices(1:nb_elem)
     else
-      print *, par_env%proc_id, "global_indices     : UNALLOCATED"
+      write(log_unit_out,*) par_env%proc_id, "global_indices     : UNALLOCATED"
     end if
 
     if (allocated(mesh%topo%num_nb)) then
-      print *, par_env%proc_id, "num_nb             : ", mesh%topo%num_nb(1:nb_elem)
+      write(log_unit_out,*) par_env%proc_id, "num_nb             : ", mesh%topo%num_nb(1:nb_elem)
     else
-      print *, par_env%proc_id, "num_nb             : UNALLOCATED"
+      write(log_unit_out,*) par_env%proc_id, "num_nb             : UNALLOCATED"
     end if
 
     if (associated(mesh%topo%face_cell1)) then
-      print *, par_env%proc_id, "face_cell1        : ", mesh%topo%face_cell1(1:nb_elem)
+      write(log_unit_out,*) par_env%proc_id, "face_cell1        : ", mesh%topo%face_cell1(1:nb_elem)
     else
-      print *, par_env%proc_id, "face_cell1        : UNALLOCATED"
+      write(log_unit_out,*) par_env%proc_id, "face_cell1        : UNALLOCATED"
     end if
 
     if (associated(mesh%topo%face_cell2)) then
-      print *, par_env%proc_id, "face_cell2        : ", mesh%topo%face_cell2(1:nb_elem)
+      write(log_unit_out,*) par_env%proc_id, "face_cell2        : ", mesh%topo%face_cell2(1:nb_elem)
     else
-      print *, par_env%proc_id, "face_cell2        : UNALLOCATED"
+      write(log_unit_out,*) par_env%proc_id, "face_cell2        : UNALLOCATED"
     end if
 
     if (associated(mesh%topo%bnd_rid)) then
-      print *, par_env%proc_id, "bnd_rid           : ", mesh%topo%bnd_rid(1:nb_elem)
+      write(log_unit_out,*) par_env%proc_id, "bnd_rid           : ", mesh%topo%bnd_rid(1:nb_elem)
     else
-      print *, par_env%proc_id, "bnd_rid           : UNALLOCATED"
+      write(log_unit_out,*) par_env%proc_id, "bnd_rid           : UNALLOCATED"
     end if
 
     if (allocated(mesh%topo%graph_conn%vwgt)) then
-      print *, par_env%proc_id, "vwgt              : ", mesh%topo%graph_conn%vwgt(1:nb_elem)
+      write(log_unit_out,*) par_env%proc_id, "vwgt              : ", mesh%topo%graph_conn%vwgt(1:nb_elem)
     else
-      print *, par_env%proc_id, "vwgt              : UNALLOCATED"
+      write(log_unit_out,*) par_env%proc_id, "vwgt              : UNALLOCATED"
     end if
 
     if (allocated(mesh%topo%graph_conn%adjwgt)) then
-      print *, par_env%proc_id, "adjwgt            : ", mesh%topo%graph_conn%adjwgt(1:nb_elem)
+      write(log_unit_out,*) par_env%proc_id, "adjwgt            : ", mesh%topo%graph_conn%adjwgt(1:nb_elem)
     else
-      print *, par_env%proc_id, "adjwgt            : UNALLOCATED"
+      write(log_unit_out,*) par_env%proc_id, "adjwgt            : UNALLOCATED"
     end if
 
     if (allocated(mesh%topo%graph_conn%local_partition)) then
-      print *, par_env%proc_id, "local_partition   : ", mesh%topo%graph_conn%local_partition(1:nb_elem)
+      write(log_unit_out,*) par_env%proc_id, "local_partition   : ", mesh%topo%graph_conn%local_partition(1:nb_elem)
     else
-      print *, par_env%proc_id, "local_partition   : UNALLOCATED"
+      write(log_unit_out,*) par_env%proc_id, "local_partition   : UNALLOCATED"
     end if
 
     if (associated(mesh%topo%graph_conn%global_partition)) then
-      print *, par_env%proc_id, "global_partition  : ", mesh%topo%graph_conn%global_partition(1:nb_elem)
+      write(log_unit_out,*) par_env%proc_id, "global_partition  : ", mesh%topo%graph_conn%global_partition(1:nb_elem)
     else
-      print *, par_env%proc_id, "global_partition  : UNALLOCATED"
+      write(log_unit_out,*) par_env%proc_id, "global_partition  : UNALLOCATED"
     end if
 
-    print *, ""
+    write(log_unit_out,*) ""
     if (associated(mesh%topo%global_face_indices)) then
       do i = 1, nb_elem
-        print *, par_env%proc_id, "global_face_indices(1:"   //   str(nb_elem / 2)   //   ", "   //   str(i)   //   ")", mesh%topo%global_face_indices(1:nb_elem / 2, i)
+        write(log_unit_out,*) par_env%proc_id, "global_face_indices(1:"   //   str(nb_elem / 2)   //   ", "   //   str(i)   //   ")", mesh%topo%global_face_indices(1:nb_elem / 2, i)
       end do
     else
-      print *, par_env%proc_id, "global_face_indices   : UNALLOCATED"
+      write(log_unit_out,*) par_env%proc_id, "global_face_indices   : UNALLOCATED"
     end if
 
-    print *, ""
+    write(log_unit_out,*) ""
     if (associated(mesh%topo%global_vertex_indices)) then
       do i = 1, nb_elem
-        print *, par_env%proc_id, "global_vertex_indices(1:"   //   str(nb_elem / 2)   //   ", "   //   str(i)   //   ")", mesh%topo%global_vertex_indices(1:nb_elem / 2, i)
+        write(log_unit_out,*) par_env%proc_id, "global_vertex_indices(1:"   //   str(nb_elem / 2)   //   ", "   //   str(i)   //   ")", mesh%topo%global_vertex_indices(1:nb_elem / 2, i)
       end do
     else
-      print *, par_env%proc_id, "global_vertex_indices : UNALLOCATED"
+      write(log_unit_out,*) par_env%proc_id, "global_vertex_indices : UNALLOCATED"
     end if
 
-    print *, ""
+    write(log_unit_out,*) ""
     if (allocated(mesh%topo%face_indices)) then
       do i = 1, nb_elem
-    print *, par_env%proc_id, "face_indices(1:" // str(nb_elem / 2) // ", " // str(i) // ")", mesh%topo%face_indices(1:nb_elem / 2, i)
+    write(log_unit_out,*) par_env%proc_id, "face_indices(1:" // str(nb_elem / 2) // ", " // str(i) // ")", mesh%topo%face_indices(1:nb_elem / 2, i)
       end do
     else
-      print *, par_env%proc_id, "face_indices          : UNALLOCATED"
+      write(log_unit_out,*) par_env%proc_id, "face_indices          : UNALLOCATED"
     end if
 
-    print *, ""
+    write(log_unit_out,*) ""
     if (allocated(mesh%topo%nb_indices)) then
       do i = 1, nb_elem
-        print *, par_env%proc_id, "nb_indices(1:" // str(nb_elem / 2) // ", " // str(i) // ")", mesh%topo%nb_indices(1:nb_elem / 2, i)
+        write(log_unit_out,*) par_env%proc_id, "nb_indices(1:" // str(nb_elem / 2) // ", " // str(i) // ")", mesh%topo%nb_indices(1:nb_elem / 2, i)
       end do
     else
-      print *, par_env%proc_id, "nb_indices            : UNALLOCATED"
+      write(log_unit_out,*) par_env%proc_id, "nb_indices            : UNALLOCATED"
     end if
 
-    print *, par_env%proc_id, "############################# End Print Topology ########################################"
+    write(log_unit_out,*) par_env%proc_id, "############################# End Print Topology ########################################"
 
   end subroutine print_topo
 
