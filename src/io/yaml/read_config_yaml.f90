@@ -314,7 +314,7 @@ contains
   !
   !  @todo extend list of variables
   module subroutine get_solver_eq_parameters(config_file, solver_parameters)
-    use ccs_base, only: L2, Linfty
+    use constants, only: L2, Linfty
 
     class(*), pointer, intent(in) :: config_file                      !< the entry point to the config file
     type(solver_params), dimension(:), allocatable, intent(out) :: solver_parameters

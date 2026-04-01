@@ -409,7 +409,7 @@ contains
 
     use kinds, only: CCS_PRECISION_STR
     use parallel, only: is_root
-    use ccs_base, only: L2, Linfty
+    use constants, only: L2, Linfty
     class(parallel_environment), intent(in) :: par_env
     type(fluid), intent(in) :: flow
     class(field), pointer :: phi

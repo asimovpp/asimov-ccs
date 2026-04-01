@@ -5,7 +5,6 @@
 module constants
 
   use kinds, only: ccs_int, ccs_real
-  use ccs_base, only: L2
 
   implicit none
 
@@ -47,6 +46,9 @@ module constants
   integer, public, parameter :: ccs_split_type_low_high = -2 
 
   integer(ccs_int), public, parameter :: ccs_string_len = 128
+
+  integer, parameter, public :: L2 = 2
+  integer, parameter, public :: Linfty = 0
   
   character(len=ccs_string_len), public, parameter :: default_solver = "gmres"
   character(len=ccs_string_len), public, parameter :: default_precon = "bjacobi"

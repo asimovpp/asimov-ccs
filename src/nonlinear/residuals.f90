@@ -6,7 +6,7 @@
 module residuals
 #include "ccs_macros.inc"
 
-  use ccs_base, only: L2, Linfty
+  use constants, only: L2, Linfty
   use kinds, only: ccs_int, ccs_real
   use types, only: fluid, field, ccs_vector, ccs_matrix, ccs_residuals
   use parallel_types, only: parallel_environment
