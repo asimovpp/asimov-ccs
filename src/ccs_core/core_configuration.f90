@@ -277,7 +277,6 @@ contains
   subroutine print_configuration(par_env, run_options)
 
     use parallel, only: is_root
-    use kinds, only: CCS_PRECISION_STR
 
     class(parallel_environment), intent(in) :: par_env
     type(ccs_options), intent(in) :: run_options
@@ -304,9 +303,6 @@ contains
           print *, "* Running for ", num_iters, "iterations"
         end if
       end associate
-      print *, "******************************************************************************"
-      print *, "* SOLVER CONFIGURATION"
-      print *, "* Precision: ", CCS_PRECISION_STR
       print *, "******************************************************************************"
       print *, "* REFERENCE VALUES"
       print *, "* Pressure      : ", run_options%reference_values%p_ref

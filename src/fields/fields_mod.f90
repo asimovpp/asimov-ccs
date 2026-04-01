@@ -407,6 +407,7 @@ contains
   !v Outputs each field configuration
   subroutine print_field_config(par_env, flow)
 
+    use kinds, only: CCS_PRECISION_STR
     use parallel, only: is_root
     class(parallel_environment), intent(in) :: par_env
     type(fluid), intent(in) :: flow
@@ -418,8 +419,9 @@ contains
     if (is_root(par_env)) then
         print *, " "
         print *, "******************************************************************************"
-        print *, "* SOLVER CONFIG"
+        print *, "* SOLVER CONFIGURATION"
         print *, "******************************************************************************"
+        print *, "* Precision: ", CCS_PRECISION_STR
         do ifield=1, nfields
           call get_field(flow, ifield, phi)
           if (phi%solver_parameters%solve) then
