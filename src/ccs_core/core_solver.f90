@@ -191,6 +191,7 @@ contains
   logical function stop_on_request(par_env, run_options, t, flow_fields)
 
     use parallel, only: query_stop_run
+    use signal_handler, only: sigterm_issued
 
     class(parallel_environment), intent(in), allocatable :: par_env
     type(ccs_options), intent(in) :: run_options
@@ -204,7 +205,7 @@ contains
       call dump_run(par_env, run_options, t, flow_fields)
 
       stop_on_request = .true.
-    else if (query_stop_run_sigterm(par_env)) then
+    else if (sigterm_issued) then
       if (is_root(par_env)) then
         print *, "INFO: Received SIGTERM signal"
       end if
