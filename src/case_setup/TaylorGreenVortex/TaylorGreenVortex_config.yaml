@@ -93,6 +93,7 @@ variables:
     solve: on
     relaxation: 0.1
     # target_residual: 1.0e-10
+    # norm_residual: L2|Linfty
     # solver_name: cg
     # precon_name: gamg
   variable_5:

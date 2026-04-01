@@ -1168,7 +1168,7 @@ contains
     do ifield=1, nfields
       call get_field(flow, ifield, phi)
       if (phi%solver_parameters%solve) then
-        converged = converged .and. is_converged(residuals, phi%solver_parameters%res_target, ifield, L2)
+        converged = converged .and. is_converged(residuals, phi, ifield)
       end if
     end do
 

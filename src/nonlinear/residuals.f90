@@ -95,14 +95,15 @@ contains
   end subroutine
 
   !v Check if a particular residual is below the res_target
-  logical function is_converged(residuals, res_target, ifield, norm) result(converged)
+  logical function is_converged(residuals, phi, ifield) result(converged)
     type(ccs_residuals), intent(in) :: residuals
-    real(ccs_real), intent(in) :: res_target
+    class(field), intent(in) :: phi
     integer(ccs_int), intent(in) :: ifield
-    integer, intent(in) :: norm
+    real(ccs_real) :: res_target
 
- 
-    select case (norm)
+    res_target = phi%solver_parameters%res_target
+
+    select case (phi%solver_parameters%res_norm)
     case (L2)
       converged = residuals%L2(ifield) <= res_target
     case (Linfty)

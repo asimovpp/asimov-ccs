@@ -314,6 +314,8 @@ contains
   !
   !  @todo extend list of variables
   module subroutine get_solver_eq_parameters(config_file, solver_parameters)
+    use ccs_base, only: L2, Linfty
+
     class(*), pointer, intent(in) :: config_file                      !< the entry point to the config file
     type(solver_params), dimension(:), allocatable, intent(out) :: solver_parameters
 
@@ -324,13 +326,12 @@ contains
     integer :: i
     character(len=25) :: key
     character(len=:), allocatable :: solved
+    character(len=:), allocatable :: residuals_norm
     character(len=:), allocatable :: solver_name
     character(len=:), allocatable :: precon_name
     real(ccs_real) :: res_target
     real(ccs_real) :: relaxation
     logical :: val_present
-    !character(len=:), allocatable :: variable
-    !character(len=ccs_string_len) :: var
 
 
     select type (config_file)
@@ -361,6 +362,20 @@ contains
           call get_value(dict_var, 'target_residual', res_target, value_present=val_present, required=.false.)
           if (val_present) then
             solver_parameters(i)%res_target = res_target
+          end if
+
+          call get_value(dict_var, 'norm_residual', residuals_norm, value_present=val_present, required=.false.)
+          if (val_present) then
+            select case(trim(residuals_norm))
+            case ("L2")
+              solver_parameters(i)%res_norm = L2
+            case ("Linfty")
+              solver_parameters(i)%res_norm = Linfty
+            case default
+              call error_abort("Unknown residual norm for "//key//", should be L2 or Linfty")
+            end select
+          else
+            solver_parameters(i)%res_norm = L2 !< set default to L2
           end if
 
           call get_value(dict_var, 'solver_name', solver_name, value_present=val_present, required=.false.)
