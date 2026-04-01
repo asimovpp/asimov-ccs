@@ -17,6 +17,7 @@ program sandia
   use utils, only: str
   use fields, only: dealloc_fluid_fields
   use profiler, only: profiler_init, profiler_shutdown, profiler_begin_region, profiler_end_region
+  use logging, only: log_unit_out
 
   implicit none
 
@@ -36,7 +37,7 @@ program sandia
   call configure_parallelism(run_options, par_env, shared_env)
 
   call profiler_begin_region('Total elapsed time')
-  if (is_root(par_env)) print *, "Starting ", run_options%paths%case_name, " case!"
+  if (is_root(par_env)) write(log_unit_out,*) "Starting ", run_options%paths%case_name, " case!"
 
   call profiler_begin_region('Total initialisation')
 
@@ -44,7 +45,7 @@ program sandia
   call initialise_mesh(par_env, shared_env, run_options)
 
   ! Initialise fields
-  if (is_root(par_env)) print *, "Initialise fields"
+  if (is_root(par_env)) write(log_unit_out,*) "Initialise fields"
 
   ! Initialise the fields
   call initialise_fields(par_env, run_options, flow_fields)
@@ -52,11 +53,11 @@ program sandia
   ! XXX: coupling BCs could be built here
 
   ! Initialise velocity field
-  if (is_root(par_env)) print *, "Initialise velocity field"
+  if (is_root(par_env)) write(log_unit_out,*) "Initialise velocity field"
   call initialise_flow(par_env, run_options, flow_fields, get_init_flow, get_init_mass_flux)
 
   ! Solve using SIMPLE algorithm
-  if (is_root(par_env)) print *, "Start SIMPLE"
+  if (is_root(par_env)) write(log_unit_out,*) "Start SIMPLE"
 
   call profiler_end_region('Total initialisation')
 

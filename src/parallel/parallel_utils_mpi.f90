@@ -12,6 +12,7 @@ submodule(parallel) parallel_utils_mpi
   use mpi
   use parallel_types_mpi, only: parallel_environment_mpi
   use kinds, only: ccs_err
+  use logging, only: log_unit_out
 
   implicit none
 
@@ -487,7 +488,7 @@ contains
       if (command_argument_count() == 0) then
 
         if (is_root(par_env)) then
-          print *, new_line('a') // "Usage: ./ccs_app [OPTIONS]" // new_line('a')
+          write(log_unit_out,*) new_line('a') // "Usage: ./ccs_app [OPTIONS]" // new_line('a')
           call print_help()
           call cleanup_parallel_environment(par_env)
           stop 0
@@ -523,7 +524,7 @@ contains
               stop 0
             case default
               if (is_root(par_env)) then
-                print *, "Argument ", trim(arg), " not supported by ASiMoV-CCS."
+                write(log_unit_out,*) "Argument ", trim(arg), " not supported by ASiMoV-CCS."
               end if
               call cleanup_parallel_environment(par_env)
               stop 1
@@ -550,13 +551,13 @@ contains
 
   subroutine print_help()
 
-    print *, "========================================="
-    print *, "ASiMoV-CCS command line OPTIONS          "
-    print *, "========================================="
-    print *, "--ccs_help:               This help menu"
-    print *, "--ccs_m <value>:          Problem size"
-    print *, "--ccs_case <string>:      Test case name" // new_line('a')
-    print *, "--ccs_in <string>:        Path to input directory" // new_line('a')
+    write(log_unit_out,*) "========================================="
+    write(log_unit_out,*) "ASiMoV-CCS command line OPTIONS          "
+    write(log_unit_out,*) "========================================="
+    write(log_unit_out,*) "--ccs_help:               This help menu"
+    write(log_unit_out,*) "--ccs_m <value>:          Problem size"
+    write(log_unit_out,*) "--ccs_case <string>:      Test case name" // new_line('a')
+    write(log_unit_out,*) "--ccs_in <string>:        Path to input directory" // new_line('a')
 
   end subroutine
 
@@ -574,7 +575,7 @@ contains
       if(is_root(par_env)) then 
         inquire(file="STOP", EXIST=stop_run)
         if (stop_run) then
-          print *, "STOP file found"
+          write(log_unit_out,*) "STOP file found"
         end if
       end if
 

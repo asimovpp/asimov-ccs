@@ -18,6 +18,7 @@ module residuals
   use meshing, only: get_global_num_cells
   use timestepping, only: get_current_step, get_current_time
   use kinds, only: CCS_MPI_PRECISION
+  use logging, only: log_unit_out
 
 contains
 
@@ -173,13 +174,13 @@ contains
         ! Write header
         open (newunit=io_unit, file="residuals.log", status="replace", form="formatted")
 
-        write (*, *)
+        write (log_unit_out, *)
         if (step >= 0) then
-          write (*, '(a5, 1x, a12, 1x, a6, 2x)', advance='no') 'Step', 'time', 'Iter'
+          write (log_unit_out, '(a5, 1x, a12, 1x, a6, 2x)', advance='no') 'Step', 'time', 'Iter'
 
           write (io_unit, '(a6, 1x, a12, 1x, a6)', advance='no') '#step', 'time', 'iter'
         else
-          write (*, '(a5)', advance='no') 'Iter'
+          write (log_unit_out, '(a5)', advance='no') 'Iter'
 
           write (io_unit, '(a6)', advance='no') '#iter'
         end if
@@ -195,12 +196,12 @@ contains
             call get_is_field_solved(phi, phi_sol)
 
             if (phi_sol) then
-              write (*, '(1x,a12)', advance='no') phi%name
+              write (log_unit_out, '(1x,a12)', advance='no') phi%name
               write (io_unit, '(1x,a12)', advance='no') trim(prefix) // phi%name
             end if
           end do
         end do
-        write (*, *)
+        write (log_unit_out, *)
         write (io_unit, *)
         first_time = .false.
       else
@@ -209,10 +210,10 @@ contains
 
       ! Write step, iteration and residuals
       if (step >= 0) then
-        write (*, '(i5,1x,e12.4,1x,i6,1x)', advance='no') step, time, itr
+        write (log_unit_out, '(i5,1x,e12.4,1x,i6,1x)', advance='no') step, time, itr
         write (io_unit, '(i6,1x,e12.4,1x,i6,1x)', advance='no') step, time, itr
       else
-        write (*, '(i5,1x,e12.4,1x)', advance='no') step, time, itr
+        write (log_unit_out, '(i5,1x,e12.4,1x)', advance='no') step, time, itr
         write (io_unit, '(i6,1x,e12.4,1x)', advance='no') step, time, itr
       end if
 
@@ -221,7 +222,7 @@ contains
         call get_is_field_solved(phi, phi_sol)
 
         if (phi_sol) then
-          write (*, '(e12.4,1x)', advance='no') residuals%L2(ifield)
+          write (log_unit_out, '(e12.4,1x)', advance='no') residuals%L2(ifield)
           write (io_unit, '(e12.4,1x)', advance='no') residuals%L2(ifield)
         end if
       end do
@@ -231,12 +232,12 @@ contains
         call get_is_field_solved(phi, phi_sol)
 
         if (phi_sol) then
-          write (*, '(e12.4,1x)', advance='no') residuals%Linfty(ifield)
+          write (log_unit_out, '(e12.4,1x)', advance='no') residuals%Linfty(ifield)
           write (io_unit, '(e12.4,1x)', advance='no') residuals%Linfty(ifield)
         end if
       end do
 
-      write (*, *)
+      write (log_unit_out, *)
       write (io_unit, *)
       close (io_unit)
     end if

@@ -8,6 +8,7 @@ submodule(core) core_configuration
                          get_reference_number, &
                          get_boundary_names
   use utils, only: exit_print
+  use logging, only: log_unit_out
 
   implicit none
 
@@ -252,7 +253,7 @@ contains
     call get_value(config_file, 'steps', num_steps, present, required)
     call get_value(config_file, 'dt', dt, present, required)
     if ((num_steps == huge(0)) .and. (dt == huge(0.0))) then
-      print *, "Steady-state solver"
+      write(log_unit_out,*) "Steady-state solver"
     else if ((num_steps == huge(0)) .or. (dt == huge(0.0))) then
       call error_abort("No value assigned to either num_steps or dt.")
     end if
@@ -286,6 +287,7 @@ contains
 
     use parallel, only: is_root
     use kinds, only: CCS_PRECISION_STR
+    use logging, only: log_unit_out
 
     class(parallel_environment), intent(in) :: par_env
     type(ccs_options), intent(in) :: run_options
@@ -302,43 +304,43 @@ contains
            velocity_relax => run_options%solve%velocity_relax, &
            pressure_relax => run_options%solve%pressure_relax)
         ! XXX: this should eventually be replaced by something nicely formatted that uses "write"
-        print *, " "
-        print *, "******************************************************************************"
-        print *, "* Solving the ", case_name, " case"
-        print *, "******************************************************************************"
-        print *, "Solved variables: "
+        write(log_unit_out,*) " "
+        write(log_unit_out,*) "******************************************************************************"
+        write(log_unit_out,*) "* Solving the ", case_name, " case"
+        write(log_unit_out,*) "******************************************************************************"
+        write(log_unit_out,*) "Solved variables: "
         do i = 1, size(run_options%variables%solved_variables)
-          print *, "- ", run_options%variables%solved_variables(i)
+          write(log_unit_out,*) "- ", run_options%variables%solved_variables(i)
         end do
-        print *, "******************************************************************************"
-        print *, "* SIMULATION LENGTH"
+        write(log_unit_out,*) "******************************************************************************"
+        write(log_unit_out,*) "* SIMULATION LENGTH"
         if (dt /= huge(dt)) then
-          print *, "* Running for ", num_steps, "timesteps and ", num_iters, "iterations"
-          write (*, '(1x, a, e10.3)') "* Time step size: ", dt
+          write(log_unit_out,*) "* Running for ", num_steps, "timesteps and ", num_iters, "iterations"
+          write(log_unit_out,'(1x, a, e10.3)') "* Time step size: ", dt
         else
-          print *, "* Running for ", num_iters, "iterations"
+          write(log_unit_out,*) "* Running for ", num_iters, "iterations"
         end if
-        print *, "******************************************************************************"
-        print *, "* RELAXATION FACTORS"
-        write (*, '(1x, a, e10.3)') "* velocity: ", velocity_relax
-        write (*, '(1x, a, e10.3)') "* pressure: ", pressure_relax
+        write(log_unit_out,*) "******************************************************************************"
+        write(log_unit_out,*) "* RELAXATION FACTORS"
+        write(log_unit_out,'(1x, a, e10.3)') "* velocity: ", velocity_relax
+        write(log_unit_out,'(1x, a, e10.3)') "* pressure: ", pressure_relax
       end associate
-      print *, "******************************************************************************"
-      print *, "* SOLVER CONFIGURATION"
-      print *, "* Velocity: ", trim(run_options%solve%velocity_precon), " + ", trim(run_options%solve%velocity_solver)
-      print *, "* Pressure: ", trim(run_options%solve%pressure_precon), " + ", trim(run_options%solve%pressure_solver)
-      print *, "* Precision: ", CCS_PRECISION_STR
-      print *, "******************************************************************************"
-      print *, "* REFERENCE VALUES"
-      print *, "* Pressure      : ", run_options%reference_values%p_ref
-      print *, "* Total Pressure: ", run_options%reference_values%p_total
-      print *, "* Temperature   : ", run_options%reference_values%temp_ref
-      print *, "* Density       : ", run_options%reference_values%dens_ref
-      print *, "* Viscosity     : ", run_options%reference_values%visc_ref
-      print *, "* Velocity      : ", run_options%reference_values%velo_ref
-      print *, "* Length        : ", run_options%reference_values%len_ref
-      print *, "* Reference cell: ", run_options%reference_values%pref_at_cell
-      print *, "******************************************************************************"
+      write(log_unit_out,*) "******************************************************************************"
+      write(log_unit_out,*) "* SOLVER CONFIGURATION"
+      write(log_unit_out,*) "* Velocity: ", trim(run_options%solve%velocity_precon), " + ", trim(run_options%solve%velocity_solver)
+      write(log_unit_out,*) "* Pressure: ", trim(run_options%solve%pressure_precon), " + ", trim(run_options%solve%pressure_solver)
+      write(log_unit_out,*) "* Precision: ", CCS_PRECISION_STR
+      write(log_unit_out,*) "******************************************************************************"
+      write(log_unit_out,*) "* REFERENCE VALUES"
+      write(log_unit_out,*) "* Pressure      : ", run_options%reference_values%p_ref
+      write(log_unit_out,*) "* Total Pressure: ", run_options%reference_values%p_total
+      write(log_unit_out,*) "* Temperature   : ", run_options%reference_values%temp_ref
+      write(log_unit_out,*) "* Density       : ", run_options%reference_values%dens_ref
+      write(log_unit_out,*) "* Viscosity     : ", run_options%reference_values%visc_ref
+      write(log_unit_out,*) "* Velocity      : ", run_options%reference_values%velo_ref
+      write(log_unit_out,*) "* Length        : ", run_options%reference_values%len_ref
+      write(log_unit_out,*) "* Reference cell: ", run_options%reference_values%pref_at_cell
+      write(log_unit_out,*) "******************************************************************************"
     end if
     
   end subroutine

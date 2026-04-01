@@ -14,6 +14,7 @@ submodule(read_config) read_config_utils
                             type_list_item, &
                             type_scalar
   use boundary_conditions, only: set_bc_real_value, set_bc_id, set_bc_type
+  use logging, only: log_unit_out
 
   implicit none
 
@@ -170,7 +171,7 @@ contains
     type(type_error), pointer, intent(inout) :: io_err
 
     if (associated(io_err)) then
-      print *, trim(io_err%message)
+      write(log_unit_out,*) trim(io_err%message)
     end if
 
   end subroutine
@@ -651,7 +652,7 @@ contains
               end select
             end do
           else
-            print *, "COULDN'T FIND POST VARIABLES"
+            write(log_unit_out,*) "COULDN'T FIND POST VARIABLES"
           end if
 
         class default
