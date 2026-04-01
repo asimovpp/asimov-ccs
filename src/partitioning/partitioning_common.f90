@@ -18,6 +18,7 @@ submodule(partitioning) partitioning_common
                      nullify_mesh_object, &
                      set_topo_object, nullify_topo_object
   use parallel, only: is_root, is_valid, create_shared_array, destroy_shared_array, sync
+  use logging, only: log_unit_out
 
   implicit none
 
@@ -756,10 +757,10 @@ contains
     if (run_options%mesh%compute_partqual) then
       call compute_partition_quality(par_env, s2v, ulb, olb)
       if (is_root(par_env)) then
-        print *, "Partitioning report:"
-        print *, "- Surface:Volume ratio:", s2v
-        print *, "- Under load balance:", ulb
-        print *, "- Over load balance:", olb
+        write(log_unit_out,*) "Partitioning report:"
+        write(log_unit_out,*) "- Surface:Volume ratio:", s2v
+        write(log_unit_out,*) "- Under load balance:", ulb
+        write(log_unit_out,*) "- Over load balance:", olb
       end if
     end if
     

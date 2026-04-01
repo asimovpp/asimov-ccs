@@ -21,6 +21,7 @@ module poiseuille_core
   use io_visualisation, only: reset_io_visualisation
   use utils, only: str, exit_print, reset_outputlist_counter
   use profiler, only: profiler_init, profiler_shutdown, profiler_begin_region, profiler_end_region
+  use logging, only: log_unit_out
 
   implicit none
 
@@ -53,7 +54,7 @@ module poiseuille_core
     ! Read case name and runtime parameters from configuration file
     call get_config(par_env, run_options)
 
-    if (is_root(par_env)) print *, "Starting ", run_options%paths%case_name, " case!"
+    if (is_root(par_env)) write(log_unit_out,*) "Starting ", run_options%paths%case_name, " case!"
 
     if (present(input_mesh)) then
       mesh = input_mesh
@@ -63,11 +64,11 @@ module poiseuille_core
     end if
 
     ! Initialise fields
-    if (is_root(par_env)) print *, "Initialise fields"
+    if (is_root(par_env)) write(log_unit_out,*) "Initialise fields"
     call initialise_fields(par_env, run_options, flow_fields)
 
     ! Create and initialise field vectors
-    if (is_root(par_env)) print *, "Initialise field vectors"
+    if (is_root(par_env)) write(log_unit_out,*) "Initialise field vectors"
     
     
     ! Set to 1st boundary condition (inlet)
@@ -77,11 +78,11 @@ module poiseuille_core
     nullify(u)
 
     ! Initialise velocity field
-    if (is_root(par_env)) print *, "Initialise velocity field"
+    if (is_root(par_env)) write(log_unit_out,*) "Initialise velocity field"
     call initialise_flow(par_env, run_options, flow_fields, get_init_flow, get_init_mass_flux)
 
     ! Solve using SIMPLE algorithm
-    if (is_root(par_env)) print *, "Start SIMPLE"
+    if (is_root(par_env)) write(log_unit_out,*) "Start SIMPLE"
 
     call profiler_end_region('Total initialisation')
 

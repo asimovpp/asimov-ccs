@@ -8,7 +8,7 @@ submodule(pv_coupling) pv_coupling_simple
   use kinds, only: ccs_int, ccs_real
   use types, only: vector_spec, ccs_vector, matrix_spec, ccs_matrix, equation_system, &
                    linear_solver, bc_config, vector_values, cell_locator, ccs_residuals, &
-                   face_locator, neighbour_locator, matrix_values, matrix_values_spec, upwind_field, solver_params
+                   face_locator, neighbour_locator, matrix_values, matrix_values_spec, upwind_field, field_ptr
   use fv, only: compute_fluxes, calc_mass_flux, update_gradient
   use vec, only: create_vector, vec_reciprocal, scale_vec, &
                  get_vector_data, get_vector_data_readonly, restore_vector_data, restore_vector_data_readonly, &
@@ -35,6 +35,7 @@ submodule(pv_coupling) pv_coupling_simple
   use residuals, only: compute_residuals, compute_global_residuals, init_residuals, normalise_residuals, &
                        get_max_residuals, print_residuals, is_converged
   use parallel, only: is_root
+  use logging, only: log_unit_out
 
   implicit none
 
@@ -93,6 +94,7 @@ contains
     logical :: v_sol !< solve v velocity field
     logical :: w_sol !< solve w velocity field
     logical :: p_sol !< solve pressure field
+    type(field_ptr), dimension(4) :: grad_fields
     class(field), pointer :: u       !< velocity fields in x direction
     class(field), pointer :: v       !< velocity fields in y direction
     class(field), pointer :: w       !< velocity field in z direction
@@ -104,6 +106,7 @@ contains
 
     integer(ccs_int) :: it_start
     integer(ccs_int) :: it_end
+    integer(ccs_int) :: nfields
 
     it_start = run_options%solve%it_start
     it_end = run_options%solve%it_end
@@ -111,8 +114,8 @@ contains
     if (.not. is_mesh_set()) then
       call error_abort("Mesh object needs to be set")
     end if
-    
-    call get_field(flow, "u", u) 
+
+    call get_field(flow, "u", u)
     call get_field(flow, "v", v)
     call get_field(flow, "w", w)
     call get_field(flow, "p", p)
@@ -172,10 +175,24 @@ contains
 
     ! Get pressure gradient
     call dprint("NONLINEAR: compute gradients")
-    call update_gradient(p)
-    if (u_sol) call update_gradient(u)
-    if (v_sol) call update_gradient(v)
-    if (w_sol) call update_gradient(w)
+    nfields = 1
+    grad_fields(nfields)%ptr => p
+    if (u_sol) then
+      nfields = nfields + 1
+      grad_fields(nfields)%ptr => u
+    end if
+    if (v_sol) then
+      nfields = nfields + 1
+      grad_fields(nfields)%ptr => v
+    end if
+    if (w_sol) then
+      nfields = nfields + 1
+      grad_fields(nfields)%ptr => w
+    end if
+    call update_gradient(grad_fields(1:nfields))
+    do i = 1, size(grad_fields)
+      nullify(grad_fields(i)%ptr)
+    end do
 
     outerloop: do i = it_start, it_end
       call dprint("NONLINEAR: iteration " // str(i))
@@ -189,7 +206,7 @@ contains
       call dprint("NONLINEAR: mass imbalance")
       call compute_mass_imbalance(invA, flow, source, residuals)
       call dprint("NONLINEAR: compute p'")
-      call calculate_pressure_correction(par_env, p%solver_parameters, invA, M, source, lin_system, p_prime, lin_solverP)
+      call calculate_pressure_correction(par_env, invA, M, source, lin_system, p_prime, lin_solverP)
 
       ! Update velocity with velocity correction (eq. 6)
       call dprint("NONLINEAR: correct face velocity")
@@ -215,9 +232,9 @@ contains
       if (converged) then
         call dprint("NONLINEAR: converged!")
         if (is_root(par_env)) then
-          write (*, *)
-          write (*, '(a)') 'Converged!'
-          write (*, *)
+          write (log_unit_out, *)
+          write (log_unit_out, '(a)') 'Converged!'
+          write (log_unit_out, *)
         end if
         exit outerloop
       end if
@@ -225,9 +242,9 @@ contains
       if (present(diverged)) then
         if (diverged) then
           if (is_root(par_env)) then
-            write (*, *)
-            write (*, '(a)') 'Diverged!'
-            write (*, *)
+            write (log_unit_out, *)
+            write (log_unit_out, '(a)') 'Diverged!'
+            write (log_unit_out, *)
           end if
         exit outerloop
         end if
@@ -241,7 +258,9 @@ contains
     deallocate(invAu)
     deallocate(invAv)
     deallocate(invAw)
-    
+
+    nullify(u, v, w, p, p_prime, mf, viscosity, density)
+
   end subroutine solve_nonlinear
 
   !v Computes the guessed velocity fields based on a frozen pressure field
@@ -422,6 +441,8 @@ contains
     else if (component == 3) then
       call calculate_momentum_pressure_source(p%z_gradients, vec)
     end if
+
+    call update(vec)
 
     !calculate viscous source term and populate RHS vector 
     call dprint("compute viscous souce term")
@@ -720,7 +741,7 @@ contains
   !v Solves the pressure correction equation
   !
   !  Solves the pressure correction equation formed by the mass-imbalance.
-  subroutine calculate_pressure_correction(par_env, solver_parameters, invA, M, vec, lin_sys, p_prime, lin_solver)
+  subroutine calculate_pressure_correction(par_env, invA, M, vec, lin_sys, p_prime, lin_solver)
 
     use fv, only: compute_boundary_coeffs
     use profiler
@@ -728,7 +749,6 @@ contains
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< the parallel environment
-    type(solver_params), intent(in) :: solver_parameters            !< Parameters to setup the solver
     class(ccs_vector), intent(inout) :: invA                        !< inverse diagonal momentum coefficients
     class(ccs_matrix), allocatable, intent(inout) :: M              !< matrix object
     class(ccs_vector), allocatable, intent(inout) :: vec            !< the RHS vector
@@ -824,8 +844,8 @@ contains
     call create_solver(lin_sys, lin_solver)
 
     ! Customise linear solver
-    call set_solver_method(solver_parameters%solver_name, lin_solver)
-    call set_solver_precon(solver_parameters%precon_name, lin_solver)
+    call set_solver_method(p_prime%solver_parameters%solver_name, lin_solver)
+    call set_solver_precon(p_prime%solver_parameters%precon_name, lin_solver)
 
     ! Solve the linear system
     call dprint("P': solve")
@@ -856,7 +876,6 @@ contains
     integer(ccs_int) :: nnb             ! Cell neighbour count
 
     real(ccs_real), dimension(:), pointer :: mf_data      ! Data array for the mass flux
-    real(ccs_real), dimension(:), pointer :: p_data       ! Data array for pressure
     real(ccs_real), dimension(:), pointer :: dpdx_data    ! Data array for pressure x gradient
     real(ccs_real), dimension(:), pointer :: dpdy_data    ! Data array for pressure y gradient
     real(ccs_real), dimension(:), pointer :: dpdz_data    ! Data array for pressure z gradient
@@ -894,16 +913,7 @@ contains
     ! First zero RHS
     call zero(b)
 
-    ! Update vectors to make sure all data is up to date
-    call update(u%values)
-    call update(v%values)
-    call update(w%values)
-    call update(p%values)
-    call update(p%x_gradients)
-    call update(p%y_gradients)
-    call update(p%z_gradients)
-
-    call get_vector_data_readonly(p%values, p_data)
+ 
     call get_vector_data_readonly(p%x_gradients, dpdx_data)
     call get_vector_data_readonly(p%y_gradients, dpdy_data)
     call get_vector_data_readonly(p%z_gradients, dpdz_data)
@@ -936,14 +946,14 @@ contains
           else
             ! Compute mass flux through face
             mf_data(index_f) = calc_mass_flux(u, v, w, &
-                                              p_data, dpdx_data, dpdy_data, dpdz_data, &
+                                              p%values_ro, dpdx_data, dpdy_data, dpdz_data, &
                                               invA_data, &
                                               loc_f, p%enable_cell_corrections)
           end if
         else
           ! Compute mass flux through face
           mf_data(index_f) = calc_mass_flux(u, v, w, &
-                                            p_data, dpdx_data, dpdy_data, dpdz_data, &
+                                            p%values_ro, dpdx_data, dpdy_data, dpdz_data, &
                                             invA_data, &
                                             loc_f, .false.)
         end if
@@ -956,7 +966,6 @@ contains
       call set_values(vec_values, b)
     end do
 
-    call restore_vector_data_readonly(p%values, p_data)
     call restore_vector_data_readonly(p%x_gradients, dpdx_data)
     call restore_vector_data_readonly(p%y_gradients, dpdy_data)
     call restore_vector_data_readonly(p%z_gradients, dpdz_data)
@@ -964,14 +973,6 @@ contains
 
     call restore_vector_data(mf%values, mf_data)
 
-    ! Update vectors on exit (just in case)
-    call update(u%values)
-    call update(v%values)
-    call update(w%values)
-    call update(p%values)
-    call update(p%x_gradients)
-    call update(p%y_gradients)
-    call update(p%z_gradients)
 
     call update(b)
     call update(mf%values)
@@ -991,6 +992,7 @@ contains
 
     call axpy(p%solver_parameters%relaxation_factor, p_prime%values, p%values)
 
+    call update(p%values)
     call update_gradient(p)
 
   end subroutine update_pressure
@@ -1007,6 +1009,9 @@ contains
     class(field), pointer :: u       !< The x velocities being corrected
     class(field), pointer :: v       !< The y velocities being corrected
     class(field), pointer :: w       !< The z velocities being corrected
+    type(field_ptr), dimension(3) :: grad_fields
+
+    nullify(u, v, w, p_prime)
 
     call get_field(flow, "u", u)
     call get_field(flow, "v", v)
@@ -1035,9 +1040,15 @@ contains
     call update(v%values)
     call update(w%values)
 
-    call update_gradient(u)
-    call update_gradient(v)
-    call update_gradient(w)
+    grad_fields(1)%ptr => u
+    grad_fields(2)%ptr => v
+    grad_fields(3)%ptr => w
+    call update_gradient(grad_fields)
+
+    nullify(grad_fields(1)%ptr)
+    nullify(grad_fields(2)%ptr)
+    nullify(grad_fields(3)%ptr)
+    nullify(u, v, w, p_prime)
 
   end subroutine update_velocity
 
@@ -1056,7 +1067,6 @@ contains
     real(ccs_real) :: mf_prime
     real(ccs_real), dimension(:), allocatable :: zero_arr
     real(ccs_real), dimension(:), pointer :: mf_data
-    real(ccs_real), dimension(:), pointer :: pp_data
     real(ccs_real), dimension(:), pointer :: invA_data
 
     type(cell_locator) :: loc_p
@@ -1078,15 +1088,11 @@ contains
     call set_mode(insert_mode, vec_values)
     call zero(b)
 
-    ! Update vector to make sure data is up to date
-    call update(p_prime%values)
-
-    call get_vector_data_readonly(p_prime%values, pp_data)
     call get_vector_data_readonly(invA, invA_data)
 
     call get_vector_data(mf%values, mf_data)
 
-    allocate (zero_arr(size(pp_data)))
+    allocate (zero_arr(size(p_prime%values_ro)))
     zero_arr(:) = 0.0_ccs_real
 
     ! XXX: This should really be a face loop
@@ -1107,7 +1113,7 @@ contains
           call create_neighbour_locator(loc_p, j, loc_nb)
           call get_local_index(loc_nb, index_nb)
           if (i < index_nb) then
-            mf_prime = calc_mass_flux(pp_data, zero_arr, zero_arr, zero_arr, &
+            mf_prime = calc_mass_flux(p_prime%values_ro, zero_arr, zero_arr, zero_arr, &
                                       invA_data, loc_f, p_prime%enable_cell_corrections)
 
             mf_data(index_f) = mf_data(index_f) + mf_prime
@@ -1126,14 +1132,11 @@ contains
 
     deallocate (zero_arr)
 
-    call restore_vector_data_readonly(p_prime%values, pp_data)
     call restore_vector_data_readonly(invA, invA_data)
 
     call restore_vector_data(mf%values, mf_data)
 
     call update(mf%values)
-    ! Update vector on exit (just in case)
-    call update(p_prime%values)
 
     !! Get corrected mass-imbalance
     call update(b)
@@ -1193,7 +1196,6 @@ contains
     class(ccs_vector), intent(inout) :: b
 
     real(ccs_real), dimension(:), pointer :: diag_data
-    real(ccs_real), dimension(:), pointer :: phi_data
     real(ccs_real), dimension(:), pointer :: b_data
 
     integer(ccs_int) :: local_num_cells
@@ -1204,7 +1206,6 @@ contains
     call get_matrix_diagonal(M, diag)
 
     call dprint("UR: get phi, diag, b")
-    call get_vector_data_readonly(phi%values, phi_data)
     call get_vector_data(diag, diag_data)
     call update(b)
     call get_vector_data(b, b_data)
@@ -1214,11 +1215,10 @@ contains
     do i = 1, local_num_cells
       diag_data(i) = diag_data(i) / alpha
 
-      b_data(i) = b_data(i) + (1.0_ccs_real - alpha) * diag_data(i) * phi_data(i)
+      b_data(i) = b_data(i) + (1.0_ccs_real - alpha) * diag_data(i) * phi%values_ro(i)
     end do
 
     call dprint("UR: Restore data")
-    call restore_vector_data_readonly(phi%values, phi_data)
     call restore_vector_data(diag, diag_data)
     call restore_vector_data(b, b_data)
 

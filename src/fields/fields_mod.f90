@@ -18,6 +18,7 @@ module fields
   use fv, only: update_gradient
   use timestepping, only: initialise_old_values
   use error_codes
+  use logging, only: log_unit_out
 
   implicit none
 
@@ -136,7 +137,7 @@ contains
     field_type = field_properties%field_type
     
     if (is_root(par_env)) then
-      print *, "Create field: ", trim(field_name), " ("//get_scheme_name(field_type)//")"
+      write(log_unit_out,*) "Create field: ", trim(field_name), " ("//get_scheme_name(field_type)//")"
     end if
     
   end subroutine print_field
@@ -407,9 +408,11 @@ contains
   !v Outputs each field configuration
   subroutine print_field_config(par_env, flow)
 
+    use logging, only: log_unit_out
     use kinds, only: CCS_PRECISION_STR
     use parallel, only: is_root
     use constants, only: L2, Linfty
+
     class(parallel_environment), intent(in) :: par_env
     type(fluid), intent(in) :: flow
     class(field), pointer :: phi
@@ -418,28 +421,28 @@ contains
     call count_fields(flow, nfields)
 
     if (is_root(par_env)) then
-        print *, " "
-        print *, "******************************************************************************"
-        print *, "* SOLVER CONFIGURATION"
-        print *, "******************************************************************************"
-        print *, "* Precision: ", CCS_PRECISION_STR
+        write(log_unit_out,*)  " "
+        write(log_unit_out,*)  "******************************************************************************"
+        write(log_unit_out,*)  "* SOLVER CONFIGURATION"
+        write(log_unit_out,*)  "******************************************************************************"
+        write(log_unit_out,*)  "* Precision: ", CCS_PRECISION_STR
         do ifield=1, nfields
           call get_field(flow, ifield, phi)
           if (phi%solver_parameters%solve) then
-            print *, "************ ", trim(phi%name), " ************"
-            write(*,'(A, E10.2)')  "   Residuals target: ", phi%solver_parameters%res_target
+            write(log_unit_out,*) "************ ", trim(phi%name), " ************"
+            write(log_unit_out,'(A, E10.2)')  "   Residuals target: ", phi%solver_parameters%res_target
             select case(phi%solver_parameters%res_norm)
               case (L2)
-                print *, "  Residuals norm: L2"
+                write(log_unit_out,*) "  Residuals norm: L2"
               case (Linfty)
-                print *, "  Residuals norm: Linfty"
+                write(log_unit_out,*) "  Residuals norm: Linfty"
             end select
-            write(*,'(A, F4.2)')  "   Relaxation factor: ", phi%solver_parameters%relaxation_factor
-            print *, "  Solver: ", phi%solver_parameters%solver_name
-            print *, "  Preconditioner: ", phi%solver_parameters%precon_name
-         end if
+            write(log_unit_out,'(A, F4.2)')  "   Relaxation factor: ", phi%solver_parameters%relaxation_factor
+            write(log_unit_out,*) "  Solver: ", phi%solver_parameters%solver_name
+            write(log_unit_out,*) "  Preconditioner: ", phi%solver_parameters%precon_name
+          end if
         end do
-        print *, ""
+        write(log_unit_out,*)  " "
     end if
 
   end subroutine

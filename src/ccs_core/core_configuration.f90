@@ -8,6 +8,7 @@ submodule(core) core_configuration
                          get_reference_number, &
                          get_boundary_names, get_solver_eq_parameters
   use utils, only: exit_print
+  use logging, only: log_unit_out
 
   implicit none
 
@@ -248,7 +249,7 @@ contains
     call get_value(config_file, 'steps', num_steps, present, required)
     call get_value(config_file, 'dt', dt, present, required)
     if ((num_steps == huge(0)) .and. (dt == huge(0.0))) then
-      print *, "Steady-state solver"
+      write(log_unit_out,*) "Steady-state solver"
     else if ((num_steps == huge(0)) .or. (dt == huge(0.0))) then
       call error_abort("No value assigned to either num_steps or dt.")
     end if
@@ -267,7 +268,7 @@ contains
 
     ! Gets solver parameters per equation
     call get_solver_eq_parameters(config_file, solve%solver_eq_parameters)
-    call set_defaults_solver_eq_parameters(solve, solve%solver_eq_parameters)
+    call set_defaults_solver_eq_parameters(solve)
 
     solve%it_start = 1
     solve%it_end = num_iters
@@ -276,62 +277,122 @@ contains
 
   !v Sets defaults when values aren't specified in the config file, either from constants module or
   !   from globally set default in the config file
-  subroutine set_defaults_solver_eq_parameters(solve, solver_parameters)
+  subroutine set_defaults_solver_eq_parameters(solve)
     use constants, only: default_solver, default_precon, default_pressure_solver, default_pressure_precon, default_res_norm
           
-      type(solver_options), intent(in) :: solve   !< Object for solver options
-      type(solver_params), dimension(:), intent(inout) :: solver_parameters
-      integer(ccs_int) :: nfields, ifield
+      type(solver_options), intent(inout) :: solve   !< Object for solver options
+      integer(ccs_int) :: nfields, ifield, ifield_p, ifield_p_prime
 
-      nfields = size(solver_parameters)
+      nfields = size(solve%solver_eq_parameters)
+      ifield_p = 0
+      ifield_p_prime = 0
 
       do ifield=1, nfields
 
-        ! Set values to default if not specified per field
-        if (solver_parameters(ifield)%res_target == huge(ccs_real)) then
-          solver_parameters(ifield)%res_target = solve%default_res_target
+        call set_default_residuals_target(solve%solver_eq_parameters(ifield), solve%default_res_target)
+        call set_default_res_norm(solve%solver_eq_parameters(ifield))
+        call set_default_solver(solve%solver_eq_parameters(ifield))
+        call set_default_precon(solve%solver_eq_parameters(ifield))
+        call check_relaxation_factor_set(solve%solver_eq_parameters(ifield))
+        
+        if (solve%solver_eq_parameters(ifield)%name == "p") then
+          ifield_p = ifield
         end if
-
-        if (solver_parameters(ifield)%solver_name == "") then
-          if (solver_parameters(ifield)%name == "p") then
-              solver_parameters(ifield)%solver_name = default_pressure_solver
-          else
-              solver_parameters(ifield)%solver_name = default_solver
-          end if
+        if (solve%solver_eq_parameters(ifield)%name == "p_prime") then
+          ifield_p_prime = ifield
         end if
+     end do
 
-        if (solver_parameters(ifield)%precon_name == "") then
-          if (solver_parameters(ifield)%name == "p") then
-              solver_parameters(ifield)%precon_name = default_pressure_precon
-          else
-              solver_parameters(ifield)%precon_name = default_precon
-          end if
-        end if
+      ! Copy p solver options to p_prime
+      if (ifield_p == 0 .OR. ifield_p_prime == 0) then
+        call error_abort("p or p_prime variable missing from config")
+      end if
+      call copy_solver_parameters(solve%solver_eq_parameters(ifield_p), solve%solver_eq_parameters(ifield_p_prime))
 
-        if (solver_parameters(ifield)%res_norm == -1) then
-          solver_parameters(ifield)%res_norm = default_res_norm
-        end if
+  end subroutine
+  
 
-        if (solver_parameters(ifield)%name == "p_prime" .and. solver_parameters(ifield)%solve) then
-          print *, "Warning, p_prime shouldn't be set to solve, solver config should be set under 'p' instead."
-        end if
+  !v Copies solver parameters from one object to an other while keeping the name 
+  subroutine copy_solver_parameters(in_solver_parameters, out_solver_parameters)
+    type(solver_params), intent(in) :: in_solver_parameters
+    type(solver_params), intent(inout) :: out_solver_parameters
+    character(len=ccs_string_len) :: name
 
-        if (solver_parameters(ifield)%solve .and. solver_parameters(ifield)%relaxation_factor == huge(ccs_real)) then
-          call error_abort("No values assigned to relaxation factor for variable "//solver_parameters(ifield)%name)
-        end if
+    name = out_solver_parameters%name
+    out_solver_parameters = in_solver_parameters
+    out_solver_parameters%name = trim(name)
 
-      end do
+  end subroutine
+
+  !v Set residuals target from default if not set already
+  subroutine set_default_residuals_target(solver_parameters, default_res_target)
+    type(solver_params), intent(inout) :: solver_parameters
+    real(ccs_real), intent(in) :: default_res_target
+
+    if (solver_parameters%res_target == huge(ccs_real)) then
+      solver_parameters%res_target = default_res_target
+    end if
+  end subroutine
+
+  !v Set residuals norm from default if not set
+  subroutine set_default_res_norm(solver_parameters)
+    use constants, only: default_res_norm
+
+    type(solver_params), intent(inout) :: solver_parameters
+
+    if (solver_parameters%res_norm == -1) then
+      solver_parameters%res_norm = default_res_norm
+    end if
+
+  end subroutine
+
+  !v Set preconditioner from default if not set already
+  subroutine set_default_precon(solver_parameters)
+    use constants, only: default_precon, default_pressure_precon 
+
+    type(solver_params), intent(inout) :: solver_parameters
+
+    if (solver_parameters%precon_name == "") then
+      if (solver_parameters%name == "p") then
+          solver_parameters%precon_name = default_pressure_precon
+      else
+          solver_parameters%precon_name = default_precon
+      end if
+    end if
+  end subroutine
+
+  !v Set solver from default if not set already
+  subroutine set_default_solver(solver_parameters)
+    use constants, only: default_solver, default_pressure_solver 
+
+    type(solver_params), intent(inout) :: solver_parameters
+
+    if (solver_parameters%solver_name == "") then
+      if (solver_parameters%name == "p") then
+          solver_parameters%solver_name = default_pressure_solver
+      else
+          solver_parameters%solver_name = default_solver
+      end if
+    end if
+
+  end subroutine
+
+  subroutine check_relaxation_factor_set(solver_parameters)
+      type(solver_params), intent(inout) :: solver_parameters
+
+      if (solver_parameters%solve .and. solver_parameters%relaxation_factor == huge(ccs_real)) then
+        call error_abort("No values assigned to relaxation factor for variable "//solver_parameters%name)
+      end if
   end subroutine
 
   ! Print test case configuration
   subroutine print_configuration(par_env, run_options)
 
     use parallel, only: is_root
+    use logging, only: log_unit_out
 
     class(parallel_environment), intent(in) :: par_env
     type(ccs_options), intent(in) :: run_options
-
-    !integer :: i
 
     if (is_root(par_env)) then
       associate(case_name => run_options%paths%case_name, &
@@ -341,29 +402,29 @@ contains
            cps => run_options%mesh%cps, &
            domain_size => run_options%mesh%domain_size)
         ! XXX: this should eventually be replaced by something nicely formatted that uses "write"
-        print *, " "
-        print *, "******************************************************************************"
-        print *, "* Solving the ", case_name, " case"
-        print *, "******************************************************************************"
-        print *, "* SIMULATION LENGTH"
+        write(log_unit_out,*) " "
+        write(log_unit_out,*) "******************************************************************************"
+        write(log_unit_out,*) "* Solving the ", case_name, " case"
+        write(log_unit_out,*) "******************************************************************************"
+        write(log_unit_out,*) "* SIMULATION LENGTH"
         if (dt /= huge(dt)) then
-          print *, "* Running for ", num_steps, "timesteps and ", num_iters, "iterations"
-          write (*, '(1x, a, e10.3)') "* Time step size: ", dt
+          write(log_unit_out,*) "* Running for ", num_steps, "timesteps and ", num_iters, "iterations"
+          write(log_unit_out,'(1x, a, e10.3)') "* Time step size: ", dt
         else
-          print *, "* Running for ", num_iters, "iterations"
+          write(log_unit_out,*) "* Running for ", num_iters, "iterations"
         end if
       end associate
-      print *, "******************************************************************************"
-      print *, "* REFERENCE VALUES"
-      print *, "* Pressure      : ", run_options%reference_values%p_ref
-      print *, "* Total Pressure: ", run_options%reference_values%p_total
-      print *, "* Temperature   : ", run_options%reference_values%temp_ref
-      print *, "* Density       : ", run_options%reference_values%dens_ref
-      print *, "* Viscosity     : ", run_options%reference_values%visc_ref
-      print *, "* Velocity      : ", run_options%reference_values%velo_ref
-      print *, "* Length        : ", run_options%reference_values%len_ref
-      print *, "* Reference cell: ", run_options%reference_values%pref_at_cell
-      print *, "******************************************************************************"
+      write(log_unit_out,*) "******************************************************************************"
+      write(log_unit_out,*) "* REFERENCE VALUES"
+      write(log_unit_out,*) "* Pressure      : ", run_options%reference_values%p_ref
+      write(log_unit_out,*) "* Total Pressure: ", run_options%reference_values%p_total
+      write(log_unit_out,*) "* Temperature   : ", run_options%reference_values%temp_ref
+      write(log_unit_out,*) "* Density       : ", run_options%reference_values%dens_ref
+      write(log_unit_out,*) "* Viscosity     : ", run_options%reference_values%visc_ref
+      write(log_unit_out,*) "* Velocity      : ", run_options%reference_values%velo_ref
+      write(log_unit_out,*) "* Length        : ", run_options%reference_values%len_ref
+      write(log_unit_out,*) "* Reference cell: ", run_options%reference_values%pref_at_cell
+      write(log_unit_out,*) "******************************************************************************"
     end if
     
   end subroutine

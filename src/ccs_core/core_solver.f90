@@ -15,6 +15,7 @@ submodule (core) core_solver
   use pv_coupling, only: solve_nonlinear
   use scalars, only: update_scalars
   use profiler, only: profiler_begin_region, profiler_end_region
+  use logging, only: log_unit_out
   use timestepping, only: timestepping_is_active, finalise_timestep
   
   implicit none
@@ -28,6 +29,7 @@ contains
   module subroutine run_solver(par_env, run_options, eval_sources, postproc, flow_fields)
 
     use timestepping, only: activate_timestepping, set_timestep
+    use flow_stats, only: report_cfl
 
     class(parallel_environment), allocatable, intent(in) :: par_env !< The parallel environment
     type(ccs_options), intent(in) :: run_options                    !< The runtime configuration
@@ -48,6 +50,7 @@ contains
       subroutine postproc(par_env, flow_fields)
         use types, only: fluid
         use parallel_types, only: parallel_environment
+        use logging, only: log_unit_out
         class(parallel_environment), allocatable, intent(in) :: par_env !< The parallel environment
         type(fluid), intent(in) :: flow_fields                          !< The flow field structure
       end subroutine
@@ -79,12 +82,13 @@ contains
       call profiler_begin_region("Solver time inc I/O")
 
       ! XXX: Coupler update here
+      call report_cfl(par_env, flow_fields)
       call advance_step(par_env, run_options, eval_sources, flow_fields, diverged)
       ! XXX: Or coupler update here?
       
       if (timestepping_is_active()) then
         if (is_root(par_env)) then
-          print *, "TIME = ", t
+          write(log_unit_out,*) "TIME = ", t
         end if
       end if
       
@@ -170,7 +174,7 @@ contains
     
     if (diverged) then
       if (is_root(par_env)) then
-        print *, "INFO: Divergence detected"
+        write(log_unit_out,*) "INFO: Divergence detected"
       end if
       call dump_run(par_env, run_options, t, flow_fields)
 
@@ -193,7 +197,7 @@ contains
 
     if (query_stop_run(par_env)) then
       if (is_root(par_env)) then
-        print *, "INFO: Found STOP file"
+        write(log_unit_out,*) "INFO: Found STOP file"
       end if
       call dump_run(par_env, run_options, t, flow_fields)
 
@@ -213,7 +217,7 @@ contains
     type(fluid), intent(inout) :: flow_fields
 
     if (is_root(par_env)) then
-      print *, "STOPPING SIMULATION"
+      write(log_unit_out,*) "STOPPING SIMULATION"
     end if
     call write_step(par_env, run_options, t, flow_fields)
 
@@ -250,9 +254,9 @@ contains
     check_flow_sol = have_p .and. have_vel
     if (is_root(par_env)) then
       if (check_flow_sol) then
-        print *, "Solving fluid flow"
+        write(log_unit_out,*) "Solving fluid flow"
       else
-        print *, "Solving scalar transport only"
+        write(log_unit_out,*) "Solving scalar transport only"
       end if
     end if
     

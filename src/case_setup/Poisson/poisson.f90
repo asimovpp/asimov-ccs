@@ -158,6 +158,7 @@ program poisson
                       timer, sync, &
                       is_root
   use profiler, only: profiler_init, profiler_shutdown, profiler_begin_region, profiler_end_region
+  use logging, only: log_unit_out
 
   implicit none
 
@@ -238,7 +239,7 @@ program poisson
 
   err_norm = norm(u, 2) * mesh%geo%h
   if (is_root(par_env)) then
-    print *, "Norm of error = ", err_norm
+    write(log_unit_out,*) "Norm of error = ", err_norm
   end if
 
   ! Clean up

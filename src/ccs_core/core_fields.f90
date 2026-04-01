@@ -15,6 +15,7 @@ submodule(core) core_fields
                     set_field_name, set_field_type, set_is_field_solved, get_field, print_field_config
   use fortran_yaml_c_interface, only: parse
   use profiler, only: profiler_begin_region, profiler_end_region
+  use logging, only: log_unit_out
 
 implicit none
 
@@ -35,7 +36,7 @@ contains
 
     ! Read boundary conditions
     if (is_root(par_env)) then
-      print *, "Read and allocate BCs"
+      write(log_unit_out,*) "Read and allocate BCs"
     end if
     ! XXX: these calls should probably be moved to the config reading section
     config_file => parse(run_options%paths%ccs_config_file, error)
@@ -48,7 +49,7 @@ contains
 
     ! Create and initialise field vectors
     if (is_root(par_env)) then
-      print *, "Initialise field vectors"
+      write(log_unit_out,*) "Initialise field vectors"
     end if
     call initialise(vec_properties)
 
@@ -107,7 +108,7 @@ contains
       ! Make sure we don't attempt to define mf. 
       if (trim(run_options%variables%variable_names(i)) == 'mf') then 
         if (is_root(par_env)) then
-          print *, "mf already defined in code. skipping definition in case config file"
+          write(log_unit_out,*) "mf already defined in code. skipping definition in case config file"
         end if
         cycle
       end if
@@ -120,7 +121,7 @@ contains
     end do
 
     if (is_root(par_env)) then
-      print *, "Built ", size(flow_fields%fields), " dynamically-defined fields"
+      write(log_unit_out,*) "Built ", size(flow_fields%fields), " dynamically-defined fields"
     end if
   end subroutine build_user_fields
 
@@ -148,7 +149,7 @@ contains
     call create_field(par_env, my_field_properties, flow_fields)
 
     if (is_root(par_env)) then
-      print *, "Built ", size(flow_fields%fields) - nfields_init, " common fields"
+      write(log_unit_out,*) "Built ", size(flow_fields%fields) - nfields_init, " common fields"
     end if
 
   end subroutine build_common_fields
@@ -236,11 +237,8 @@ contains
 
     class(field), pointer :: phi
 
-    call get_field(flow, field_index, phi)
-    ! check if equation name match
-    if (run_options%solve%solver_eq_parameters(field_index)%name /= phi%name) then
-      call error_abort("Solver and field name don't match for "//run_options%solve%solver_eq_parameters(field_index)%name// " and "//phi%name)
-    end if
+    ! Get field using the run_options equation name
+    call get_field(flow, run_options%solve%solver_eq_parameters(field_index)%name, phi)
     phi%solver_parameters = run_options%solve%solver_eq_parameters(field_index)
     nullify(phi)
 

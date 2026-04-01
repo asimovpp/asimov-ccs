@@ -222,7 +222,7 @@ module types
   end type field
 
   type, public :: solver_params
-    character(len=ccs_string_len) :: name                    !< Name of the field to be transported
+    character(len=ccs_string_len) :: name = ""               !< Name of the field to be transported
     logical :: solve = .false.                               !< Whether or not to solve said field
     real(ccs_real) :: res_target = huge(ccs_real)            !< The target residuals under which the iterative solve is considered converged
     integer :: res_norm = -1                                 !< Norm to use for checking residuals levels (default L2)
