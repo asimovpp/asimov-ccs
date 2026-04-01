@@ -304,23 +304,29 @@ contains
      end do
 
       ! Copy p solver options to p_prime
-      if (ifield_p == 0 .OR. ifield_p_prime == 0) then
-        call error_abort("p or p_prime variable missing from config")
+      if (ifield_p /= 0 .and. ifield_p_prime /= 0) then
+        call copy_solver_parameters(solve%solver_eq_parameters(ifield_p), solve%solver_eq_parameters(ifield_p_prime))
+      else
+        if (ifield_p /= 0 .or. ifield_p_prime /= 0) then
+          call error_abort("p or p_prime variable missing from config")
+        end if
       end if
-      call copy_solver_parameters(solve%solver_eq_parameters(ifield_p), solve%solver_eq_parameters(ifield_p_prime))
 
   end subroutine
   
 
-  !v Copies solver parameters from one object to an other while keeping the name 
+  !v Copies solver parameters from one object to an other while keeping the name and solve flag
   subroutine copy_solver_parameters(in_solver_parameters, out_solver_parameters)
     type(solver_params), intent(in) :: in_solver_parameters
     type(solver_params), intent(inout) :: out_solver_parameters
     character(len=ccs_string_len) :: name
+    logical :: solve
 
     name = out_solver_parameters%name
+    solve = out_solver_parameters%solve
     out_solver_parameters = in_solver_parameters
     out_solver_parameters%name = trim(name)
+    out_solver_parameters%solve = solve
 
   end subroutine
 
