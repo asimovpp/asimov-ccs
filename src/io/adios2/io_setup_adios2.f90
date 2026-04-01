@@ -94,7 +94,7 @@ contains
 
         call adios2_declare_io(io_proc%io_task, io_env%adios, process_name, ierr)
         if(present(sim_time)) then
-          call adios2_define_attribute(dt_attr, io_proc%io_task, "delta t", delta_t, ierr)
+          call adios2_define_attribute(dt_attr, io_proc%io_task, "dt", delta_t, ierr)
           call adios2_define_attribute(time_attr, io_proc%io_task, "simulation time", sim_time, ierr)
         end if
 
