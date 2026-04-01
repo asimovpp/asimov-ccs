@@ -27,13 +27,9 @@ module signal_handler
 contains
 
   subroutine create_signal_handler
-    import :: c_funloc, c_funptr
     type(c_funptr) :: ptr_sigterm
-    ! type(c_funptr) :: ptr_sigint
     integer(c_int), parameter :: SIGTERM = 15
-    ! integer(c_int), parameter :: SIGINT = 2
     ptr_sigterm = c_signal(SIGTERM, c_funloc(catch_signal))
-    ! ptr_siting = c_signal(SIGINT, c_funloc(catch_signal))
   end subroutine create_signal_handler
 
   subroutine catch_signal(signum) bind(c)
