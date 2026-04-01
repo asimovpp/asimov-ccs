@@ -17,7 +17,8 @@ submodule (core) core_solver
   use profiler, only: profiler_begin_region, profiler_end_region
   use logging, only: log_unit_out
   use timestepping, only: timestepping_is_active, finalise_timestep
-  
+  use signal_handler, only: create_signal_handler
+
   implicit none
 
 contains
