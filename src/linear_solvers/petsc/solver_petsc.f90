@@ -12,6 +12,7 @@ submodule(solver) solver_petsc
   use parallel_types_mpi, only: parallel_environment_mpi
   use utils, only: update, exit_print
   use logging, only: log_unit_out
+  use constants, only: ccs_string_len
 
   implicit none
 
@@ -130,15 +131,16 @@ contains
   module subroutine set_solver_method(method_name, solver)
 
 #if PETSC_VERSION_GE(3,23,0)
-    use petscksp, only: KSPSetType, KSPSetFromOptions, KSPSetOptionsPrefix
+    use petscksp, only: KSPSetType, KSPGetType, KSPSetFromOptions, KSPSetOptionsPrefix
 #else
-    use petscksp, only: KSPSetType, KSPSetFromOptions
+    use petscksp, only: KSPSetType, KSPGetType, KSPSetFromOptions
 #endif
     ! Arguments
     character(len=*), intent(in) :: method_name   !< String naming the linear solver to be used.
     class(linear_solver), intent(inout) :: solver !< The linear solver object
 
     ! Local
+    character(len=ccs_string_len) :: petsc_method_name
     integer(ccs_err) :: ierr ! Error code
 
     select type (solver)
@@ -146,6 +148,15 @@ contains
       associate (ksp => solver%KSP)
         ! Set linear solver type directly from method name
         call KSPSetType(ksp, trim(method_name), ierr)
+
+        if (ierr /= 0) then
+          call error_abort("ERROR: setting solver method failed, " // trim(method_name) // " solver likely unsuported.")
+        end if
+
+        call KSPGetType(ksp, petsc_method_name, ierr)
+        if (trim(petsc_method_name) /= trim(method_name)) then
+          call error_abort("ERROR: petsc solver method ("//trim(petsc_method_name)//") doesn't match requested method ("// trim(method_name)//")")
+        end if
 
         if (allocated(solver%linear_system%name)) then
           call KSPSetOptionsPrefix(ksp, solver%linear_system%name // ':', ierr)
@@ -163,11 +174,11 @@ contains
   module subroutine set_solver_precon(precon_name, solver)
 
 #if PETSC_VERSION_GE(3,23,0)
-    use petscksp, only: KSPGetPC, tPC, PCSetType, PCSetReusePreconditioner, PCSetFromOptions, &
+    use petscksp, only: KSPGetPC, tPC, PCSetType, PCGetType, PCSetReusePreconditioner, PCSetFromOptions, &
                         PCSetOptionsPrefix, KSPSetOptionsPrefix
 #else
     use petscksp, only: KSPGetPC
-    use petscpc, only: tPC, PCSetType, PCSetReusePreconditioner, PCSetFromOptions
+    use petscpc, only: tPC, PCSetType, PCGetType, PCSetReusePreconditioner, PCSetFromOptions
 #endif
 
     use petsc, only: PETSC_TRUE
@@ -178,6 +189,7 @@ contains
 
     ! Local
     type(tPC) :: pc          ! PETSc preconditioner object
+    character(len=ccs_string_len) :: petsc_precon_name
     integer(ccs_err) :: ierr ! Error code
 
     select type (solver)
@@ -187,6 +199,16 @@ contains
 
         ! Set preconditioner type directly using precon_name
         call PCSetType(pc, trim(precon_name), ierr)
+
+        if (ierr /= 0) then
+          call error_abort("ERROR: setting preconditioner method failed, " // trim(precon_name) // " preconditioner likely unsuported.")
+        end if
+
+        call PCGetType(pc, petsc_precon_name, ierr)
+        if (trim(petsc_precon_name) /= trim(precon_name)) then
+          call error_abort("ERROR: petsc precon method ("//trim(petsc_precon_name)//") doesn't match requested precon ("// trim(precon_name)//")")
+        end if
+
         call PCSetReusePreconditioner(pc, PETSC_TRUE, ierr)
 
         ! Allow command-line options to override settings in source or config file
