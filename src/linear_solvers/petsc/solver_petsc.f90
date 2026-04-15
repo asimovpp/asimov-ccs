@@ -133,7 +133,7 @@ contains
 #if PETSC_VERSION_GE(3,23,0)
     use petscksp, only: KSPSetType, KSPGetType, KSPSetFromOptions, KSPSetOptionsPrefix
 #else
-    use petscksp, only: KSPSetType, KSPGetType, KSPSetFromOptions
+    use petscksp, only: KSPSetType, KSPSetFromOptions
 #endif
     ! Arguments
     character(len=*), intent(in) :: method_name   !< String naming the linear solver to be used.
@@ -153,10 +153,12 @@ contains
           call error_abort("ERROR: setting solver method failed, " // trim(method_name) // " solver likely unsuported.")
         end if
 
+#if PETSC_VERSION_LT(3,23,0)
         call KSPGetType(ksp, petsc_method_name, ierr)
         if (trim(petsc_method_name) /= trim(method_name)) then
           call error_abort("ERROR: petsc solver method ("//trim(petsc_method_name)//") doesn't match requested method ("// trim(method_name)//")")
         end if
+#endif
 
         if (allocated(solver%linear_system%name)) then
           call KSPSetOptionsPrefix(ksp, solver%linear_system%name // ':', ierr)
@@ -177,8 +179,7 @@ contains
     use petscksp, only: KSPGetPC, tPC, PCSetType, PCGetType, PCSetReusePreconditioner, PCSetFromOptions, &
                         PCSetOptionsPrefix, KSPSetOptionsPrefix
 #else
-    use petscksp, only: KSPGetPC
-    use petscpc, only: tPC, PCSetType, PCGetType, PCSetReusePreconditioner, PCSetFromOptions
+    use petscpc, only: tPC, PCSetType, PCSetReusePreconditioner, PCSetFromOptions
 #endif
 
     use petsc, only: PETSC_TRUE
@@ -204,10 +205,12 @@ contains
           call error_abort("ERROR: setting preconditioner method failed, " // trim(precon_name) // " preconditioner likely unsuported.")
         end if
 
+#if PETSC_VERSION_LT(3,23,0)
         call PCGetType(pc, petsc_precon_name, ierr)
         if (trim(petsc_precon_name) /= trim(precon_name)) then
           call error_abort("ERROR: petsc precon method ("//trim(petsc_precon_name)//") doesn't match requested precon ("// trim(precon_name)//")")
         end if
+#endif
 
         call PCSetReusePreconditioner(pc, PETSC_TRUE, ierr)
 
