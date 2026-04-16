@@ -1149,7 +1149,7 @@ contains
 
   subroutine check_convergence(par_env, flow, itr, residuals, &
                                converged, diverged)
-    use constants, only: L2, Linfty
+    use constants, only: Linfty
     
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< The parallel environment
