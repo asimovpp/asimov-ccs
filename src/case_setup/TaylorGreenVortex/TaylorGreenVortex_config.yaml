@@ -22,6 +22,9 @@ cps: 8
 # domain size
 L: 3.1415926535
 
+# Enable/disable solver debugging at runtime
+debug_solver: false
+
 relaxation_factor:
   u: 0.9
   v: 0.9
