@@ -849,7 +849,7 @@ contains
     end if
 
     ! Verify operator is symmetric
-    if (.true.) then
+    if (run_options%solve%debug) then
       call check_operator_symmetry(M)
     end if
     

@@ -76,6 +76,7 @@ module core
     character(len=ccs_string_len) :: velocity_precon = "bjacobi"
     character(len=ccs_string_len) :: pressure_solver = "cg"
     character(len=ccs_string_len) :: pressure_precon = "gamg"
+    logical :: debug = .false. ! Turn on solver checks
   end type solver_options
 
   !v Options for parallelism
