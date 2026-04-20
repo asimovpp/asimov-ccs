@@ -597,10 +597,11 @@ contains
   end subroutine mat_vec_product
 
   module subroutine check_operator_symmetry(M)
+#include <petsc/finclude/petscsys.h>
     use petscmat, only: MatIsSymmetric
 
     class(ccs_matrix), intent(in) :: M
-    logical :: symm
+    PetscBool symm
     integer :: ierr
 
     real(ccs_real) :: tol
