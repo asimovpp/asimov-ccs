@@ -12,6 +12,8 @@ submodule(mat) mat_petsc
   use error_codes
   use logging, only: log_unit_out
 
+  use iso_c_binding
+
   implicit none
 
 contains
@@ -597,9 +599,7 @@ contains
   end subroutine mat_vec_product
 
   module subroutine check_operator_symmetry(M)
-#if PETSC_VERSION_GE(3,24,0)
-#define PetscBool logical(kind=4)
-#elif PETSC_VERSION_GE(3,23,0)
+#if PETSC_VERSION_GE(3,23,0)
 #include <petsc/finclude/petscsysbase.h>
 #else
 #include <petsc/finclude/petscsys.h>
