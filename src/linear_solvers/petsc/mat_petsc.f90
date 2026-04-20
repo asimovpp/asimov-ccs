@@ -613,7 +613,7 @@ contains
        call MatIsSymmetric(M%M, tol, symm, ierr)
 
        if (.not. symm) then
-          call error_abort("Matrix is unsymmetric")
+          call error_abort("Matrix " // trim(M%name) // " is unsymmetric")
        end if
     class default
        call error_abort("Unknown matrix type.")
