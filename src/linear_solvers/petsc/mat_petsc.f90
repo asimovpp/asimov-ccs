@@ -601,7 +601,7 @@ contains
     use petscmat, only: MatIsSymmetric
 
     class(ccs_matrix), intent(in) :: M
-    PetscBool symm
+    PetscBool :: symm
     integer :: ierr
 
     real(ccs_real) :: tol
