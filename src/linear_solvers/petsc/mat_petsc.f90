@@ -596,4 +596,29 @@ contains
 
   end subroutine mat_vec_product
 
+  module subroutine check_operator_symmetry(M)
+#include <petsc/finclude/petscsys.h>
+    use petscsys
+    use petscmat, only: MatIsSymmetric
+
+    class(ccs_matrix), intent(in) :: M
+    PetscBool :: symm
+    integer :: ierr
+
+    real(ccs_real) :: tol
+
+    select type(M)
+    type is (matrix_petsc)
+       tol = 1.0e-6
+       call MatIsSymmetric(M%M, tol, symm, ierr)
+
+       if (.not. symm) then
+          call error_abort("Matrix " // trim(M%name) // " is unsymmetric")
+       end if
+    class default
+       call error_abort("Unknown matrix type.")
+    end select
+    
+  end subroutine check_operator_symmetry
+
 end submodule mat_petsc

@@ -37,6 +37,7 @@ module mat
   public :: set_matrix_diagonal
   public :: add_matrix_diagonal
   public :: zero_matrix
+  public :: check_operator_symmetry
 
   interface
 
@@ -223,6 +224,12 @@ module mat
     module subroutine zero_matrix(M)
       class(ccs_matrix), intent(inout) :: M
     end subroutine zero_matrix
+
+    !> Checks that the operator is numerically symmetric
+    module subroutine check_operator_symmetry(M)
+      class(ccs_matrix), intent(in) :: M
+    end subroutine check_operator_symmetry
+    
   end interface
 
 end module mat
