@@ -3,6 +3,8 @@ program test_sigterm
 #include "ccs_macros.inc"
   use testing_lib
   use signal_handler, only: create_signal_handler, sigterm_issued
+  use parallel, only: is_root
+  use mpi
 
   implicit none
   integer :: i, j
@@ -10,8 +12,6 @@ program test_sigterm
 
   call init()
 
-  sigterm_issued = .false.
-  print *, "start", sigterm_issued
   call create_signal_handler()
 
   ! This is to avoid using a call to sleep, a subroutine from GNU extensions
@@ -20,20 +20,16 @@ program test_sigterm
     do j=0, 50000
       call random_number(b)
       a = a + b
-      if (sigterm_issued) then
-        exit
-      end if
     end do
     if (sigterm_issued) then
       exit
     end if
   end do
 
-  print *, "before check", sigterm_issued
-  if (.not. sigterm_issued) then
-    print *, "during check", sigterm_issued
-    call error_abort("sigterm not called")
+  if (is_root(par_env) .and. (.not. sigterm_issued)) then
+    call error_abort("SIGTERM not caught")
   end if
-  print *, "after check", sigterm_issued
+
+  call fin()
 
 end program test_sigterm
