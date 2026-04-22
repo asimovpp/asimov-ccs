@@ -1,0 +1,5 @@
+# RUN: %build_test %s %t1 test_sigterm.f90
+# RUN: bash test_sigterm.sh "%mpirun" %t1
+
+main: test_sigterm
+base: mpi
