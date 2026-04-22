@@ -231,6 +231,7 @@ contains
     real(ccs_real) :: dt
     logical :: unsteady
     real(ccs_real) :: res_target
+    logical :: debug_solver
     logical :: present, required
 
     ! Default values for error checking
@@ -272,6 +273,12 @@ contains
 
     solve%it_start = 1
     solve%it_end = num_iters
+
+    required = .false.
+    call get_value(config_file, 'debug_solver', debug_solver, present, required)
+    if (present) then
+       solve%debug = debug_solver
+    end if
 
   end subroutine get_solver_options
 

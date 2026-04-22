@@ -15,7 +15,8 @@ submodule(pv_coupling) pv_coupling_simple
                  create_vector_values, set_vector_location, zero_vector, vec_aypx, &
                  mult_vec_vec
   use mat, only: create_matrix, set_nnz, get_matrix_diagonal, set_matrix_values_spec_nrows, &
-                 set_matrix_values_spec_ncols, create_matrix_values, mat_vec_product
+                 set_matrix_values_spec_ncols, create_matrix_values, mat_vec_product, &
+                 check_operator_symmetry
   use utils, only: update, initialise, finalise, set_size, set_values, &
                    mult, zero, clear_entries, set_entry, set_row, set_col, set_mode, &
                    str, exit_print, debug_print
@@ -841,6 +842,12 @@ contains
     else
       call set_equation_system(par_env, vec, p_prime%values, M, lin_sys)
     end if
+
+    ! Verify operator is symmetric
+    if (run_options%solve%debug) then
+      call check_operator_symmetry(M)
+    end if
+    
     call create_solver(lin_sys, lin_solver)
 
     ! Customise linear solver
