@@ -9,7 +9,6 @@ module signal_handler
 
   private
 
-  integer(ccs_int) :: signum
   logical, public :: sigterm_issued = .false.
 
   public :: create_signal_handler
@@ -34,6 +33,8 @@ contains
 
   subroutine catch_signal(signum) bind(c)
     integer(kind=c_int), intent(in), value :: signum
+    associate(foo => signum)
+    end associate
     sigterm_issued = .true.
   end subroutine catch_signal
 
