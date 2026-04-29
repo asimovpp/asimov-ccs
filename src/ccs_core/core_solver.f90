@@ -208,7 +208,7 @@ contains
       stop_on_request = .true.
     else if (sigterm_issued) then
       if (is_root(par_env)) then
-        print *, "INFO: Received SIGTERM signal"
+        write(log_unit_outm,*) "INFO: Received SIGTERM signal"
       end if
       call dump_run(par_env, run_options, t, flow_fields)
 
