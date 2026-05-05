@@ -349,7 +349,7 @@ contains
   subroutine set_default_precon(solver_parameters)
     use constants, only: default_precon, default_pressure_precon 
 
-    type(solver_params), intent(inout) :: solver_parameters !< Solver parameters getting its precon set
+    type(solver_params), intent(inout) :: solver_parameters !< Solver parameters that will get its preconditioner set to default if needed
 
     if (solver_parameters%precon_name == "") then
       if (solver_parameters%name == "p") then
@@ -364,7 +364,7 @@ contains
   subroutine set_default_solver(solver_parameters)
     use constants, only: default_solver, default_pressure_solver 
 
-    type(solver_params), intent(inout) :: solver_parameters !< Solver parameters getting its solver set
+    type(solver_params), intent(inout) :: solver_parameters !< Solver parameters that will get its solver set to default if needed
 
     if (solver_parameters%solver_name == "") then
       if (solver_parameters%name == "p") then
