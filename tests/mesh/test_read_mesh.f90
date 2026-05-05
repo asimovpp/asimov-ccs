@@ -10,13 +10,12 @@ program test_read_mesh
 
   implicit none
 
-  type(ccs_options) :: run_options
+  type(ccs_options):: run_options
 
   
   call init()
 
-  run_options%mesh%init_mesh_type = read_input_mesh
-  run_options%paths%case_name = "test_read_mesh"
+  run_options%paths%case_name = "MESH_FILES/cube_tet_128k"
   run_options%mesh%bnd_names = bnd_names_default
   
   call read_mesh(par_env, shared_env, run_options, mesh)
@@ -42,11 +41,11 @@ program test_read_mesh
   subroutine check_mesh_volume()
   use meshing, only: create_cell_locator, get_volume, get_local_num_cells
 
-    real(ccs_real) :: vol, V, vol_global
-    integer(ccs_int) :: i, local_num_cells, nneg_vol, nneg_vol_global
-    type(cell_locator) :: loc_p
+    real(ccs_real):: vol, V, vol_global
+    integer(ccs_int):: i, local_num_cells, nneg_vol, nneg_vol_global
+    type(cell_locator):: loc_p
 
-    integer :: ierr
+    integer:: ierr
     
     vol = 0.0_ccs_real
     nneg_vol = 0
@@ -55,10 +54,10 @@ program test_read_mesh
         call create_cell_locator(i, loc_p)
         call get_volume(loc_p, V)
         if (V <= 0) then
-            nneg_vol = nneg_vol + 1
+            nneg_vol = nneg_vol+1
         end if
 
-        vol = vol + V
+        vol = vol+V
     end do
 
     select type (par_env)
