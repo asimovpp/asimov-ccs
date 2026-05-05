@@ -84,7 +84,7 @@ variables:
   variable_3:
     name: w
     type: upwind
-    solve: on
+    solve: off
     relaxation: 0.9
   variable_4:
     name: p

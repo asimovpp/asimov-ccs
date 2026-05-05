@@ -262,7 +262,7 @@ module read_config
 
     module subroutine get_solver_eq_parameters(config_file, solver_parameters)
       class(*), pointer, intent(in) :: config_file                      !< the entry point to the config file
-      type(solver_params), dimension(:), allocatable, intent(out) :: solver_parameters
+      type(solver_params), dimension(:), allocatable, intent(out) :: solver_parameters !< Solver parameters to write to
     end subroutine
 
   end interface

@@ -413,8 +413,9 @@ contains
     use parallel, only: is_root
     use constants, only: L2, Linfty
 
-    class(parallel_environment), intent(in) :: par_env
-    type(fluid), intent(in) :: flow
+    class(parallel_environment), intent(in) :: par_env !< Parallel environment
+    type(fluid), intent(in) :: flow !< fluid containing the list of fields to solve and display info of
+
     class(field), pointer :: phi
 
     integer :: ifield, nfields

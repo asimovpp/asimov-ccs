@@ -318,7 +318,7 @@ contains
     use constants, only: L2, Linfty
 
     class(*), pointer, intent(in) :: config_file                      !< the entry point to the config file
-    type(solver_params), dimension(:), allocatable, intent(out) :: solver_parameters
+    type(solver_params), dimension(:), allocatable, intent(out) :: solver_parameters !< Solver parameters to write to
 
     class(*), pointer :: dict
     class(*), pointer :: dict_var

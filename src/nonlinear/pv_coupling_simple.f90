@@ -15,7 +15,8 @@ submodule(pv_coupling) pv_coupling_simple
                  create_vector_values, set_vector_location, zero_vector, vec_aypx, &
                  mult_vec_vec
   use mat, only: create_matrix, set_nnz, get_matrix_diagonal, set_matrix_values_spec_nrows, &
-                 set_matrix_values_spec_ncols, create_matrix_values, mat_vec_product
+                 set_matrix_values_spec_ncols, create_matrix_values, mat_vec_product, &
+                 check_operator_symmetry
   use utils, only: update, initialise, finalise, set_size, set_values, &
                    mult, zero, clear_entries, set_entry, set_row, set_col, set_mode, &
                    str, exit_print, debug_print
@@ -206,7 +207,7 @@ contains
       call dprint("NONLINEAR: mass imbalance")
       call compute_mass_imbalance(invA, flow, source, residuals)
       call dprint("NONLINEAR: compute p'")
-      call calculate_pressure_correction(par_env, invA, M, source, lin_system, p_prime, lin_solverP)
+      call calculate_pressure_correction(par_env, run_options, invA, M, source, lin_system, p_prime, lin_solverP)
 
       ! Update velocity with velocity correction (eq. 6)
       call dprint("NONLINEAR: correct face velocity")
@@ -741,7 +742,7 @@ contains
   !v Solves the pressure correction equation
   !
   !  Solves the pressure correction equation formed by the mass-imbalance.
-  subroutine calculate_pressure_correction(par_env, invA, M, vec, lin_sys, p_prime, lin_solver)
+  subroutine calculate_pressure_correction(par_env, run_options, invA, M, vec, lin_sys, p_prime, lin_solver)
 
     use fv, only: compute_boundary_coeffs
     use profiler
@@ -749,6 +750,7 @@ contains
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< the parallel environment
+    type(ccs_options), intent(in) :: run_options                    !< runtime options
     class(ccs_vector), intent(inout) :: invA                        !< inverse diagonal momentum coefficients
     class(ccs_matrix), allocatable, intent(inout) :: M              !< matrix object
     class(ccs_vector), allocatable, intent(inout) :: vec            !< the RHS vector
@@ -841,6 +843,12 @@ contains
     else
       call set_equation_system(par_env, vec, p_prime%values, M, lin_sys)
     end if
+
+    ! Verify operator is symmetric
+    if (run_options%solve%debug) then
+      call check_operator_symmetry(M)
+    end if
+    
     call create_solver(lin_sys, lin_solver)
 
     ! Customise linear solver
