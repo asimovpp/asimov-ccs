@@ -108,6 +108,7 @@ module mesh_utils
   public :: print_topo
   public :: print_geo
   public :: build_adjacency_matrix
+  public :: test_mesh_internal_neighbours
 
 contains
 
@@ -2992,5 +2993,52 @@ contains
       call error_abort("invalid parallel environment")
     end select
   end subroutine set_offsets
+
+  !v check if parent of loc_nb is in loc_nb neighbour list, fail using assert if not
+  subroutine test_mesh_internal_neighbours(loc_nb)
+
+    !use meshing, only: count_neighbours, get_local_index, get_boundary_status, get_local_status
+    use testing_lib, only: assert_neq, assert_bool
+
+    type(neighbour_locator), intent(in) :: loc_nb
+
+    integer(ccs_int) :: index_nb
+    type(cell_locator) :: cell_loc_nb
+    integer(ccs_int) :: nnb
+    logical :: found_parent
+    integer(ccs_int) :: j
+    type(neighbour_locator) :: loc_nb_nb
+    logical :: is_boundary
+    logical :: is_local
+
+    associate (parent_idx => loc_nb%index_p)
+      call get_local_index(loc_nb, index_nb)
+
+      ! Neighbour index should not be its parents
+      call assert_neq(index_nb, parent_idx, "Neighbour has same index as parent cell")
+
+      call get_local_status(loc_nb, is_local)
+      if (is_local) then
+        ! Parent should be in neighbour's neighbour list
+        call create_cell_locator(index_nb, cell_loc_nb)
+        call count_neighbours(cell_loc_nb, nnb)
+        found_parent = .false.
+        do j = 1, nnb
+          call create_neighbour_locator(cell_loc_nb, j, loc_nb_nb)
+          call get_boundary_status(loc_nb_nb, is_boundary)
+          if (.not. is_boundary) then ! We are looking for parent cell - by definition not a boundary!
+            call get_local_index(loc_nb_nb, index_nb)
+            if (index_nb == parent_idx) then
+              found_parent = .true.
+              exit
+            end if
+          end if
+        end do
+        call assert_bool(found_parent, "Couldn't find cell in neighbour's neighbour list")
+      end if
+
+    end associate
+
+  end subroutine test_mesh_internal_neighbours
 
 end module mesh_utils

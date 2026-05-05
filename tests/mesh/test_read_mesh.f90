@@ -5,8 +5,10 @@ program test_read_mesh
   use core, only: ccs_options, read_input_mesh
   use ccs_base, only: bnd_names_default
   use ccs_base, only: mesh
-  use mesh_utils, only: read_mesh
+  use mesh_utils, only: read_mesh, test_mesh_internal_neighbours
   use meshing, only: set_mesh_object, nullify_mesh_object
+  use meshing, only: create_cell_locator, create_neighbour_locator, count_neighbours, &
+                     get_boundary_status, get_local_num_cells, get_local_index
 
   implicit none
 
@@ -21,23 +23,53 @@ program test_read_mesh
   call read_mesh(par_env, shared_env, run_options, mesh)
   call set_mesh_object(mesh)
 
-
-
   ! Check mesh volume
   call check_mesh_volume()
 
-
-!   call check_mesh_neighbours(mesh, 31415)
-!   call check_mesh_neighbours(mesh, 314)
-!   call check_mesh_neighbours(mesh, 9082)
+  ! Check mesh neighbour connectivity
+  call check_neighbours()
  
-
   call nullify_mesh_object()
   call fin()
 
-
   contains
 
+  !v Check that each neighbour are linked together. Makes sure topology is consistent
+  subroutine check_neighbours()
+
+    integer(ccs_int) :: nnb
+    integer(ccs_int) :: index_nb
+    integer(ccs_int) :: local_num_cells
+    type(cell_locator) :: loc_p
+    type(neighbour_locator) :: loc_nb
+    integer(ccs_int) :: i, j
+    logical :: is_boundary
+
+    call get_local_num_cells(local_num_cells)
+    do i = 1, local_num_cells
+
+      call create_cell_locator(i, loc_p)
+      call count_neighbours(loc_p, nnb)
+
+      ! Loop over neighbours
+      do j = 1, nnb
+        call create_neighbour_locator(loc_p, j, loc_nb)
+
+        call get_local_index(loc_nb, index_nb)
+        call assert_neq(index_nb, 0, "All neighbours should be filled!")
+        
+        call get_boundary_status(loc_nb, is_boundary)
+        if (.not. is_boundary) then
+          call test_mesh_internal_neighbours(loc_nb)
+        end if
+      end do
+
+    end do
+
+  end subroutine 
+
+
+  !v Check that the sum of cell volume adds up to the mesh overall volume
   subroutine check_mesh_volume()
   use meshing, only: create_cell_locator, get_volume, get_local_num_cells
 
@@ -69,6 +101,7 @@ program test_read_mesh
         call stop_test(message)
     end select
 
+    ! 31.006.... ~= pi**3
     call assert_eq(vol_global, 31.006280191406404d0, "Mesh volume not matching")
     call assert_eq(nneg_vol_global, 0, "Cells with negative volume detected")
 
