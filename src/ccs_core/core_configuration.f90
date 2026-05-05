@@ -263,9 +263,9 @@ contains
 
     call get_value(config_file, 'target_residual', res_target)
     if (res_target == huge(0.0)) then
-      call error_abort("No value assigned to default target residual.")
+      call error_abort("No value assigned to global target residual.")
     end if
-    solve%default_res_target = res_target
+    solve%global_res_target = res_target
 
     ! Gets solver parameters per equation
     call get_solver_eq_parameters(config_file, solve%solver_eq_parameters)
@@ -296,7 +296,7 @@ contains
 
       do ifield=1, nfields
 
-        call set_default_residuals_target(solve%solver_eq_parameters(ifield), solve%default_res_target)
+        call set_global_residuals_target(solve%solver_eq_parameters(ifield), solve%global_res_target)
         call set_default_res_norm(solve%solver_eq_parameters(ifield))
         call set_default_solver(solve%solver_eq_parameters(ifield))
         call set_default_precon(solve%solver_eq_parameters(ifield))
@@ -337,13 +337,13 @@ contains
 
   end subroutine
 
-  !v Set residuals target from default if not set already
-  subroutine set_default_residuals_target(solver_parameters, default_res_target)
+  !v Set residuals target from global value if not set already
+  subroutine set_global_residuals_target(solver_parameters, global_res_target)
     type(solver_params), intent(inout) :: solver_parameters !< Solver parameter
-    real(ccs_real), intent(in) :: default_res_target !< Default residuals norm target to use of res_target isn't set
+    real(ccs_real), intent(in) :: global_res_target !< Global residuals norm target to use if 'local'/per equation res_target isn't set
 
     if (solver_parameters%res_target == huge(ccs_real)) then
-      solver_parameters%res_target = default_res_target
+      solver_parameters%res_target = global_res_target
     end if
   end subroutine
 
