@@ -140,7 +140,7 @@ contains
     class(linear_solver), intent(inout) :: solver !< The linear solver object
 
     ! Local
-    character(len=ccs_string_len) :: petsc_method_name
+    character(len=ccs_string_len) :: petsc_method_name !< string including petsc method name
     integer(ccs_err) :: ierr ! Error code
 
     select type (solver)
@@ -193,7 +193,7 @@ contains
 
     ! Local
     type(tPC) :: pc          ! PETSc preconditioner object
-    character(len=ccs_string_len) :: petsc_precon_name
+    character(len=ccs_string_len) :: petsc_precon_name !< temp string containing preconditioner to send to petsc
     integer(ccs_err) :: ierr ! Error code
 
     select type (solver)

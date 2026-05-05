@@ -412,8 +412,9 @@ contains
     use kinds, only: CCS_PRECISION_STR
     use parallel, only: is_root
 
-    class(parallel_environment), intent(in) :: par_env
-    type(fluid), intent(in) :: flow
+    class(parallel_environment), intent(in) :: par_env !< Parallel environment
+    type(fluid), intent(in) :: flow !< fluid containing the list of fields to solve and display info of
+
     class(field), pointer :: phi
 
     integer :: ifield, nfields

@@ -322,8 +322,8 @@ contains
 
   !v Copies solver parameters from one object to an other while keeping the name and solve flag
   subroutine copy_solver_parameters(in_solver_parameters, out_solver_parameters)
-    type(solver_params), intent(in) :: in_solver_parameters
-    type(solver_params), intent(inout) :: out_solver_parameters
+    type(solver_params), intent(in) :: in_solver_parameters !< Input solver parameters to copy from
+    type(solver_params), intent(inout) :: out_solver_parameters !< Solver parameters receiving the input copy
     character(len=ccs_string_len) :: name
     logical :: solve
 
@@ -337,8 +337,8 @@ contains
 
   !v Set residuals target from default if not set already
   subroutine set_default_residuals_target(res_target, default_res_target)
-    real(ccs_real), intent(inout) :: res_target
-    real(ccs_real), intent(in) :: default_res_target
+    real(ccs_real), intent(inout) :: res_target !< Residuals norm target to set
+    real(ccs_real), intent(in) :: default_res_target !< Default residuals norm target to use of res_target isn't set
 
     if (res_target == huge(ccs_real)) then
       res_target = default_res_target
@@ -349,7 +349,7 @@ contains
   subroutine set_default_precon(solver_parameters)
     use constants, only: default_precon, default_pressure_precon 
 
-    type(solver_params), intent(inout) :: solver_parameters
+    type(solver_params), intent(inout) :: solver_parameters !< Solver parameters getting its precon set
 
     if (solver_parameters%precon_name == "") then
       if (solver_parameters%name == "p") then
@@ -364,7 +364,7 @@ contains
   subroutine set_default_solver(solver_parameters)
     use constants, only: default_solver, default_pressure_solver 
 
-    type(solver_params), intent(inout) :: solver_parameters
+    type(solver_params), intent(inout) :: solver_parameters !< Solver parameters getting its solver set
 
     if (solver_parameters%solver_name == "") then
       if (solver_parameters%name == "p") then
@@ -376,8 +376,9 @@ contains
 
   end subroutine
 
+  !v Check if the relaxation factor is set in solver_parameter, and abort if not
   subroutine check_relaxation_factor_set(solver_parameters)
-      type(solver_params), intent(inout) :: solver_parameters
+      type(solver_params), intent(inout) :: solver_parameters !< Solver parameters to check
 
       if (solver_parameters%solve .and. solver_parameters%relaxation_factor == huge(ccs_real)) then
         call error_abort("No values assigned to relaxation factor for variable "//solver_parameters%name)
@@ -390,8 +391,8 @@ contains
     use parallel, only: is_root
     use logging, only: log_unit_out
 
-    class(parallel_environment), intent(in) :: par_env
-    type(ccs_options), intent(in) :: run_options
+    class(parallel_environment), intent(in) :: par_env !< Parallel environment 
+    type(ccs_options), intent(in) :: run_options !< Runtime configuration
 
     if (is_root(par_env)) then
       associate(case_name => run_options%paths%case_name, &

@@ -231,7 +231,7 @@ contains
 
   ! Sets field solver parameters from run_options
   subroutine set_field_solver_params(run_options, field_index, flow)
-    type(ccs_options), intent(in) :: run_options
+    type(ccs_options), intent(in) :: run_options  !< Runtime options to extract solver parameters information from
     integer(ccs_int), intent(in) :: field_index   !< The index of the field being set
     type(fluid), intent(inout) :: flow            !< The fluid fields object being initialised
 
