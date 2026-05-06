@@ -17,7 +17,8 @@ submodule (core) core_solver
   use profiler, only: profiler_begin_region, profiler_end_region
   use logging, only: log_unit_out
   use timestepping, only: timestepping_is_active, finalise_timestep
-  
+  use signal_handler, only: create_signal_handler
+
   implicit none
 
 contains
@@ -63,7 +64,9 @@ contains
     integer(ccs_int) :: it_start, it_end
 
     logical:: diverged = .false.
-    
+
+    call create_signal_handler()
+
     if (run_options%solve%unsteady) then
       call activate_timestepping()
       call set_timestep(run_options%solve%dt)
@@ -185,10 +188,11 @@ contains
     
   end function stop_if_diverged
 
-  !> Checks for stop condition due to STOP file and dumps solution if this occurs.
+  !> Checks for stop condition due to STOP file or SIGTERM and dumps solution if this occurs.
   logical function stop_on_request(par_env, run_options, t, flow_fields)
 
     use parallel, only: query_stop_run
+    use signal_handler, only: sigterm_issued
 
     class(parallel_environment), intent(in), allocatable :: par_env
     type(ccs_options), intent(in) :: run_options
@@ -198,6 +202,13 @@ contains
     if (query_stop_run(par_env)) then
       if (is_root(par_env)) then
         write(log_unit_out,*) "INFO: Found STOP file"
+      end if
+      call dump_run(par_env, run_options, t, flow_fields)
+
+      stop_on_request = .true.
+    else if (sigterm_issued) then
+      if (is_root(par_env)) then
+        write(log_unit_out,*) "INFO: Received SIGTERM signal"
       end if
       call dump_run(par_env, run_options, t, flow_fields)
 
