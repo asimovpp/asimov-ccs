@@ -2994,22 +2994,21 @@ contains
     end select
   end subroutine set_offsets
 
-  !v check if parent of loc_nb is in loc_nb neighbour list, fail using assert if not
+  !v check if parent of loc_nb (neighbour locator) is in loc_nb neighbour list, fail using assert if not
   subroutine test_mesh_internal_neighbours(loc_nb)
 
-    !use meshing, only: count_neighbours, get_local_index, get_boundary_status, get_local_status
     use testing_lib, only: assert_neq, assert_bool
 
-    type(neighbour_locator), intent(in) :: loc_nb
+    type(neighbour_locator), intent(in) :: loc_nb ! Neighbour locator to test
 
     integer(ccs_int) :: index_nb
-    type(cell_locator) :: cell_loc_nb
     integer(ccs_int) :: nnb
-    logical :: found_parent
     integer(ccs_int) :: j
-    type(neighbour_locator) :: loc_nb_nb
+    logical :: found_parent
     logical :: is_boundary
     logical :: is_local
+    type(cell_locator) :: cell_loc_nb
+    type(neighbour_locator) :: loc_nb_nb
 
     associate (parent_idx => loc_nb%index_p)
       call get_local_index(loc_nb, index_nb)

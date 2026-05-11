@@ -1,4 +1,7 @@
-!> @brief Read mesh file and check if that has been done properly
+!> @brief Read mesh file and perform some checks on the resulting mesh object:
+! - Check that the sum of cell volume is the 'theoretical' mesh volume (pi**3 for the TGV mesh)
+! - Check that for each cell its neighbour connectivity is reciprocal
+! - Check that for each cell normal summation add up to 0
 program test_read_mesh
 
   use testing_lib
@@ -87,10 +90,10 @@ program test_read_mesh
     integer(ccs_int) :: nnb
     integer(ccs_int) :: index_nb
     integer(ccs_int) :: local_num_cells
-    type(cell_locator) :: loc_p
-    type(neighbour_locator) :: loc_nb
     integer(ccs_int) :: i, j
     logical :: is_boundary
+    type(cell_locator) :: loc_p
+    type(neighbour_locator) :: loc_nb
 
     call get_local_num_cells(local_num_cells)
     do i = 1, local_num_cells
