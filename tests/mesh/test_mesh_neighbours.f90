@@ -11,7 +11,7 @@ program test_mesh_neighbours
   use meshing, only: create_cell_locator, create_neighbour_locator, count_neighbours, &
                      get_boundary_status, get_local_num_cells, get_local_index
   use meshing, only: set_mesh_object, nullify_mesh_object
-  use mesh_utils, only: build_mesh
+  use mesh_utils, only: build_mesh, test_mesh_internal_neighbours
 
   implicit none
 
@@ -102,58 +102,5 @@ program test_mesh_neighbours
   end do
 
   call fin()
-
-contains
-
-  subroutine test_mesh_internal_neighbours(loc_nb)
-
-    use meshing, only: count_neighbours, get_local_index, get_boundary_status, get_local_status
-
-    type(neighbour_locator), intent(in) :: loc_nb
-
-    integer(ccs_int) :: index_nb
-    type(cell_locator) :: cell_loc_nb
-    integer(ccs_int) :: nnb
-    logical :: found_parent
-    integer(ccs_int) :: j
-    type(neighbour_locator) :: loc_nb_nb
-    logical :: is_boundary
-    logical :: is_local
-
-    associate (parent_idx => loc_nb%index_p)
-      call get_local_index(loc_nb, index_nb)
-
-      ! Neighbour index should not be its parents
-      if (index_nb == parent_idx) then
-        write (message, *) "FAIL: Neighbour has same index ", index_nb, " as parent cell ", parent_idx
-        call stop_test(message)
-      end if
-
-      call get_local_status(loc_nb, is_local)
-      if (is_local) then
-        ! Parent should be in neighbour's neighbour list
-        call create_cell_locator(index_nb, cell_loc_nb)
-        call count_neighbours(cell_loc_nb, nnb)
-        found_parent = .false.
-        do j = 1, nnb
-          call create_neighbour_locator(cell_loc_nb, j, loc_nb_nb)
-          call get_boundary_status(loc_nb_nb, is_boundary)
-          if (.not. is_boundary) then ! We are looking for parent cell - by definition not a boundary!
-            call get_local_index(loc_nb_nb, index_nb)
-            if (index_nb == parent_idx) then
-              found_parent = .true.
-              exit
-            end if
-          end if
-        end do
-        if (.not. found_parent) then
-          write (message, *) "FAIL: Couldn't find cell in neighbour's neighbour list!"
-          call stop_test(message)
-        end if
-      end if
-
-    end associate
-
-  end subroutine test_mesh_internal_neighbours
 
 end program test_mesh_neighbours
