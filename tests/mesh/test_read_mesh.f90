@@ -8,7 +8,7 @@ program test_read_mesh
   use mesh_utils, only: read_mesh, test_mesh_internal_neighbours
   use meshing, only: set_mesh_object, nullify_mesh_object
   use meshing, only: create_cell_locator, create_neighbour_locator, count_neighbours, &
-                     get_boundary_status, get_local_num_cells, get_local_index
+                     get_boundary_status, get_local_num_cells, get_local_index, create_face_locator
 
   implicit none
 
@@ -28,11 +28,58 @@ program test_read_mesh
 
   ! Check mesh neighbour connectivity
   call check_neighbours()
+
+  ! Check normal integration is 0
+  call check_normals()
  
   call nullify_mesh_object()
   call fin()
 
   contains
+
+  !v Checks that for each cell, the sum of its face normals is 0
+  subroutine check_normals()
+
+    use meshing, only: get_face_normal
+
+    integer(ccs_int) :: nnb
+    integer(ccs_int) :: local_num_cells
+    integer(ccs_int) :: i, j
+    logical :: is_boundary
+    type(cell_locator) :: loc_p
+    type(neighbour_locator) :: loc_nb
+    type(face_locator) :: loc_f 
+    real(ccs_real), dimension(3) :: face_normal
+    real(ccs_real), dimension(3) :: face_normal_sum
+
+    call get_local_num_cells(local_num_cells)
+    do i = 1, local_num_cells
+
+      call create_cell_locator(i, loc_p)
+      call count_neighbours(loc_p, nnb)
+      face_normal_sum(:) = 0.0_ccs_real
+
+      ! Loop over neighbours
+      do j = 1, nnb
+        call create_face_locator(i, j, loc_f)
+        call create_neighbour_locator(loc_p, j, loc_nb)
+        call get_face_normal(loc_f, face_normal)
+        call get_boundary_status(loc_nb, is_boundary)
+
+        if (is_boundary) then
+          ! Boundary faces are inwards facing
+          face_normal_sum = face_normal_sum - face_normal
+        else
+          face_normal_sum = face_normal_sum + face_normal
+        end if
+      end do
+
+      call assert_eq(norm2(face_normal_sum), 0.0_ccs_real, "Sum of face normals not zero")
+
+    end do
+
+  end subroutine
+
 
   !v Check that each neighbour are linked together. Makes sure topology is consistent
   subroutine check_neighbours()
