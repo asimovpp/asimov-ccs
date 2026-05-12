@@ -45,7 +45,84 @@ contains
     call get_bc_field(config_file, "type", phi, required=.false.)
     call get_bc_field(config_file, "value", phi, required=.false.)
     call get_bc_field(config_file, bc_field, phi, required=.false.)
+
+    call expand_bcs(bc_field, phi)
   end subroutine read_bc_config
+
+
+  !v Expand boundary conditions set by user into base bc only.
+  subroutine expand_bcs(bc_field, phi)
+    character(len=*), intent(in) :: bc_field !< string denoting which field we are working on
+    class(field), intent(inout) :: phi       !< the bc struct of the corresponding field
+    logical :: is_momentum, is_pressure, is_extra
+     
+    is_momentum = .false.
+    is_pressure = .false.
+    is_extra = .false.
+
+    if (bc_field == "u" .or. (bc_field == "v" .or. bc_field == "w")) then
+      is_momentum = .true.
+    elseif (bc_field == "p" .or. bc_field == "p_prime") then
+      is_pressure = .true.
+    else
+      is_extra = .true.
+    end if
+
+    do i=1, nb_bcs
+      select case(phi%bcs%bc_types(i))
+      case(bc_type_wall)
+        if (is_momentum) then
+          phi%bcs%bc_types(i) = bc_type_dirichlet
+          phi%bcs%bc_value(i) = 0.0_ccs_real
+        else if (is_pressure) then
+          phi%bcs%bc_types(i) = bc_type_neumann
+          phi%bcs%bc_value(i) = 0.0_ccs_real
+        else if (is_extra) then
+          phi%bcs%bc_types(i) = bc_type_dirichlet
+          phi%bcs%bc_value(i) = 0.0_ccs_real
+        end if
+        phi%bcs%bc_types_diffusion(i) = phi%bcs%bc_types(i) 
+
+      case(bc_type_inflow)
+        if (is_momentum) then
+          phi%bcs%bc_types(i) = bc_type_dirichlet
+        else if (is_pressure) then
+          phi%bcs%bc_types(i) = bc_type_neumann
+          phi%bcs%bc_value(i) = 0.0_ccs_real
+        else if (is_extra) then
+          phi%bcs%bc_types(i) = bc_type_dirichlet
+        end if
+        phi%bcs%bc_types_diffusion(i) = phi%bcs%bc_types(i) 
+ 
+      case(bc_type_outflow)
+        if (is_momentum) then
+          phi%bcs%bc_types(i) = bc_type_extrapolate
+        else if (is_pressure) then
+          phi%bcs%bc_types(i) = bc_type_neumann
+          phi%bcs%bc_value(i) = 0.0_ccs_real
+        else if (is_extra) then
+          phi%bcs%bc_types(i) = bc_type_extrapolate
+        end if
+        phi%bcs%bc_types_diffusion(i) = phi%bcs%bc_types(i) 
+
+       case(bc_type_slip_wall)
+        if (is_momentum) then
+          phi%bcs%bc_types(i) = bc_type_parallel
+          phi%bcs%bc_types_diffusion(i) = bc_type_parallel 
+        else if (is_pressure) then
+          phi%bcs%bc_types(i) = bc_type_neumann
+          phi%bcs%bc_value(i) = 0.0_ccs_real
+        else if (is_extra) then
+          phi%bcs%bc_types(i) = bc_type_parallel
+        end if
+        phi%bcs%bc_types_diffusion(i) = phi%bcs%bc_types(i) 
+     
+        ! ... still WIP
+
+      end select
+    end do
+
+  end subroutine
 
   !> Sets the appropriate integer values for strings with given by the key-value pair attribute, value
   pure subroutine set_bc_type(boundary_index, bc_type, bcs)
