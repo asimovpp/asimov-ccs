@@ -1157,7 +1157,7 @@ contains
 
   subroutine check_convergence(par_env, flow, itr, residuals, &
                                converged, diverged)
-    use ccs_base, only: L2, Linfty
+    use constants, only: Linfty
     
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< The parallel environment
@@ -1179,7 +1179,7 @@ contains
     do ifield=1, nfields
       call get_field(flow, ifield, phi)
       if (phi%solver_parameters%solve) then
-        converged = converged .and. is_converged(residuals, phi%solver_parameters%res_target, ifield, L2)
+        converged = converged .and. is_converged(residuals, phi, ifield)
       end if
     end do
 

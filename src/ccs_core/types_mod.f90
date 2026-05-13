@@ -225,6 +225,7 @@ module types
     character(len=ccs_string_len) :: name = ""               !< Name of the field to be transported
     logical :: solve = .false.                               !< Whether or not to solve said field
     real(ccs_real) :: res_target = huge(ccs_real)            !< The target residuals under which the iterative solve is considered converged
+    integer :: res_norm = -1                                 !< Norm to use for checking residuals levels
     real(ccs_real) :: relaxation_factor = huge(ccs_real)     !< Relaxation factor
     character(len=ccs_string_len) :: solver_name = ""        !< Solver name passed to the linear solver directly
     character(len=ccs_string_len) :: precon_name = ""        !< Preconditioner name passed to the linear solver directly

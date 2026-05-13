@@ -263,9 +263,9 @@ contains
 
     call get_value(config_file, 'target_residual', res_target)
     if (res_target == huge(0.0)) then
-      call error_abort("No value assigned to default target residual.")
+      call error_abort("No value assigned to global target residual.")
     end if
-    solve%default_res_target = res_target
+    solve%global_res_target = res_target
 
     ! Gets solver parameters per equation
     call get_solver_eq_parameters(config_file, solve%solver_eq_parameters)
@@ -285,7 +285,7 @@ contains
   !v Sets defaults when values aren't specified in the config file, either from constants module or
   !   from globally set default in the config file
   subroutine set_defaults_solver_eq_parameters(solve)
-    use constants, only: default_solver, default_precon, default_pressure_solver, default_pressure_precon
+    use constants, only: default_solver, default_precon, default_pressure_solver, default_pressure_precon, default_res_norm
           
       type(solver_options), intent(inout) :: solve   !< Object for solver options
       integer(ccs_int) :: nfields, ifield, ifield_p, ifield_p_prime
@@ -296,7 +296,8 @@ contains
 
       do ifield=1, nfields
 
-        call set_default_residuals_target(solve%solver_eq_parameters(ifield)%res_target, solve%default_res_target)
+        call set_global_residuals_target(solve%solver_eq_parameters(ifield), solve%global_res_target)
+        call set_default_res_norm(solve%solver_eq_parameters(ifield))
         call set_default_solver(solve%solver_eq_parameters(ifield))
         call set_default_precon(solve%solver_eq_parameters(ifield))
         call check_relaxation_factor_set(solve%solver_eq_parameters(ifield))
@@ -307,7 +308,7 @@ contains
         if (solve%solver_eq_parameters(ifield)%name == "p_prime") then
           ifield_p_prime = ifield
         end if
-      end do
+     end do
 
       ! Copy p solver options to p_prime
       if (ifield_p /= 0 .and. ifield_p_prime /= 0) then
@@ -319,6 +320,7 @@ contains
       end if
 
   end subroutine
+  
 
   !v Copies solver parameters from one object to an other while keeping the name and solve flag
   subroutine copy_solver_parameters(in_solver_parameters, out_solver_parameters)
@@ -335,14 +337,26 @@ contains
 
   end subroutine
 
-  !v Set residuals target from default if not set already
-  subroutine set_default_residuals_target(res_target, default_res_target)
-    real(ccs_real), intent(inout) :: res_target !< Residuals norm target to set
-    real(ccs_real), intent(in) :: default_res_target !< Default residuals norm target to use of res_target isn't set
+  !v Set residuals target from global value if not set already
+  subroutine set_global_residuals_target(solver_parameters, global_res_target)
+    type(solver_params), intent(inout) :: solver_parameters !< Solver parameter
+    real(ccs_real), intent(in) :: global_res_target !< Global residuals norm target to use if 'local'/per equation res_target isn't set
 
-    if (res_target == huge(ccs_real)) then
-      res_target = default_res_target
+    if (solver_parameters%res_target == huge(ccs_real)) then
+      solver_parameters%res_target = global_res_target
     end if
+  end subroutine
+
+  !v Set residuals norm from default if not set
+  subroutine set_default_res_norm(solver_parameters)
+    use constants, only: default_res_norm
+
+    type(solver_params), intent(inout) :: solver_parameters
+
+    if (solver_parameters%res_norm == -1) then
+      solver_parameters%res_norm = default_res_norm
+    end if
+
   end subroutine
 
   !v Set preconditioner from default if not set already

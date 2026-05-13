@@ -69,7 +69,7 @@ module core
     integer(ccs_int) :: it_end
     real(ccs_real) :: dt = huge(0.0_ccs_real)
     type(solver_params), dimension(:), allocatable :: solver_eq_parameters
-    real(ccs_real) :: default_res_target = huge(0.0_ccs_real)
+    real(ccs_real) :: global_res_target = huge(0.0_ccs_real)
     logical :: debug = .false. ! Turn on solver checks
   end type solver_options
 

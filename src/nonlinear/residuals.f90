@@ -6,7 +6,7 @@
 module residuals
 #include "ccs_macros.inc"
 
-  use ccs_base, only: L2, Linfty
+  use constants, only: L2, Linfty
   use kinds, only: ccs_int, ccs_real
   use types, only: fluid, field, ccs_vector, ccs_matrix, ccs_residuals
   use parallel_types, only: parallel_environment
@@ -96,14 +96,15 @@ contains
   end subroutine
 
   !v Check if a particular residual is below the res_target
-  logical function is_converged(residuals, res_target, ifield, norm) result(converged)
-    type(ccs_residuals), intent(in) :: residuals
-    real(ccs_real), intent(in) :: res_target
-    integer(ccs_int), intent(in) :: ifield
-    integer, intent(in) :: norm
+  logical function is_converged(residuals, phi, ifield) result(converged)
+    type(ccs_residuals), intent(in) :: residuals !< residuals object 
+    class(field), intent(in) :: phi !< field to get the residual target from
+    integer(ccs_int), intent(in) :: ifield !< index of the residual in 'residuals' object
+    real(ccs_real) :: res_target
 
- 
-    select case (norm)
+    res_target = phi%solver_parameters%res_target
+
+    select case (phi%solver_parameters%res_norm)
     case (L2)
       converged = residuals%L2(ifield) <= res_target
     case (Linfty)

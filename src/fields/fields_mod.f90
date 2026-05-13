@@ -411,6 +411,7 @@ contains
     use logging, only: log_unit_out
     use kinds, only: CCS_PRECISION_STR
     use parallel, only: is_root
+    use constants, only: L2, Linfty
 
     class(parallel_environment), intent(in) :: par_env !< Parallel environment
     type(fluid), intent(in) :: flow !< fluid containing the list of fields to solve and display info of
@@ -431,6 +432,12 @@ contains
           if (phi%solver_parameters%solve) then
             write(log_unit_out,*) "************ ", trim(phi%name), " ************"
             write(log_unit_out,'(A, E10.2)')  "   Residuals target: ", phi%solver_parameters%res_target
+            select case(phi%solver_parameters%res_norm)
+              case (L2)
+                write(log_unit_out,*) "  Residuals norm: L2"
+              case (Linfty)
+                write(log_unit_out,*) "  Residuals norm: Linfty"
+            end select
             write(log_unit_out,'(A, F4.2)')  "   Relaxation factor: ", phi%solver_parameters%relaxation_factor
             write(log_unit_out,*) "  Solver: ", phi%solver_parameters%solver_name
             write(log_unit_out,*) "  Preconditioner: ", phi%solver_parameters%precon_name
