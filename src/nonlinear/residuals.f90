@@ -6,7 +6,7 @@
 module residuals
 #include "ccs_macros.inc"
 
-  use ccs_base, only: L2, Linfty
+  use constants, only: L2, Linfty
   use kinds, only: ccs_int, ccs_real
   use types, only: fluid, field, ccs_vector, ccs_matrix, ccs_residuals
   use parallel_types, only: parallel_environment
@@ -94,6 +94,24 @@ contains
     call restore_vector_data_readonly(res, res_data)
 
   end subroutine
+
+  !v Check if a particular residual is below the res_target
+  logical function is_converged(residuals, phi, ifield) result(converged)
+    type(ccs_residuals), intent(in) :: residuals !< residuals object 
+    class(field), intent(in) :: phi !< field to get the residual target from
+    integer(ccs_int), intent(in) :: ifield !< index of the residual in 'residuals' object
+    real(ccs_real) :: res_target
+
+    res_target = phi%solver_parameters%res_target
+
+    select case (phi%solver_parameters%res_norm)
+    case (L2)
+      converged = residuals%L2(ifield) <= res_target
+    case (Linfty)
+      converged = residuals%Linfty(ifield) <= res_target
+    end select
+
+  end function
 
   !v Get the maximum residuals for a specific norm
   real(ccs_real) function get_max_residuals(residuals, norm) result(max_value)

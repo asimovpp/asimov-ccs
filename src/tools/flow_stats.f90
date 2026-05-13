@@ -22,6 +22,7 @@ module flow_stats
 contains
 
   subroutine report_cfl(par_env, flow)
+    use logging, only: log_unit_out
     class(parallel_environment), intent(in) :: par_env
     type(fluid), intent(in) :: flow
 
@@ -77,8 +78,8 @@ contains
     end select
 
     if (is_root(par_env)) then
-       print *, "CFL Max: ", cfl_max
-       print *, "CFL Avg: ", cfl_avg
+       write(log_unit_out,*) "CFL Max: ", cfl_max
+       write(log_unit_out,*) "CFL Avg: ", cfl_avg
     end if
     
   end subroutine report_cfl

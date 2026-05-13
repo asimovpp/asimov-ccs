@@ -134,7 +134,7 @@ program poisson
   ! ASiMoV-CCS uses
   use core
   use ccs_base, only: mesh, bnd_names_default
-  use constants, only: ndim, add_mode, insert_mode
+  use constants, only: ndim, add_mode, insert_mode, default_pressure_solver, default_pressure_precon
   use kinds, only: ccs_real, ccs_int
   use types, only: vector_spec, ccs_vector, matrix_spec, ccs_matrix, &
                    equation_system, linear_solver, ccs_mesh, cell_locator, face_locator, &
@@ -229,8 +229,8 @@ program poisson
   ! Create linear solver & set options
   call set_equation_system(par_env, b, u, M, poisson_eq)
   call create_solver(poisson_eq, poisson_solver)
-  call set_solver_method(run_options%solve%pressure_solver, poisson_solver)
-  call set_solver_precon(run_options%solve%pressure_precon, poisson_solver)
+  call set_solver_method(default_pressure_solver, poisson_solver)
+  call set_solver_precon(default_pressure_precon, poisson_solver)
   call solve(poisson_solver)
 
   ! Check solution

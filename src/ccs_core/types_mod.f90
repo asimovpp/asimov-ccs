@@ -6,6 +6,7 @@ module types
 
   use kinds, only: ccs_int, ccs_real, ccs_long
   use parallel_types, only: parallel_environment
+  use constants, only: ccs_string_len
 
   implicit none
 
@@ -216,8 +217,19 @@ module types
     logical :: enable_cell_corrections                            !< Whether or not deffered corrections should be used (non-orthogonality, excentricity etc.)
     character(len=20) :: name
     logical :: output = .false.                                   !< Should field be written in output?
-    logical :: solve = .true.                                     !< Whether to solve a linear system for this variable or not
+    integer(ccs_int) :: idx
+    type(solver_params), allocatable :: solver_parameters         !< Parameters to use when transporting the field
   end type field
+
+  type, public :: solver_params
+    character(len=ccs_string_len) :: name = ""               !< Name of the field to be transported
+    logical :: solve = .false.                               !< Whether or not to solve said field
+    real(ccs_real) :: res_target = huge(ccs_real)            !< The target residuals under which the iterative solve is considered converged
+    integer :: res_norm = -1                                 !< Norm to use for checking residuals levels
+    real(ccs_real) :: relaxation_factor = huge(ccs_real)     !< Relaxation factor
+    character(len=ccs_string_len) :: solver_name = ""        !< Solver name passed to the linear solver directly
+    character(len=ccs_string_len) :: precon_name = ""        !< Preconditioner name passed to the linear solver directly
+  end type
 
   type, public, extends(field) :: upwind_field
   end type

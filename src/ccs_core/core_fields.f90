@@ -12,7 +12,7 @@ submodule(core) core_fields
   use vec, only: set_vector_location
   use fields, only: set_field_config_file, set_field_n_boundaries, set_field_store_residuals, &
                     set_field_enable_cell_corrections, set_field_vector_properties, create_field, &
-                    set_field_name, set_field_type, set_is_field_solved, get_field
+                    set_field_name, set_field_type, set_is_field_solved, get_field, print_field_config
   use fortran_yaml_c_interface, only: parse
   use profiler, only: profiler_begin_region, profiler_end_region
   use logging, only: log_unit_out
@@ -86,6 +86,9 @@ contains
     call build_case_fields(par_env, run_options, field_properties, flow_fields)
 
     call profiler_end_region('Field initialisation')
+
+    call print_field_config(par_env, flow_fields)
+
   end subroutine initialise_fields
 
   !> Builds the user specified fields from the case config file
@@ -98,11 +101,6 @@ contains
     integer(ccs_int) :: i
     type(field_spec) :: my_field_properties
     
-    ! Expect to find u, v, w, p, p_prime, scalar
-    if (is_root(par_env)) then
-      write(log_unit_out,*) "Build field list"
-    end if
-
     ! Create a local copyt of field_properties
     my_field_properties = field_properties
     
@@ -115,14 +113,11 @@ contains
         cycle
       end if
 
-      if (is_root(par_env)) then
-        write(log_unit_out,*) "Creating field ", trim(run_options%variables%variable_names(i))
-      end if
       call set_field_type(run_options%variables%variable_types(i), my_field_properties)
       call set_field_name(run_options%variables%variable_names(i), my_field_properties)
       call create_field(par_env, my_field_properties, flow_fields)
       call add_fluid_field_to_outputlist(run_options, i, flow_fields)
-      call set_is_fluid_field_solved(run_options, i, flow_fields)
+      call set_field_solver_params(run_options, i, flow_fields)
     end do
 
     if (is_root(par_env)) then
@@ -193,7 +188,6 @@ contains
         call create_field(par_env, my_field_properties, flow_fields)
 
         call add_fluid_field_to_outputlist(run_options, field_index, flow_fields)
-        call set_is_fluid_field_solved(run_options, field_index, flow_fields)
         field_index = field_index + 1
       end if
     end do
@@ -233,22 +227,21 @@ contains
     end if
     nullify(phi)
   end subroutine add_fluid_field_to_outputlist
+  
 
-  !> Sets the solve flag for field specified by field index
-  subroutine set_is_fluid_field_solved(run_options, field_index, flow)
-    type(ccs_options), intent(in) :: run_options  !< Object containing relevant options for setting whether the field should be solved
+  ! Sets field solver parameters from run_options
+  subroutine set_field_solver_params(run_options, field_index, flow)
+    type(ccs_options), intent(in) :: run_options  !< Runtime options to extract solver parameters information from
     integer(ccs_int), intent(in) :: field_index   !< The index of the field being set
     type(fluid), intent(inout) :: flow            !< The fluid fields object being initialised
-    
+
     class(field), pointer :: phi
-    
-    call get_field(flow, field_index, phi)
-    if (any(phi%name == run_options%variables%solved_variables)) then
-      call set_is_field_solved(.true., phi)
-    else
-      call set_is_field_solved(.false., phi)
-    end if
+
+    ! Get field using the run_options equation name
+    call get_field(flow, run_options%solve%solver_eq_parameters(field_index)%name, phi)
+    phi%solver_parameters = run_options%solve%solver_eq_parameters(field_index)
     nullify(phi)
-  end subroutine set_is_fluid_field_solved
+
+  end subroutine
 
 end submodule core_fields

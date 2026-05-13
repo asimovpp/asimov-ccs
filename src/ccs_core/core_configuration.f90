@@ -4,9 +4,9 @@ submodule(core) core_configuration
   use read_config, only: get_variable_types, &
                          get_value, &
                          get_variables, get_relaxation_factors, &
-                         get_output_type, get_solve, &
+                         get_output_type, &
                          get_reference_number, &
-                         get_boundary_names
+                         get_boundary_names, get_solver_eq_parameters
   use utils, only: exit_print
   use logging, only: log_unit_out
 
@@ -192,7 +192,6 @@ contains
     end if
 
     call get_output_type(config_file, post_type, variables%output_variables)
-    call get_solve(config_file, variables%solved_variables)
 
   end subroutine get_variable_definitions
 
@@ -232,7 +231,6 @@ contains
     real(ccs_real) :: dt
     logical :: unsteady
     real(ccs_real) :: res_target
-    real(ccs_real) :: velocity_relax, pressure_relax
     logical :: debug_solver
     logical :: present, required
 
@@ -241,8 +239,6 @@ contains
     num_iters = huge(0)
     dt = huge(0.0_ccs_real)
     res_target = huge(0.0_ccs_real)
-    velocity_relax = huge(0.0_ccs_real)
-    pressure_relax = huge(0.0_ccs_real)
 
     call get_value(config_file, 'iterations', num_iters)
     if (num_iters == huge(0)) then
@@ -267,16 +263,13 @@ contains
 
     call get_value(config_file, 'target_residual', res_target)
     if (res_target == huge(0.0)) then
-      call error_abort("No value assigned to target residual.")
+      call error_abort("No value assigned to global target residual.")
     end if
-    solve%res_target = res_target
+    solve%global_res_target = res_target
 
-    call get_relaxation_factors(config_file, u_relax = velocity_relax, p_relax = pressure_relax)
-    if (velocity_relax == huge(0.0) .and. pressure_relax == huge(0.0)) then
-      call error_abort("No values assigned to velocity and pressure underrelaxation.")
-    end if
-    solve%velocity_relax = velocity_relax
-    solve%pressure_relax = pressure_relax
+    ! Gets solver parameters per equation
+    call get_solver_eq_parameters(config_file, solve%solver_eq_parameters)
+    call set_defaults_solver_eq_parameters(solve)
 
     solve%it_start = 1
     solve%it_end = num_iters
@@ -289,17 +282,131 @@ contains
 
   end subroutine get_solver_options
 
+  !v Sets defaults when values aren't specified in the config file, either from constants module or
+  !   from globally set default in the config file
+  subroutine set_defaults_solver_eq_parameters(solve)
+    use constants, only: default_solver, default_precon, default_pressure_solver, default_pressure_precon, default_res_norm
+          
+      type(solver_options), intent(inout) :: solve   !< Object for solver options
+      integer(ccs_int) :: nfields, ifield, ifield_p, ifield_p_prime
+
+      nfields = size(solve%solver_eq_parameters)
+      ifield_p = 0
+      ifield_p_prime = 0
+
+      do ifield=1, nfields
+
+        call set_global_residuals_target(solve%solver_eq_parameters(ifield), solve%global_res_target)
+        call set_default_res_norm(solve%solver_eq_parameters(ifield))
+        call set_default_solver(solve%solver_eq_parameters(ifield))
+        call set_default_precon(solve%solver_eq_parameters(ifield))
+        call check_relaxation_factor_set(solve%solver_eq_parameters(ifield))
+        
+        if (solve%solver_eq_parameters(ifield)%name == "p") then
+          ifield_p = ifield
+        end if
+        if (solve%solver_eq_parameters(ifield)%name == "p_prime") then
+          ifield_p_prime = ifield
+        end if
+     end do
+
+      ! Copy p solver options to p_prime
+      if (ifield_p /= 0 .and. ifield_p_prime /= 0) then
+        call copy_solver_parameters(solve%solver_eq_parameters(ifield_p), solve%solver_eq_parameters(ifield_p_prime))
+      else
+        if (ifield_p /= 0 .or. ifield_p_prime /= 0) then
+          call error_abort("p or p_prime variable missing from config")
+        end if
+      end if
+
+  end subroutine
+  
+
+  !v Copies solver parameters from one object to an other while keeping the name and solve flag
+  subroutine copy_solver_parameters(in_solver_parameters, out_solver_parameters)
+    type(solver_params), intent(in) :: in_solver_parameters !< Input solver parameters to copy from
+    type(solver_params), intent(inout) :: out_solver_parameters !< Solver parameters receiving the input copy
+    character(len=ccs_string_len) :: name
+    logical :: solve
+
+    name = out_solver_parameters%name
+    solve = out_solver_parameters%solve
+    out_solver_parameters = in_solver_parameters
+    out_solver_parameters%name = trim(name)
+    out_solver_parameters%solve = solve
+
+  end subroutine
+
+  !v Set residuals target from global value if not set already
+  subroutine set_global_residuals_target(solver_parameters, global_res_target)
+    type(solver_params), intent(inout) :: solver_parameters !< Solver parameter
+    real(ccs_real), intent(in) :: global_res_target !< Global residuals norm target to use if 'local'/per equation res_target isn't set
+
+    if (solver_parameters%res_target == huge(ccs_real)) then
+      solver_parameters%res_target = global_res_target
+    end if
+  end subroutine
+
+  !v Set residuals norm from default if not set
+  subroutine set_default_res_norm(solver_parameters)
+    use constants, only: default_res_norm
+
+    type(solver_params), intent(inout) :: solver_parameters
+
+    if (solver_parameters%res_norm == -1) then
+      solver_parameters%res_norm = default_res_norm
+    end if
+
+  end subroutine
+
+  !v Set preconditioner from default if not set already
+  subroutine set_default_precon(solver_parameters)
+    use constants, only: default_precon, default_pressure_precon 
+
+    type(solver_params), intent(inout) :: solver_parameters !< Solver parameters that will get its preconditioner set to default if needed
+
+    if (solver_parameters%precon_name == "") then
+      if (solver_parameters%name == "p") then
+          solver_parameters%precon_name = default_pressure_precon
+      else
+          solver_parameters%precon_name = default_precon
+      end if
+    end if
+  end subroutine
+
+  !v Set solver from default if not set already
+  subroutine set_default_solver(solver_parameters)
+    use constants, only: default_solver, default_pressure_solver 
+
+    type(solver_params), intent(inout) :: solver_parameters !< Solver parameters that will get its solver set to default if needed
+
+    if (solver_parameters%solver_name == "") then
+      if (solver_parameters%name == "p") then
+          solver_parameters%solver_name = default_pressure_solver
+      else
+          solver_parameters%solver_name = default_solver
+      end if
+    end if
+
+  end subroutine
+
+  !v Check if the relaxation factor is set in solver_parameter, and abort if not
+  subroutine check_relaxation_factor_set(solver_parameters)
+      type(solver_params), intent(inout) :: solver_parameters !< Solver parameters to check
+
+      if (solver_parameters%solve .and. solver_parameters%relaxation_factor == huge(ccs_real)) then
+        call error_abort("No values assigned to relaxation factor for variable "//solver_parameters%name)
+      end if
+  end subroutine
+
   ! Print test case configuration
   subroutine print_configuration(par_env, run_options)
 
     use parallel, only: is_root
-    use kinds, only: CCS_PRECISION_STR
     use logging, only: log_unit_out
 
-    class(parallel_environment), intent(in) :: par_env
-    type(ccs_options), intent(in) :: run_options
-
-    integer :: i
+    class(parallel_environment), intent(in) :: par_env !< Parallel environment 
+    type(ccs_options), intent(in) :: run_options !< Runtime configuration
 
     if (is_root(par_env)) then
       associate(case_name => run_options%paths%case_name, &
@@ -307,18 +414,11 @@ contains
            num_iters => run_options%solve%num_iters, &
            dt => run_options%solve%dt, &
            cps => run_options%mesh%cps, &
-           domain_size => run_options%mesh%domain_size, &
-           velocity_relax => run_options%solve%velocity_relax, &
-           pressure_relax => run_options%solve%pressure_relax)
+           domain_size => run_options%mesh%domain_size)
         ! XXX: this should eventually be replaced by something nicely formatted that uses "write"
         write(log_unit_out,*) " "
         write(log_unit_out,*) "******************************************************************************"
         write(log_unit_out,*) "* Solving the ", case_name, " case"
-        write(log_unit_out,*) "******************************************************************************"
-        write(log_unit_out,*) "Solved variables: "
-        do i = 1, size(run_options%variables%solved_variables)
-          write(log_unit_out,*) "- ", run_options%variables%solved_variables(i)
-        end do
         write(log_unit_out,*) "******************************************************************************"
         write(log_unit_out,*) "* SIMULATION LENGTH"
         if (dt /= huge(dt)) then
@@ -327,16 +427,7 @@ contains
         else
           write(log_unit_out,*) "* Running for ", num_iters, "iterations"
         end if
-        write(log_unit_out,*) "******************************************************************************"
-        write(log_unit_out,*) "* RELAXATION FACTORS"
-        write(log_unit_out,'(1x, a, e10.3)') "* velocity: ", velocity_relax
-        write(log_unit_out,'(1x, a, e10.3)') "* pressure: ", pressure_relax
       end associate
-      write(log_unit_out,*) "******************************************************************************"
-      write(log_unit_out,*) "* SOLVER CONFIGURATION"
-      write(log_unit_out,*) "* Velocity: ", trim(run_options%solve%velocity_precon), " + ", trim(run_options%solve%velocity_solver)
-      write(log_unit_out,*) "* Pressure: ", trim(run_options%solve%pressure_precon), " + ", trim(run_options%solve%pressure_solver)
-      write(log_unit_out,*) "* Precision: ", CCS_PRECISION_STR
       write(log_unit_out,*) "******************************************************************************"
       write(log_unit_out,*) "* REFERENCE VALUES"
       write(log_unit_out,*) "* Pressure      : ", run_options%reference_values%p_ref

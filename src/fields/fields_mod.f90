@@ -41,6 +41,7 @@ module fields
   public :: dealloc_fluid_fields
   public :: get_field_name
   public :: count_fields
+  public :: print_field_config
 
   !> Generic interface to get a field from the flow
   interface get_field
@@ -110,7 +111,7 @@ contains
     logical, intent(in) :: solve      !< flag indicating whether to solve for the given field
     type(field), intent(inout) :: phi !< Field variable
 
-    phi%solve = solve
+    phi%solver_parameters%solve = solve
     
   end subroutine set_is_field_solved
 
@@ -119,7 +120,7 @@ contains
     class(field), intent(in) :: phi !< Field variable
     logical, intent(out) :: solve   !< flag indicating whether to solve for the given field
 
-    solve = phi%solve
+    solve = phi%solver_parameters%solve
     
   end subroutine get_is_field_solved
 
@@ -199,6 +200,8 @@ contains
     end if
 
     call allocate_bc_arrays(n_boundaries, phi_ptr%ptr%bcs)
+    
+    allocate(phi_ptr%ptr%solver_parameters)
 
     call add_field(phi_ptr, flow)
     
@@ -402,5 +405,47 @@ contains
   end subroutine get_field_idx
 
 
+  !v Outputs each field configuration
+  subroutine print_field_config(par_env, flow)
+
+    use logging, only: log_unit_out
+    use kinds, only: CCS_PRECISION_STR
+    use parallel, only: is_root
+    use constants, only: L2, Linfty
+
+    class(parallel_environment), intent(in) :: par_env !< Parallel environment
+    type(fluid), intent(in) :: flow !< fluid containing the list of fields to solve and display info of
+
+    class(field), pointer :: phi
+
+    integer :: ifield, nfields
+    call count_fields(flow, nfields)
+
+    if (is_root(par_env)) then
+        write(log_unit_out,*)  " "
+        write(log_unit_out,*)  "******************************************************************************"
+        write(log_unit_out,*)  "* SOLVER CONFIGURATION"
+        write(log_unit_out,*)  "******************************************************************************"
+        write(log_unit_out,*)  "* Precision: ", CCS_PRECISION_STR
+        do ifield=1, nfields
+          call get_field(flow, ifield, phi)
+          if (phi%solver_parameters%solve) then
+            write(log_unit_out,*) "************ ", trim(phi%name), " ************"
+            write(log_unit_out,'(A, E10.2)')  "   Residuals target: ", phi%solver_parameters%res_target
+            select case(phi%solver_parameters%res_norm)
+              case (L2)
+                write(log_unit_out,*) "  Residuals norm: L2"
+              case (Linfty)
+                write(log_unit_out,*) "  Residuals norm: Linfty"
+            end select
+            write(log_unit_out,'(A, F4.2)')  "   Relaxation factor: ", phi%solver_parameters%relaxation_factor
+            write(log_unit_out,*) "  Solver: ", phi%solver_parameters%solver_name
+            write(log_unit_out,*) "  Preconditioner: ", phi%solver_parameters%precon_name
+          end if
+        end do
+        write(log_unit_out,*)  " "
+    end if
+
+  end subroutine
 
 end module fields
