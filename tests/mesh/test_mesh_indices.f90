@@ -44,7 +44,7 @@ program test_mesh_indices
     call get_global_num_cells(nglobal)
     !$omp parallel do &
     !$omp private(i, loc_p, global_index, message) &
-    !$omp firstprivate(nlocal, nglobal) &
+    !$omp firstprivate(nlocal, nglobal)
     do i = 1, nlocal
       call create_cell_locator(i, loc_p)
       call get_global_index(loc_p, global_index)
