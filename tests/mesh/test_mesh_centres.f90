@@ -14,6 +14,8 @@ program test_mesh_centres
                      get_local_num_cells, get_vert_per_cell
   use mesh_utils, only: build_mesh
   use meshing, only: set_mesh_object, nullify_mesh_object
+  use omp_lib
+  use mpi
 
   implicit none
 
@@ -35,12 +37,20 @@ program test_mesh_centres
 
   integer :: dim
 
-  integer(ccs_int), dimension(5) :: m = (/4, 8, 12, 16, 20/)
+  ! integer(ccs_int), dimension(5) :: m = (/4, 8, 12, 16, 20/)
+  integer(ccs_int), dimension(5) :: m = (/4, 8, 12, 16, 80/)
   integer(ccs_int) :: mctr
 
   type(ccs_options) :: run_options
+
+  integer :: nthreads, tid
+  real(ccs_real) :: t0, t1
+  integer :: ierr_code
+  integer :: rank
   
   call init()
+
+  call MPI_Comm_rank(MPI_COMM_WORLD, rank, ierr_code)
 
   ! XXX: use smaller size than 2D test - 20^3 ~= 100^2
   do mctr = 2, size(m)
@@ -53,6 +63,23 @@ program test_mesh_centres
     call set_mesh_object(mesh)
 
     call get_local_num_cells(local_num_cells)
+
+    !$omp parallel private(tid)
+    tid = omp_get_thread_num()
+    nthreads = omp_get_num_threads()
+    write (*, *) "Hello from thread", tid, "of", nthreads
+    !$omp end parallel
+    write (*, *) "Maximum available threads:", omp_get_max_threads()
+    
+    t0 = omp_get_wtime()
+
+    !$omp parallel do default(none) &
+    !$omp shared(mesh, l) &
+    !$omp private(i, j, dim, vert_per_cell, loc_f, loc_v, loc_p, cc, vc, fc, message) &
+    !$omp firstprivate(local_num_cells)
+    ! !$omp parallel do
+    ! !$omp private(i, j, dim, local_num_cells, vert_per_cell, loc_f, loc_v, loc_p, cc, vc, fc, message)
+    ! !$omp schedule(static)
     do i = 1, local_num_cells
       call create_cell_locator(i, loc_p)
       call get_centre(loc_p, cc)
@@ -91,6 +118,11 @@ program test_mesh_centres
         end do
       end do
     end do
+
+    t1 = omp_get_wtime()
+
+    write (*, *) "Rank ", rank, " mctr = ", n, " Elapsed time:", t1 - t0, " s on ", nthreads, " threads"
+
 
     call nullify_mesh_object()
   end do

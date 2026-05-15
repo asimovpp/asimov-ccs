@@ -54,6 +54,11 @@ program test_mesh_neighbours
 
     boundary_ctr = 0
     call get_local_num_cells(local_num_cells)
+
+    !$omp parallel do &
+    !$omp private(i, j, loc_p, nnb, loc_nb, index_nb, is_boundary) &
+    !$omp firstprivate(local_num_cells) &
+    !$omp reduction(+:boundary_ctr)
     do i = 1, local_num_cells
 
       call create_cell_locator(i, loc_p)

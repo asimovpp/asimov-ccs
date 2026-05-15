@@ -53,6 +53,11 @@ program test_mesh_square_mesh_volume
     nneg_vol = 0
 
     call get_local_num_cells(local_num_cells)
+
+    !$omp parallel do &
+    !$omp private(V, loc_p) &
+    !$omp firstprivate(local_num_cells) &
+    !$omp reduction(+:vol)
     do i = 1, local_num_cells
       call create_cell_locator(i, loc_p)
       call get_volume(loc_p, V)
