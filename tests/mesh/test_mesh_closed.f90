@@ -53,6 +53,10 @@ program test_mesh_closed
 
     ! Loop over cells
     call get_local_num_cells(local_num_cells)
+    !$omp parallel do default(none) &
+    !$omp shared(local_num_cells, mesh, A_expected) &
+    !$omp private(i, j, S, norm, A, loc_f, message) &
+    !$omp schedule(static)
     do i = 1, local_num_cells
       S(:) = 0.0_ccs_real
 

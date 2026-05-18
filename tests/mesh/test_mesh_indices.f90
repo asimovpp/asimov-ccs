@@ -42,9 +42,10 @@ program test_mesh_indices
 
     call get_local_num_cells(nlocal)
     call get_global_num_cells(nglobal)
-    !$omp parallel do &
+    !$omp parallel do default(none) &
     !$omp private(i, loc_p, global_index, message) &
-    !$omp firstprivate(nlocal, nglobal)
+    !$omp shared(nlocal, nglobal) &
+    !$omp schedule(static)
     do i = 1, nlocal
       call create_cell_locator(i, loc_p)
       call get_global_index(loc_p, global_index)
@@ -53,7 +54,6 @@ program test_mesh_indices
           write (message, *) "FAIL: expected global index 1 <= idx <= ", nglobal, " got ", global_index
           call stop_test(message)
         end if
-        exit
       end if
     end do
 
