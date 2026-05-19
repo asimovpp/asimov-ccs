@@ -46,6 +46,10 @@ program test_square_mesh_centres
     call set_mesh_object(mesh)
 
     call get_local_num_cells(local_num_cells)
+    !$omp parallel do default(none) &
+    !$omp shared(local_num_cells, mesh, l) &
+    !$omp private(i, j, loc_p, loc_f, cc, fc, message) &
+    !$omp schedule(static)
     do i = 1, local_num_cells
       call create_cell_locator(i, loc_p)
       call get_centre(loc_p, cc)
@@ -71,6 +75,7 @@ program test_square_mesh_centres
         end do
       end associate
     end do
+    !$omp end parallel do
 
     call nullify_mesh_object()
   end do

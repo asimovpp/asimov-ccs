@@ -57,7 +57,7 @@ program test_mesh_neighbours
 
     !$omp parallel do &
     !$omp private(i, j, loc_p, nnb, loc_nb, index_nb, is_boundary) &
-    !$omp firstprivate(local_num_cells) &
+    !$omp shared(local_num_cells) &
     !$omp reduction(+:boundary_ctr)
     do i = 1, local_num_cells
 
@@ -89,6 +89,7 @@ program test_mesh_neighbours
       end do
 
     end do
+    !$omp end parallel do
 
     ! Check total boundary neighbours
     select type (par_env)

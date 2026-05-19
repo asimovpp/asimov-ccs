@@ -56,6 +56,7 @@ program test_mesh_indices
         end if
       end if
     end do
+    !$omp end parallel do
 
     call nullify_mesh_object()
   end do

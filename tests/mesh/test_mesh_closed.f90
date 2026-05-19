@@ -83,6 +83,7 @@ program test_mesh_closed
         end if
       end do
     end do
+    !$omp end parallel do
 
     call nullify_mesh_object()
   end do
