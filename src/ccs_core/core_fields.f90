@@ -4,7 +4,7 @@ submodule(core) core_fields
   use types, only: vector_spec, field_spec, field
   use constants, only: face, cell, face_centred, cell_centred_central
   use bc_constants
-  use boundary_conditions, only: set_bc_type
+  use boundary_conditions, only: set_bc_type, translate_bcs
   use ccs_base, only: mesh
   use parallel, only: is_root
   use utils, only: set_size, initialise, add_field_to_outputlist, exit_print
@@ -85,8 +85,11 @@ contains
     ! Finally build any case specific fields.
     call build_case_fields(par_env, run_options, field_properties, flow_fields)
 
+    call translate_bcs(run_options, flow_fields)
+
     call profiler_end_region('Field initialisation')
   end subroutine initialise_fields
+  
 
   !> Builds the user specified fields from the case config file
   subroutine build_user_fields(par_env, run_options, field_properties, flow_fields)

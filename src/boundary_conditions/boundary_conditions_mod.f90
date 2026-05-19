@@ -6,11 +6,13 @@ module boundary_conditions
 #include "ccs_macros.inc"
 
   use utils, only: exit_print, debug_print, str
-  use types, only: bc_config, field, bc_profile
+  use types, only: bc_config, field, bc_profile, fluid
   use kinds, only: ccs_int, ccs_real
   use fortran_yaml_c_interface, only: parse
   use read_config, only: get_bc_field
   use bc_constants
+  use core, only: ccs_options
+  use constants, only: ccs_string_len
   use error_codes
 
   implicit none
@@ -23,6 +25,7 @@ module boundary_conditions
   public :: set_bc_type
   public :: set_bc_id
   public :: set_bc_profile
+  public :: translate_bcs
 
 contains
 
@@ -46,81 +49,155 @@ contains
     call get_bc_field(config_file, "value", phi, required=.false.)
     call get_bc_field(config_file, bc_field, phi, required=.false.)
 
-    call expand_bcs(bc_field, phi)
   end subroutine read_bc_config
 
+  !v Loop through fields and translate their potentially complex boundary conditions 
+  ! into basic boundary conditions
+  subroutine translate_bcs(run_options, flow_fields)
+    use ccs_base, only: left, right, bottom, top, back, front
+    use fields, only: get_field
+    use meshing, only: get_mesh_generated
 
-  !v Expand boundary conditions set by user into base bc only.
-  subroutine expand_bcs(bc_field, phi)
-    character(len=*), intent(in) :: bc_field !< string denoting which field we are working on
-    class(field), intent(inout) :: phi       !< the bc struct of the corresponding field
-    logical :: is_momentum, is_pressure, is_extra
+    type(ccs_options), intent(in) :: run_options !< Object containing runtime options
+    type(fluid), intent(inout) :: flow_fields    !< Object containing all the fields to process
+
+    class(field), pointer :: phi
+    character(len=ccs_string_len) :: bnd_name
+    integer(ccs_int) :: bc_id, i, n_boundaries
+    logical :: is_mom_normal, is_generated, x_mom, y_mom, z_mom
+
+    call get_mesh_generated(is_generated)
+    is_mom_normal = .false.
+
+    do i=1, size(flow_fields%fields)
+      call get_field(flow_fields, i, phi)
+      n_boundaries = size(run_options%mesh%bnd_names)
+
+      do bc_id=1, n_boundaries
+        bnd_name = trim(run_options%mesh%bnd_names(bc_id))
+
+        if (is_generated) then
+          x_mom = (phi%name == 'u')
+          y_mom = (phi%name == 'v')
+          z_mom = (phi%name == 'w')
+
+          is_mom_normal = (x_mom .and. ((bnd_name == left) .or. (bnd_name == right))) .or. \
+                          (y_mom .and. ((bnd_name == bottom) .or. (bnd_name == top))) .or. \
+                          (z_mom .and. ((bnd_name == front) .or. (bnd_name == back)))
+        else 
+          is_mom_normal = .false.
+        end if
+
+        call translate_bc(is_generated, is_mom_normal, bc_id, phi)
+
+      end do
+    end do
+
+  end subroutine
+
+
+  !v Translate a boundary contition set by the user into a base bc.
+  subroutine translate_bc(is_generated, is_mom_normal, bc_id, phi)
+
+    logical, intent(in) :: is_generated      !< Flag telling if the mesh has been generated (or read from file)
+    logical, intent(in) :: is_mom_normal     !< Flag telling if the bc to be processed is normal to the momentum field. Unused, if phi isn't a velocity field
+    integer(ccs_int), intent(in) :: bc_id    !< Id of the boundary condition to process
+    class(field), intent(inout) :: phi       !< Field to process
+
+    character(len=ccs_string_len) :: field_name
+    logical :: is_momentum, is_pressure, is_extra, is_mf
      
     is_momentum = .false.
     is_pressure = .false.
+    is_mf = .false.
     is_extra = .false.
 
-    if (bc_field == "u" .or. (bc_field == "v" .or. bc_field == "w")) then
+    field_name = trim(phi%name)
+    if (field_name == "u" .or. (field_name == "v" .or. field_name == "w")) then
       is_momentum = .true.
-    elseif (bc_field == "p" .or. bc_field == "p_prime") then
+    elseif (field_name == "p" .or. field_name == "p_prime") then
       is_pressure = .true.
+    elseif (field_name == "mf") then
+      is_mf = .true.
     else
       is_extra = .true.
     end if
 
-    do i=1, nb_bcs
+    associate(i => bc_id)
       select case(phi%bcs%bc_types(i))
       case(bc_type_wall)
         if (is_momentum) then
-          phi%bcs%bc_types(i) = bc_type_dirichlet
-          phi%bcs%bc_value(i) = 0.0_ccs_real
+          if (is_mom_normal .and. is_generated) then
+            phi%bcs%bc_types(i) = bc_type_neumann
+            phi%bcs%values(i) = 0.0_ccs_real
+          else
+            phi%bcs%bc_types(i) = bc_type_dirichlet
+            phi%bcs%values(i) = 0.0_ccs_real
+          end if
         else if (is_pressure) then
           phi%bcs%bc_types(i) = bc_type_neumann
-          phi%bcs%bc_value(i) = 0.0_ccs_real
+          phi%bcs%values(i) = 0.0_ccs_real
+        else if (is_mf) then
+          phi%bcs%bc_types(i) = bc_type_dirichlet
+          phi%bcs%values(i) = 0.0_ccs_real
         else if (is_extra) then
           phi%bcs%bc_types(i) = bc_type_dirichlet
-          phi%bcs%bc_value(i) = 0.0_ccs_real
+          phi%bcs%values(i) = 0.0_ccs_real
         end if
-        phi%bcs%bc_types_diffusion(i) = phi%bcs%bc_types(i) 
+
+      case(bc_type_slip_wall)
+        if (is_momentum) then
+          phi%bcs%bc_types(i) = bc_type_neumann
+          phi%bcs%values(i) = 0.0_ccs_real
+        else if (is_pressure) then
+          phi%bcs%bc_types(i) = bc_type_neumann
+          phi%bcs%values(i) = 0.0_ccs_real
+        else if (is_mf) then
+          phi%bcs%bc_types(i) = bc_type_dirichlet
+          phi%bcs%values(i) = 0.0_ccs_real
+        else if (is_extra) then
+          phi%bcs%bc_types(i) = bc_type_dirichlet
+          phi%bcs%values(i) = 0.0_ccs_real
+        end if
 
       case(bc_type_inflow)
         if (is_momentum) then
-          phi%bcs%bc_types(i) = bc_type_dirichlet
+          if (is_mom_normal) then
+            phi%bcs%bc_types(i) = bc_type_dirichlet
+          else
+            phi%bcs%bc_types(i) = bc_type_dirichlet
+            phi%bcs%values(i) = 0.0_ccs_real
+          end if
         else if (is_pressure) then
           phi%bcs%bc_types(i) = bc_type_neumann
-          phi%bcs%bc_value(i) = 0.0_ccs_real
+          phi%bcs%values(i) = 0.0_ccs_real
+        else if (is_mf) then
+          phi%bcs%bc_types(i) = bc_type_dirichlet
         else if (is_extra) then
           phi%bcs%bc_types(i) = bc_type_dirichlet
+          phi%bcs%values(i) = 0.0_ccs_real
         end if
-        phi%bcs%bc_types_diffusion(i) = phi%bcs%bc_types(i) 
- 
+
       case(bc_type_outflow)
         if (is_momentum) then
-          phi%bcs%bc_types(i) = bc_type_extrapolate
+          if (is_mom_normal) then
+            phi%bcs%bc_types(i) = bc_type_extrapolate
+          else
+            phi%bcs%bc_types(i) = bc_type_dirichlet
+            phi%bcs%values(i) = 0.0_ccs_real
+          end if
         else if (is_pressure) then
           phi%bcs%bc_types(i) = bc_type_neumann
-          phi%bcs%bc_value(i) = 0.0_ccs_real
+          phi%bcs%values(i) = 0.0_ccs_real
+        else if (is_mf) then
+          phi%bcs%bc_types(i) = bc_type_dirichlet
         else if (is_extra) then
-          phi%bcs%bc_types(i) = bc_type_extrapolate
+          phi%bcs%bc_types(i) = bc_type_dirichlet
+          phi%bcs%values(i) = 0.0_ccs_real
         end if
-        phi%bcs%bc_types_diffusion(i) = phi%bcs%bc_types(i) 
-
-       case(bc_type_slip_wall)
-        if (is_momentum) then
-          phi%bcs%bc_types(i) = bc_type_parallel
-          phi%bcs%bc_types_diffusion(i) = bc_type_parallel 
-        else if (is_pressure) then
-          phi%bcs%bc_types(i) = bc_type_neumann
-          phi%bcs%bc_value(i) = 0.0_ccs_real
-        else if (is_extra) then
-          phi%bcs%bc_types(i) = bc_type_parallel
-        end if
-        phi%bcs%bc_types_diffusion(i) = phi%bcs%bc_types(i) 
-     
-        ! ... still WIP
 
       end select
-    end do
+    end associate
 
   end subroutine
 
@@ -131,25 +208,32 @@ contains
     type(bc_config), intent(inout) :: bcs          !< bcs struct
 
     select case (bc_type)
-    case ("periodic")
-      bcs%bc_types(boundary_index) = bc_type_periodic
-    case ("sym")
-      bcs%bc_types(boundary_index) = bc_type_sym
     case ("dirichlet")
       bcs%bc_types(boundary_index) = bc_type_dirichlet
     case ("neumann")
       bcs%bc_types(boundary_index) = bc_type_neumann
     case ("extrapolate")
       bcs%bc_types(boundary_index) = bc_type_extrapolate
-    case ("wall")
-      bcs%bc_types(boundary_index) = bc_type_wall
     case ("profile")
       bcs%bc_types(boundary_index) = bc_type_profile
+    case ("inflow")
+      bcs%bc_types(boundary_index) = bc_type_inflow
+    case ("outflow")
+      bcs%bc_types(boundary_index) = bc_type_outflow
+    case ("wall")
+      bcs%bc_types(boundary_index) = bc_type_wall
+    case ("slipwall")
+      bcs%bc_types(boundary_index) = bc_type_slip_wall
+    !case ("periodic")
+    !  bcs%bc_types(boundary_index) = bc_type_periodic
+    !case ("sym")
+    !  bcs%bc_types(boundary_index) = bc_type_sym
     case default
       error stop invalid_bc_name ! Invalid BC type string received
     end select
 
   end subroutine set_bc_type
+  
 
   !> Sets the bc struct's id field to the appropriate integer value
   pure subroutine set_bc_id(boundary_index, name, bcs)

@@ -162,17 +162,19 @@ contains
     integer(ccs_int) :: index_nb
     integer(ccs_int) :: index_p
     type(neighbour_locator) :: loc_nb
-    integer(ccs_int) :: i
+    ! integer(ccs_int) :: i
     real(ccs_real), dimension(ndim) :: dx
     real(ccs_real), dimension(ndim) :: x
-    real(ccs_real), dimension(ndim) :: parallel_component_map
-    real(ccs_real), dimension(ndim) :: phi_face_parallel_component
-    real(ccs_real) :: phi_face_parallel_component_norm
-    real(ccs_real) :: phi_face_parallel_component_portion
-    real(ccs_real) :: normal_norm
+    ! real(ccs_real), dimension(ndim) :: parallel_component_map
+    ! real(ccs_real), dimension(ndim) :: phi_face_parallel_component
+    ! real(ccs_real) :: phi_face_parallel_component_norm
+    ! real(ccs_real) :: phi_face_parallel_component_portion
+    ! real(ccs_real) :: normal_norm
     real(ccs_real) :: dxmag
     real(ccs_real) :: bc_value
 
+    associate(foo=> component, bar=>normal)
+      end associate
     call get_local_index(loc_p, index_p)
     call create_neighbour_locator(loc_p, loc_f%cell_face_ctr, loc_nb)
     call get_local_index(loc_nb, index_nb)
@@ -187,33 +189,33 @@ contains
 
       a = 1.0_ccs_real
 b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(index_p) * dx(2) + phi%z_gradients_ro(index_p) * dx(3))
-    case (bc_type_sym)  ! XXX: Make sure this works as intended for symmetric BC.
-      select case (component)
-      case (0)
-        parallel_component_map = [1, 1, 1]
-      case (1)
-        parallel_component_map = [0, 1, 1]
-      case (2)
-        parallel_component_map = [1, 0, 1]
-      case (3)
-        parallel_component_map = [1, 1, 0]
-      case default
-        error stop invalid_component ! Invalid component provided
-      end select
-      ! Only keep the components of phi that are parallel to the surface
-      phi_face_parallel_component_norm = 0
-      normal_norm = 0
-      do i = 1, ndim
-        phi_face_parallel_component(i) = parallel_component_map(i) * normal(i)
-        phi_face_parallel_component_norm = phi_face_parallel_component_norm + &
-                                           phi_face_parallel_component(i) * phi_face_parallel_component(i)
-        normal_norm = normal_norm + normal(i) * normal(i)
-      end do
-      phi_face_parallel_component_portion = sqrt(phi_face_parallel_component_norm / normal_norm)
+    ! case (bc_type_sym)  ! XXX: Make sure this works as intended for symmetric BC.
+    !   select case (component)
+    !   case (0)
+    !     parallel_component_map = [1, 1, 1]
+    !   case (1)
+    !     parallel_component_map = [0, 1, 1]
+    !   case (2)
+    !     parallel_component_map = [1, 0, 1]
+    !   case (3)
+    !     parallel_component_map = [1, 1, 0]
+    !   case default
+    !     error stop invalid_component ! Invalid component provided
+    !   end select
+    !   ! Only keep the components of phi that are parallel to the surface
+    !   phi_face_parallel_component_norm = 0
+    !   normal_norm = 0
+    !   do i = 1, ndim
+    !     phi_face_parallel_component(i) = parallel_component_map(i) * normal(i)
+    !     phi_face_parallel_component_norm = phi_face_parallel_component_norm + &
+    !                                        phi_face_parallel_component(i) * phi_face_parallel_component(i)
+    !     normal_norm = normal_norm + normal(i) * normal(i)
+    !   end do
+    !   phi_face_parallel_component_portion = sqrt(phi_face_parallel_component_norm / normal_norm)
 
-      ! Get value of phi at boundary cell
-      a = phi_face_parallel_component_portion
-      b = 0.0_ccs_real
+    !   ! Get value of phi at boundary cell
+    !   a = phi_face_parallel_component_portion
+    !   b = 0.0_ccs_real
     case (bc_type_neumann)
       call get_distance(loc_p, loc_f, dx)
       dxmag = norm2(dx)
@@ -294,7 +296,6 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
     type(neighbour_locator) :: loc_nb
     real(ccs_real) :: visc_avg !< average viscosity
     real(ccs_real) :: dens_avg !< average density
-    real(ccs_real), parameter :: density = 1.0_ccs_real
     real(ccs_real) :: interpolation_factor
 
     call create_face_locator(index_p, index_nb, loc_f)
@@ -302,8 +303,8 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
     call get_boundary_status(loc_f, is_boundary)
 
     call create_cell_locator(index_p, loc_p)
-    call get_face_interpolation(loc_f, interpolation_factor)
     if (.not. is_boundary) then
+      call get_face_interpolation(loc_f, interpolation_factor)
       call create_neighbour_locator(loc_p, index_nb, loc_nb)
 
       if (enable_cell_corrections) then
