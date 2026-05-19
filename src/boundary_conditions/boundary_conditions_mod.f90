@@ -51,62 +51,24 @@ contains
 
   end subroutine read_bc_config
 
-  !v Loop through fields and translate their potentially complex boundary conditions 
-  ! into basic boundary conditions
-  subroutine translate_bcs(run_options, flow_fields)
-    use ccs_base, only: left, right, bottom, top, back, front
-    use fields, only: get_field
+
+  !v Translate potentially high level boundary contition set by the user into a set of base boundary conditions
+  subroutine translate_bcs(bnd_names, phi)
     use meshing, only: get_mesh_generated
+    use constants, only: ccs_string_len
+    use ccs_base, only: left, right, bottom, top, back, front
 
-    type(ccs_options), intent(in) :: run_options !< Object containing runtime options
-    type(fluid), intent(inout) :: flow_fields    !< Object containing all the fields to process
-
-    class(field), pointer :: phi
-    character(len=ccs_string_len) :: bnd_name
-    integer(ccs_int) :: bc_id, i, n_boundaries
-    logical :: is_mom_normal, is_generated, x_mom, y_mom, z_mom
-
-    call get_mesh_generated(is_generated)
-    is_mom_normal = .false.
-
-    do i=1, size(flow_fields%fields)
-      call get_field(flow_fields, i, phi)
-      n_boundaries = size(run_options%mesh%bnd_names)
-
-      do bc_id=1, n_boundaries
-        bnd_name = trim(run_options%mesh%bnd_names(bc_id))
-
-        if (is_generated) then
-          x_mom = (phi%name == 'u')
-          y_mom = (phi%name == 'v')
-          z_mom = (phi%name == 'w')
-
-          is_mom_normal = (x_mom .and. ((bnd_name == left) .or. (bnd_name == right))) .or. \
-                          (y_mom .and. ((bnd_name == bottom) .or. (bnd_name == top))) .or. \
-                          (z_mom .and. ((bnd_name == front) .or. (bnd_name == back)))
-        else 
-          is_mom_normal = .false.
-        end if
-
-        call translate_bc(is_generated, is_mom_normal, bc_id, phi)
-
-      end do
-    end do
-
-  end subroutine
-
-
-  !v Translate a boundary contition set by the user into a base bc.
-  subroutine translate_bc(is_generated, is_mom_normal, bc_id, phi)
-
-    logical, intent(in) :: is_generated      !< Flag telling if the mesh has been generated (or read from file)
-    logical, intent(in) :: is_mom_normal     !< Flag telling if the bc to be processed is normal to the momentum field. Unused, if phi isn't a velocity field
-    integer(ccs_int), intent(in) :: bc_id    !< Id of the boundary condition to process
+    character(len=*), dimension(:), intent(in) :: bnd_names !< List of boundary names
     class(field), intent(inout) :: phi       !< Field to process
 
-    character(len=ccs_string_len) :: field_name
+    character(len=ccs_string_len) :: field_name, bnd_name
+    integer(ccs_int) :: i
     logical :: is_momentum, is_pressure, is_extra, is_mf
+    logical :: is_generated
+    logical :: is_mom_normal     !< Flag telling if the bc to be processed is normal to the velocity component
      
+    call get_mesh_generated(is_generated)
+    is_mom_normal = .false.
     is_momentum = .false.
     is_pressure = .false.
     is_mf = .false.
@@ -123,7 +85,15 @@ contains
       is_extra = .true.
     end if
 
-    associate(i => bc_id)
+    do i=1, size(phi%bcs%bc_types)
+      bnd_name = bnd_names(i)
+      
+      ! Flag telling if the bc to be processed is normal to the velocity component, 
+      !  not used for non generated meshes and fields other than the velocity ones
+      is_mom_normal = (field_name == 'u' .and. ((bnd_name == left) .or. (bnd_name == right))) .or. \
+                      (field_name == 'v' .and. ((bnd_name == bottom) .or. (bnd_name == top))) .or. \
+                      (field_name == 'w' .and. ((bnd_name == front) .or. (bnd_name == back)))
+
       select case(phi%bcs%bc_types(i))
       case(bc_type_wall)
         if (is_momentum) then
@@ -197,7 +167,7 @@ contains
         end if
 
       end select
-    end associate
+    end do
 
   end subroutine
 

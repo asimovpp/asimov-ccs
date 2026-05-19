@@ -867,6 +867,7 @@ contains
 
   !> Computes the per-cell mass imbalance, updating the face velocity flux as it does so.
   subroutine compute_mass_imbalance(invA, flow, input_b, residuals)
+    use fv, only: compute_boundary_coeffs
 
     class(ccs_vector), intent(inout) :: invA !< The inverse momentum equation diagonal coefficient
     type(fluid), intent(inout) :: flow                   !< Container for flow fields
@@ -899,6 +900,7 @@ contains
     integer(ccs_int) :: index_nb      ! Neighbour cell index
 
     real(ccs_real) :: mib ! Cell mass imbalance
+    real(ccs_real) :: a_coeff, b_coeff
     integer(ccs_int) :: ifield
 
     class(field), pointer :: u        !< The x velocity component
@@ -964,10 +966,12 @@ contains
           end if
         else
           ! Compute mass flux through face
-          mf_data(index_f) = calc_mass_flux(u, v, w, &
-                                            p%values_ro, dpdx_data, dpdy_data, dpdz_data, &
-                                            invA_data, &
-                                            loc_f, .false.)
+          call compute_boundary_coeffs(mf, 1, loc_p, loc_f, [0.0_ccs_real, 0.0_ccs_real, 0.0_ccs_real], a_coeff, b_coeff)
+          mf_data(index_f) = b_coeff * 0.5_ccs_real
+          ! mf_data(index_f) = calc_mass_flux(u, v, w, &
+          !                                   p%values_ro, dpdx_data, dpdy_data, dpdz_data, &
+          !                                   invA_data, &
+          !                                   loc_f, .false.)
         end if
 
         mib = mib + mf_data(index_f) * face_area
