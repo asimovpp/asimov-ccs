@@ -90,8 +90,8 @@ contains
       
       ! Flag telling if the bc to be processed is normal to the velocity component, 
       !  not used for non generated meshes and fields other than the velocity ones
-      is_mom_normal = (field_name == 'u' .and. ((bnd_name == left) .or. (bnd_name == right))) .or. \
-                      (field_name == 'v' .and. ((bnd_name == bottom) .or. (bnd_name == top))) .or. \
+      is_mom_normal = (field_name == 'u' .and. ((bnd_name == left) .or. (bnd_name == right))) .or. &
+                      (field_name == 'v' .and. ((bnd_name == bottom) .or. (bnd_name == top))) .or. &
                       (field_name == 'w' .and. ((bnd_name == front) .or. (bnd_name == back)))
 
       select case(phi%bcs%bc_types(i))

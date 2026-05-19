@@ -60,7 +60,7 @@ contains
 
     class(parallel_environment), intent(in) :: par_env
     type(field_spec), intent(in) :: field_properties !< Field descriptor
-    character(len=*), dimension(:), intent(in) :: bnd_names
+    character(len=*), dimension(:), intent(in) :: bnd_names !< List of boundary names used by the mesh
     type(fluid), intent(inout) :: flow !< The flow field container where new field is to be constructed
 
     integer :: nfields

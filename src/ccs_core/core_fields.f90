@@ -85,9 +85,6 @@ contains
     ! Finally build any case specific fields.
     call build_case_fields(par_env, run_options, field_properties, flow_fields)
 
-    !print *, "translate bcs start"
-    !call translate_bcs(run_options, flow_fields)
-
     call profiler_end_region('Field initialisation')
   end subroutine initialise_fields
   
