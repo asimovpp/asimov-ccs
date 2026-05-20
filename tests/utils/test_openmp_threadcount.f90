@@ -23,8 +23,8 @@ program test_openmp_threadcount
   nthreads = 1
 #endif
 
-  if (nthreads <= 1) then
-    call stop_test("Number of omp threads not greater than 1.")
+  if (nthreads < 1) then
+    call stop_test("Number of omp threads less than 1.")
   end if
 
   call fin()
