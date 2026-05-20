@@ -20,7 +20,7 @@ endif
 FFLAGS += -xHOST
 FFLAGS += -module $(OBJ_DIR)
 FFLAGS += -no-wrap-margin
-FFLAGS += -fopenmp
+FFLAGS += -qopenmp
 CAFFLAGS = -coarray
 MPIRUN = mpirun
 
