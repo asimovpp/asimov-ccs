@@ -164,8 +164,11 @@ contains
         if (is_momentum) then
           phi%bcs%bc_types(i) = bc_type_neumann
           phi%bcs%values(i) = 0.0_ccs_real
-        else if (is_pressure .or. is_pressure_corr) then
-          phi%bcs%bc_types(i) = bc_type_dirichlet
+        else if (is_pressure) then
+          phi%bcs%bc_types(i) = bc_type_extrapolate
+          phi%bcs%values(i) = 0.0_ccs_real
+        else if (is_pressure_corr) then
+          phi%bcs%bc_types(i) = bc_type_neumann
           phi%bcs%values(i) = 0.0_ccs_real
         else if (is_mf) then
           phi%bcs%bc_types(i) = bc_type_constructed
