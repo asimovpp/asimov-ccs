@@ -63,7 +63,7 @@ contains
 
     character(len=ccs_string_len) :: field_name, bnd_name
     integer(ccs_int) :: i
-    logical :: is_momentum, is_pressure, is_extra, is_mf
+    logical :: is_momentum, is_pressure, is_pressure_corr, is_extra, is_mf
     logical :: is_generated
     logical :: is_mom_normal     !< Flag telling if the bc to be processed is normal to the velocity component
      
@@ -71,14 +71,17 @@ contains
     is_mom_normal = .false.
     is_momentum = .false.
     is_pressure = .false.
+    is_pressure_corr = .false.
     is_mf = .false.
     is_extra = .false.
 
     field_name = trim(phi%name)
     if (field_name == "u" .or. (field_name == "v" .or. field_name == "w")) then
       is_momentum = .true.
-    elseif (field_name == "p" .or. field_name == "p_prime") then
+    elseif (field_name == "p") then
       is_pressure = .true.
+    elseif (field_name == "p_prime") then
+      is_pressure_corr = .true.
     elseif (field_name == "mf") then
       is_mf = .true.
     else
@@ -105,6 +108,9 @@ contains
             phi%bcs%values(i) = 0.0_ccs_real
           end if
         else if (is_pressure) then
+          phi%bcs%bc_types(i) = bc_type_extrapolate
+          phi%bcs%values(i) = 0.0_ccs_real
+        else if (is_pressure_corr) then
           phi%bcs%bc_types(i) = bc_type_neumann
           phi%bcs%values(i) = 0.0_ccs_real
         else if (is_mf) then
@@ -120,6 +126,9 @@ contains
           phi%bcs%bc_types(i) = bc_type_neumann
           phi%bcs%values(i) = 0.0_ccs_real
         else if (is_pressure) then
+          phi%bcs%bc_types(i) = bc_type_extrapolate
+          phi%bcs%values(i) = 0.0_ccs_real
+        else if (is_pressure_corr) then
           phi%bcs%bc_types(i) = bc_type_neumann
           phi%bcs%values(i) = 0.0_ccs_real
         else if (is_mf) then
@@ -139,10 +148,13 @@ contains
             phi%bcs%values(i) = 0.0_ccs_real
           end if
         else if (is_pressure) then
+          phi%bcs%bc_types(i) = bc_type_extrapolate
+          phi%bcs%values(i) = 0.0_ccs_real
+        else if (is_pressure_corr) then
           phi%bcs%bc_types(i) = bc_type_neumann
           phi%bcs%values(i) = 0.0_ccs_real
         else if (is_mf) then
-          phi%bcs%bc_types(i) = bc_type_dirichlet
+          phi%bcs%bc_types(i) = bc_type_constructed
         else if (is_extra) then
           phi%bcs%bc_types(i) = bc_type_dirichlet
           phi%bcs%values(i) = 0.0_ccs_real
@@ -150,22 +162,25 @@ contains
 
       case(bc_type_outflow)
         if (is_momentum) then
-          if (is_mom_normal) then
-            phi%bcs%bc_types(i) = bc_type_extrapolate
-          else
-            phi%bcs%bc_types(i) = bc_type_dirichlet
-            phi%bcs%values(i) = 0.0_ccs_real
-          end if
-        else if (is_pressure) then
           phi%bcs%bc_types(i) = bc_type_neumann
           phi%bcs%values(i) = 0.0_ccs_real
-        else if (is_mf) then
+        else if (is_pressure .or. is_pressure_corr) then
           phi%bcs%bc_types(i) = bc_type_dirichlet
+          phi%bcs%values(i) = 0.0_ccs_real
+        else if (is_mf) then
+          phi%bcs%bc_types(i) = bc_type_constructed
         else if (is_extra) then
           phi%bcs%bc_types(i) = bc_type_dirichlet
           phi%bcs%values(i) = 0.0_ccs_real
         end if
 
+      case(bc_type_dirichlet)
+        ! nothing to do
+      case default
+        ! Set mf to default as 'constructed' if not set by user
+        if (is_mf) then
+          phi%bcs%bc_types(i) = bc_type_constructed
+        end if
       end select
     end do
 

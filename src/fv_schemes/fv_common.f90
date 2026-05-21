@@ -162,14 +162,8 @@ contains
     integer(ccs_int) :: index_nb
     integer(ccs_int) :: index_p
     type(neighbour_locator) :: loc_nb
-    ! integer(ccs_int) :: i
     real(ccs_real), dimension(ndim) :: dx
     real(ccs_real), dimension(ndim) :: x
-    ! real(ccs_real), dimension(ndim) :: parallel_component_map
-    ! real(ccs_real), dimension(ndim) :: phi_face_parallel_component
-    ! real(ccs_real) :: phi_face_parallel_component_norm
-    ! real(ccs_real) :: phi_face_parallel_component_portion
-    ! real(ccs_real) :: normal_norm
     real(ccs_real) :: dxmag
     real(ccs_real) :: bc_value
 
@@ -189,33 +183,6 @@ contains
 
       a = 1.0_ccs_real
 b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(index_p) * dx(2) + phi%z_gradients_ro(index_p) * dx(3))
-    ! case (bc_type_sym)  ! XXX: Make sure this works as intended for symmetric BC.
-    !   select case (component)
-    !   case (0)
-    !     parallel_component_map = [1, 1, 1]
-    !   case (1)
-    !     parallel_component_map = [0, 1, 1]
-    !   case (2)
-    !     parallel_component_map = [1, 0, 1]
-    !   case (3)
-    !     parallel_component_map = [1, 1, 0]
-    !   case default
-    !     error stop invalid_component ! Invalid component provided
-    !   end select
-    !   ! Only keep the components of phi that are parallel to the surface
-    !   phi_face_parallel_component_norm = 0
-    !   normal_norm = 0
-    !   do i = 1, ndim
-    !     phi_face_parallel_component(i) = parallel_component_map(i) * normal(i)
-    !     phi_face_parallel_component_norm = phi_face_parallel_component_norm + &
-    !                                        phi_face_parallel_component(i) * phi_face_parallel_component(i)
-    !     normal_norm = normal_norm + normal(i) * normal(i)
-    !   end do
-    !   phi_face_parallel_component_portion = sqrt(phi_face_parallel_component_norm / normal_norm)
-
-    !   ! Get value of phi at boundary cell
-    !   a = phi_face_parallel_component_portion
-    !   b = 0.0_ccs_real
     case (bc_type_neumann)
       call get_distance(loc_p, loc_f, dx)
       dxmag = norm2(dx)
@@ -396,11 +363,12 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
   end subroutine
 
   !> Calculates mass flux across given face. Note: assumes rho = 1
-  module function calc_mass_flux_uvw(u_field, v_field, w_field, p, dpdx, dpdy, dpdz, invA, &
+  module function calc_mass_flux_uvw(u_field, v_field, w_field, mf_field, p, dpdx, dpdy, dpdz, invA, &
                                      loc_f, enable_cell_corrections) result(flux)
     class(field), intent(inout) :: u_field
     class(field), intent(inout) :: v_field
     class(field), intent(inout) :: w_field
+    class(field), intent(inout) :: mf_field
     real(ccs_real), dimension(:), intent(in) :: p                !< array containing pressure
     real(ccs_real), dimension(:), intent(in) :: dpdx, dpdy, dpdz !< arrays containing pressure gradient in x, y and z
     real(ccs_real), dimension(:), intent(in) :: invA             !< array containing inverse momentum diagonal
@@ -416,8 +384,6 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
     integer(ccs_int) :: index_nb                   ! Neighbour cell index
     real(ccs_real) :: flux_corr                    ! Flux correction
     real(ccs_real), dimension(ndim) :: n           ! (local) face-normal array
-    real(ccs_real) :: u_bc, v_bc, w_bc             ! values of u, v and w at boundary
-    integer(ccs_int), parameter :: x_direction = 1, y_direction = 2, z_direction = 3
     real(ccs_real) :: flux_x, flux_y, flux_z
 
     call get_boundary_status(loc_f, is_boundary)
@@ -446,14 +412,51 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
         flux_corr = calc_mass_flux(p, dpdx, dpdy, dpdz, invA, loc_f, enable_cell_corrections)
         flux = flux + flux_corr
       else
-        call compute_boundary_values(u_field, x_direction, loc_p, loc_f, n, u_bc)
-        call compute_boundary_values(v_field, y_direction, loc_p, loc_f, n, v_bc)
-        call compute_boundary_values(w_field, z_direction, loc_p, loc_f, n, w_bc)
-        flux = dot_product([u_bc, v_bc, w_bc], n)
+        flux = calc_mass_flux_bc(u_field, v_field, w_field, mf_field, loc_f)
       end if
     end associate
 
   end function calc_mass_flux_uvw
+
+  !v Returns mass flux through a boundary
+  pure module function calc_mass_flux_bc(u_field, v_field, w_field, mf_field, loc_f) result(flux)
+
+    class(field), intent(in) :: u_field
+    class(field), intent(in) :: v_field
+    class(field), intent(in) :: w_field
+    class(field), intent(in) :: mf_field
+    type(face_locator), intent(in) :: loc_f                      !< face locator
+    real(ccs_real) :: flux                                       !< The flux across the boundary
+
+    type(neighbour_locator) :: loc_nb
+    type(cell_locator) :: loc_p
+    integer(ccs_int), parameter :: x_direction = 1, y_direction = 2, z_direction = 3
+    real(ccs_real) :: u_bc, v_bc, w_bc             ! values of u, v and w at boundary
+    real(ccs_real), dimension(ndim) :: n           ! (local) face-normal array
+    integer(ccs_int) :: index_bc, index_nb
+
+    call create_cell_locator(loc_f%index_p, loc_p)
+    call create_neighbour_locator(loc_p, loc_f%cell_face_ctr, loc_nb)
+    call get_local_index(loc_nb, index_nb)
+    call get_bc_index(mf_field, index_nb, index_bc)
+
+    select case (mf_field%bcs%bc_types(index_bc))
+    case(bc_type_dirichlet)
+      flux = mf_field%bcs%values(index_bc)
+
+    case(bc_type_constructed)
+      call get_face_normal(loc_f, n)
+      call compute_boundary_values(u_field, x_direction, loc_p, loc_f, n, u_bc)
+      call compute_boundary_values(v_field, y_direction, loc_p, loc_f, n, v_bc)
+      call compute_boundary_values(w_field, z_direction, loc_p, loc_f, n, w_bc)
+      flux = dot_product([u_bc, v_bc, w_bc], n)
+
+    case default
+      flux = 0.0_ccs_real
+      error stop unknown_bc_type ! Unknown BC type
+    end select 
+
+  end function
 
   ! Computes Rhie-Chow correction
   pure module function calc_mass_flux_no_uvw(p, dpdx, dpdy, dpdz, invA, loc_f, enable_cell_corrections) result(flux)

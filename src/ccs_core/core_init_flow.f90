@@ -15,7 +15,7 @@ submodule(core) core_init_flow
                        get_face_interpolation, get_local_num_cells, get_boundary_status
 
   use vec, only: get_vector_data, restore_vector_data, create_vector_values
-  use fv, only: compute_boundary_values
+  use fv, only: calc_mass_flux_bc
 
   use profiler, only: profiler_begin_region, profiler_end_region
 
@@ -197,11 +197,9 @@ submodule(core) core_init_flow
 
         if (is_boundary) then
           ! Get boundary values
-          call compute_boundary_values(mf, 1, loc_p, loc_f, face_normal, velocity(1))
-          call compute_boundary_values(mf, 2, loc_p, loc_f, face_normal, velocity(2))
-          call compute_boundary_values(mf, 3, loc_p, loc_f, face_normal, velocity(3))
+          mf_data(index_f) = calc_mass_flux_bc(u, v, w, mf, loc_f)
 
-          mf_data(index_f) = dot_product(velocity, face_normal)
+          ! Allow case to overwrite bc value
           call get_init_mass_flux(loc_f, mf_data(index_f))
 
         else if (index_p < index_nb) then  
