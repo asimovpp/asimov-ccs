@@ -25,7 +25,7 @@ bases:
       timestepping_common: timestepping_common
       partitioning: partitioning_parhip
       partitioning_common: partitioning_common
-      reordering: reordering_rcm
+      reordering: reordering_petsc
       reordering_common: reordering_common
       poisson_discretisation: poisson_discretisation_ref
       scalars_common: scalars_common
@@ -79,7 +79,7 @@ bases:
       timestepping_common: timestepping_common
       partitioning: partitioning_parhip
       partitioning_common: partitioning_common
-      reordering: reordering_rcm
+      reordering: reordering_petsc
       reordering_common: reordering_common
       poisson_discretisation: poisson_discretisation_ref
       scalars_common: scalars_common
