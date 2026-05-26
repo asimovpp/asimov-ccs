@@ -15,7 +15,7 @@ submodule(scalars) scalars_common
 
   use vec, only: create_vector, get_vector_data, restore_vector_data
   use mat, only: create_matrix, set_nnz
-  use solver, only: create_solver, solve, set_equation_system
+  use solver, only: create_solver, solve, set_equation_system, set_solver_method, set_solver_precon
 
   use meshing, only: get_max_faces
   use utils, only: update, initialise, finalise, set_size, debug_print, zero
@@ -119,7 +119,7 @@ contains
 
        call get_field(flow, field_name, phi)
 
-       if (.not. phi%solve) then
+       if (.not. phi%solver_parameters%solve) then
          cycle
        end if
 
@@ -192,6 +192,9 @@ contains
      
     call dprint("SCALAR: solve linear system")
     call create_solver(lin_system, lin_solver)
+
+    call set_solver_method(phi%solver_parameters%solver_name, lin_solver)
+    call set_solver_precon(phi%solver_parameters%precon_name, lin_solver)
 
     call solve(lin_solver)
 

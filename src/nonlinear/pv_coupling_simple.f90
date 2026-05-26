@@ -34,7 +34,7 @@ submodule(pv_coupling) pv_coupling_simple
   use timestepping, only: update_old_values, get_current_step, get_current_time
   use bc_constants, only: bc_type_dirichlet
   use residuals, only: compute_residuals, compute_global_residuals, init_residuals, normalise_residuals, &
-                       get_max_residuals, print_residuals
+                       get_max_residuals, print_residuals, is_converged
   use parallel, only: is_root
   use logging, only: log_unit_out
 
@@ -108,11 +108,9 @@ contains
     integer(ccs_int) :: it_start
     integer(ccs_int) :: it_end
     integer(ccs_int) :: nfields
-    real(ccs_real) :: res_target                          !< Target residual
 
     it_start = run_options%solve%it_start
     it_end = run_options%solve%it_end
-    res_target = run_options%solve%res_target
 
     if (.not. is_mesh_set()) then
       call error_abort("Mesh object needs to be set")
@@ -202,7 +200,7 @@ contains
 
       ! Solve momentum equation with guessed pressure and velocity fields (eq. 4)
       call dprint("NONLINEAR: guess velocity")
-      call calculate_velocity(par_env, run_options, flow, eval_sources, M, source, &
+      call calculate_velocity(par_env, flow, eval_sources, M, source, &
                               lin_system, invA, workvec, sourcevec, res, residuals)
 
       ! Calculate pressure correction from mass imbalance (sub. eq. 11 into eq. 8)
@@ -219,7 +217,7 @@ contains
 
       ! Update pressure field with pressure correction
       call dprint("NONLINEAR: correct pressure")
-      call update_pressure(run_options, p_prime, p)
+      call update_pressure(p_prime, p)
 
       !< density values are in single digits (same as i/p)
 
@@ -230,7 +228,7 @@ contains
 
       !< density values change to exponential here after update
 
-      call check_convergence(par_env, flow, i, residuals, res_target, &
+      call check_convergence(par_env, flow, i, residuals, &
                              converged, diverged)
       if (converged) then
         call dprint("NONLINEAR: converged!")
@@ -271,12 +269,11 @@ contains
   !  Given an initial guess of a pressure field form the momentum equations (as scalar
   !  equations) and solve to obtain an intermediate velocity field u* that will not
   !  satisfy continuity.
-  subroutine calculate_velocity(par_env, run_options, flow, eval_sources, M, vec, &
+  subroutine calculate_velocity(par_env, flow, eval_sources, M, vec, &
                                 lin_sys, invA, workvec, sourcevec, res, residuals)
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< the parallel environment
-    type(ccs_options), intent(in) :: run_options
     type(fluid), intent(inout) :: flow                   !< Container for flow fields
     interface
       !v Subroutine to evaluate source terms, case-specific.
@@ -325,7 +322,7 @@ contains
     ! ----------
     if (u_sol) then
       call zero_vector(invAu)
-      call calculate_velocity_component(flow, par_env, run_options, eval_sources, p, 1, M, vec, lin_sys, u, invAu, &
+      call calculate_velocity_component(flow, par_env, eval_sources, p, 1, M, vec, lin_sys, u, invAu, &
            workvec, sourcevec, res, residuals)
       call axpy(1.0_ccs_real, invAu, invA)
       call vec_reciprocal(invAu)
@@ -336,7 +333,7 @@ contains
     ! ----------
     if (v_sol) then
       call zero_vector(invAv)
-      call calculate_velocity_component(flow, par_env, run_options, eval_sources, p, 2, M, vec, lin_sys, v, invAv, &
+      call calculate_velocity_component(flow, par_env, eval_sources, p, 2, M, vec, lin_sys, v, invAv, &
            workvec, sourcevec, res, residuals)
       call axpy(1.0_ccs_real, invAv, invA)
       call vec_reciprocal(invAv)
@@ -347,7 +344,7 @@ contains
     ! ----------
     if (w_sol) then
       call zero_vector(invAw)
-      call calculate_velocity_component(flow, par_env, run_options, eval_sources, p, 3, M, vec, lin_sys, w, invAw, &
+      call calculate_velocity_component(flow, par_env, eval_sources, p, 3, M, vec, lin_sys, w, invAw, &
            workvec, sourcevec, res, residuals)
       call axpy(1.0_ccs_real, invAw, invA)
       call vec_reciprocal(invAw)
@@ -361,7 +358,7 @@ contains
 
   end subroutine calculate_velocity
 
-  subroutine calculate_velocity_component(flow, par_env, run_options, eval_sources, p, component, M, vec, &
+  subroutine calculate_velocity_component(flow, par_env, eval_sources, p, component, M, vec, &
                                           lin_sys, u, invA, workvec, sourcevec, input_res, residuals)
 
     use timestepping, only: apply_timestep
@@ -370,7 +367,6 @@ contains
     ! Arguments
     type(fluid), intent(inout) :: flow                   !< Container for flow fields
     class(parallel_environment), allocatable, intent(in) :: par_env
-    type(ccs_options), intent(in) :: run_options
     interface
       !v Subroutine to evaluate source terms, case-specific.
       !
@@ -458,7 +454,7 @@ contains
 
     ! Underrelax the equations
     call dprint("GV: underrelax u")
-    call underrelax(run_options%solve%velocity_relax, u, workvec, M, vec)
+    call underrelax(u%solver_parameters%relaxation_factor, u, workvec, M, vec)
 
     ! Store contribution to central coefficient
     call dprint("GV: get u diag")
@@ -480,8 +476,8 @@ contains
     call create_solver(lin_sys, lin_solver)
 
     ! Customise linear solver
-    call set_solver_method(run_options%solve%velocity_solver, lin_solver)
-    call set_solver_precon(run_options%solve%velocity_precon, lin_solver)
+    call set_solver_method(u%solver_parameters%solver_name, lin_solver)
+    call set_solver_precon(u%solver_parameters%precon_name, lin_solver)
 
     ! Solve the linear system
     call dprint("GV: solve u")
@@ -856,8 +852,8 @@ contains
     call create_solver(lin_sys, lin_solver)
 
     ! Customise linear solver
-    call set_solver_method(run_options%solve%pressure_solver, lin_solver)
-    call set_solver_precon(run_options%solve%pressure_precon, lin_solver)
+    call set_solver_method(p_prime%solver_parameters%solver_name, lin_solver)
+    call set_solver_precon(p_prime%solver_parameters%precon_name, lin_solver)
 
     ! Solve the linear system
     call dprint("P': solve")
@@ -994,14 +990,13 @@ contains
   end subroutine compute_mass_imbalance
 
   !> Corrects the pressure field, using explicit underrelaxation
-  subroutine update_pressure(run_options, p_prime, p)
+  subroutine update_pressure(p_prime, p)
 
     ! Arguments
-    type(ccs_options), intent(in) :: run_options
     class(field), intent(in) :: p_prime !< pressure correction
     class(field), intent(inout) :: p    !< the pressure field being corrected
 
-    call axpy(run_options%solve%pressure_relax, p_prime%values, p%values)
+    call axpy(p%solver_parameters%relaxation_factor, p_prime%values, p%values)
 
     call update(p%values)
     call update_gradient(p)
@@ -1158,24 +1153,33 @@ contains
 
   end subroutine update_face_velocity
 
-  subroutine check_convergence(par_env, flow, itr, residuals, res_target, &
+  subroutine check_convergence(par_env, flow, itr, residuals, &
                                converged, diverged)
-    use ccs_base, only: L2, Linfty
+    use constants, only: Linfty
     
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< The parallel environment
     type(fluid), intent(inout) :: flow                              !< Container for flow fields
     integer(ccs_int), intent(in) :: itr                             !< Iteration count
     type(ccs_residuals), intent(inout) :: residuals
-    real(ccs_real), intent(in) :: res_target                        !< Target residual
     logical, intent(inout) :: converged                             !< Has solution converged (true/false)
     logical, optional, intent(out) :: diverged                      !< Has solution diverged (true/false)
+    class(field), pointer :: phi
+    integer :: ifield, nfields
 
     call compute_global_residuals(par_env, flow, residuals)
     call print_residuals(par_env, flow, itr, residuals)
 
+    call count_fields(flow, nfields)
+
     ! checks if RMS of residuals is below target
-    converged = (get_max_residuals(residuals, L2) < res_target)
+    converged = .true.
+    do ifield=1, nfields
+      call get_field(flow, ifield, phi)
+      if (phi%solver_parameters%solve) then
+        converged = converged .and. is_converged(residuals, phi, ifield)
+      end if
+    end do
 
     if (present(diverged)) then
       diverged = (get_max_residuals(residuals, Linfty) > huge(1.0_ccs_real)) 
