@@ -6,6 +6,9 @@ program test_read_config_yaml
 
   use fortran_yaml_c_interface, only: parse
   use read_config, only: get_value
+#ifdef _OPENMP
+  use omp_lib, only: omp_set_num_threads, omp_set_dynamic
+#endif
   
   implicit none
 
@@ -51,6 +54,11 @@ contains
     logical :: lval
 
     logical :: val_present
+
+#ifdef _OPENMP
+    call omp_set_dynamic(.false.)
+    call omp_set_num_threads(1)
+#endif
 
     print *, "- read integer"
     call get_value(conf_file, "integer", ival, val_present, required=required)
