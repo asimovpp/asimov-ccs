@@ -55,6 +55,10 @@ program test_square_mesh_neighbours
 
     boundary_ctr = 0
     call get_local_num_cells(local_num_cells)
+    !$omp parallel do default(none) &
+    !$omp private(i, j, loc_p, nnb, loc_nb, index_nb, is_boundary) &
+    !$omp shared(local_num_cells) &
+    !$omp reduction(+:boundary_ctr)
     do i = 1, local_num_cells
 
       call create_cell_locator(i, loc_p)
@@ -85,6 +89,7 @@ program test_square_mesh_neighbours
       end do
 
     end do
+    !$omp end parallel do
 
     ! Check total boundary neighbours
     select type (par_env)
