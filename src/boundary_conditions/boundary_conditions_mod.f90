@@ -165,10 +165,10 @@ contains
           phi%bcs%bc_types(i) = bc_type_neumann
           phi%bcs%values(i) = 0.0_ccs_real
         else if (is_pressure) then
-          phi%bcs%bc_types(i) = bc_type_extrapolate
+          phi%bcs%bc_types(i) = bc_type_dirichlet
           phi%bcs%values(i) = 0.0_ccs_real
         else if (is_pressure_corr) then
-          phi%bcs%bc_types(i) = bc_type_neumann
+          phi%bcs%bc_types(i) = bc_type_dirichlet
           phi%bcs%values(i) = 0.0_ccs_real
         else if (is_mf) then
           phi%bcs%bc_types(i) = bc_type_constructed
