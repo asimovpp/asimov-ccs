@@ -3,4 +3,6 @@
 
 main: test_mesh_point_distribution
 base: mpi
+options:
+  reordering: reordering_none
 extra: parhip

@@ -3,4 +3,6 @@
 
 main: test_mesh_closed
 base: mpi
+options:
+  reordering: reordering_none
 extra: parhip

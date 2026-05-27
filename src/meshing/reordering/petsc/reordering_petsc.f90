@@ -17,15 +17,13 @@ contains
   module subroutine get_reordering(new_indices)
 #include "petsc/finclude/petscmat.h"
 
-    use petsc, only: PETSC_DETERMINE, INSERT_VALUES
     use petscmat
-    use petscis, only: tIS, ISDestroy
 #if PETSC_VERSION_GE(3,23,0)
-    use petsc, only: PETSC_NULL_INTEGER_ARRAY
-    use petscis, only: ISGetIndices, ISRestoreIndices
+    use petsc, only: PETSC_NULL_INTEGER_ARRAY, PETSC_DETERMINE, INSERT_VALUES
+    use petscis, only: ISGetIndices, ISRestoreIndices, tIS, ISDestroy
 #else
-    use petsc, only: PETSC_NULL_INTEGER
-    use petscis, only: ISGetIndicesF90, ISRestoreIndicesF90
+    use petsc, only: PETSC_NULL_INTEGER, PETSC_DETERMINE, INSERT_VALUES
+    use petscis, only: ISGetIndicesF90, ISRestoreIndicesF90, tIS, ISDestroy
 #endif
 
     integer(ccs_int), dimension(:), allocatable, intent(out) :: new_indices !< new indices in "to(from)" format
