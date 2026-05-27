@@ -9,7 +9,7 @@ submodule(pv_coupling) pv_coupling_simple
   use types, only: vector_spec, ccs_vector, matrix_spec, ccs_matrix, equation_system, &
                    linear_solver, bc_config, vector_values, cell_locator, ccs_residuals, &
                    face_locator, neighbour_locator, matrix_values, matrix_values_spec, upwind_field, field_ptr
-  use fv, only: compute_fluxes, calc_mass_flux, update_gradient
+  use fv, only: compute_fluxes, calc_mass_flux, calc_mass_flux_bc, update_gradient
   use vec, only: create_vector, vec_reciprocal, scale_vec, &
                  get_vector_data, get_vector_data_readonly, restore_vector_data, restore_vector_data_readonly, &
                  create_vector_values, set_vector_location, zero_vector, vec_aypx, &
@@ -863,6 +863,7 @@ contains
 
   !> Computes the per-cell mass imbalance, updating the face velocity flux as it does so.
   subroutine compute_mass_imbalance(invA, flow, input_b, residuals)
+    use fv, only: compute_boundary_coeffs
 
     class(ccs_vector), intent(inout) :: invA !< The inverse momentum equation diagonal coefficient
     type(fluid), intent(inout) :: flow                   !< Container for flow fields
@@ -953,17 +954,14 @@ contains
             face_area = -face_area
           else
             ! Compute mass flux through face
-            mf_data(index_f) = calc_mass_flux(u, v, w, &
+            mf_data(index_f) = calc_mass_flux(u, v, w, mf, &
                                               p%values_ro, dpdx_data, dpdy_data, dpdz_data, &
                                               invA_data, &
                                               loc_f, p%enable_cell_corrections)
           end if
         else
           ! Compute mass flux through face
-          mf_data(index_f) = calc_mass_flux(u, v, w, &
-                                            p%values_ro, dpdx_data, dpdy_data, dpdz_data, &
-                                            invA_data, &
-                                            loc_f, .false.)
+          mf_data(index_f) = calc_mass_flux_bc(u, v, w, mf, loc_f)
         end if
 
         mib = mib + mf_data(index_f) * face_area

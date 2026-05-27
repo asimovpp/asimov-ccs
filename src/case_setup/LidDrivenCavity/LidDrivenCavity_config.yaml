@@ -100,54 +100,20 @@ boundaries:
   n_boundaries: 4
   boundary_1: 
     name: left
-    type: dirichlet
+    type: wall
     value: 0
-    variable_p:
-      type: extrapolate
-    variable_p_prime:
-      type: neumann
-      value: 0
   boundary_2:
     name: right
-    type: dirichlet
+    type: wall
     value: 0
-    variable_p:
-      type: extrapolate
-    variable_p_prime:
-      type: neumann
-      value: 0
   boundary_3:
     name: bottom
-    type: dirichlet
-    value: 0
-    variable_p:
-      type: extrapolate
-    variable_p_prime:
-      type: neumann
-      value: 0
+    type: wall
   boundary_4:
     name: top
-    type: dirichlet
+    type: wall
     value: 0
     variable_u:
       type: dirichlet
       value: 1
-    variable_p:
-      type: extrapolate
-    variable_p_prime:
-      type: neumann
-      value: 0
-  boundary_5:
-    name: back
-    type: neumann
-    value: 0
-    variable_w:
-      type: dirichlet
-      value: 0
-  boundary_6:
-    name: front
-    type: neumann
-    value: 0
-    variable_w:
-      type: dirichlet
-      value: 0
+

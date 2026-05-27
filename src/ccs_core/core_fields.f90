@@ -4,7 +4,7 @@ submodule(core) core_fields
   use types, only: vector_spec, field_spec, field
   use constants, only: face, cell, face_centred, cell_centred_central
   use bc_constants
-  use boundary_conditions, only: set_bc_type
+  use boundary_conditions, only: set_bc_type, translate_bcs
   use ccs_base, only: mesh
   use parallel, only: is_root
   use utils, only: set_size, initialise, add_field_to_outputlist, exit_print
@@ -80,7 +80,7 @@ contains
     call build_user_fields(par_env, run_options, field_properties, flow_fields)
     
     ! build the common fields specified.
-    call build_common_fields(par_env, field_properties, flow_fields)
+    call build_common_fields(par_env, run_options, field_properties, flow_fields)
     
     ! Finally build any case specific fields.
     call build_case_fields(par_env, run_options, field_properties, flow_fields)
@@ -90,6 +90,7 @@ contains
     call print_field_config(par_env, flow_fields)
 
   end subroutine initialise_fields
+  
 
   !> Builds the user specified fields from the case config file
   subroutine build_user_fields(par_env, run_options, field_properties, flow_fields)
@@ -115,7 +116,7 @@ contains
 
       call set_field_type(run_options%variables%variable_types(i), my_field_properties)
       call set_field_name(run_options%variables%variable_names(i), my_field_properties)
-      call create_field(par_env, my_field_properties, flow_fields)
+      call create_field(par_env, my_field_properties, run_options%mesh%bnd_names, flow_fields)
       call add_fluid_field_to_outputlist(run_options, i, flow_fields)
       call set_field_solver_params(run_options, i, flow_fields)
     end do
@@ -126,8 +127,9 @@ contains
   end subroutine build_user_fields
 
   !> builds any common fields that should be inaccessible to the user.
-  subroutine build_common_fields(par_env, field_properties, flow_fields)
+  subroutine build_common_fields(par_env, run_options, field_properties, flow_fields)
     class(parallel_environment), intent(in), allocatable:: par_env !< The parallel environment
+    type(ccs_options), intent(in) :: run_options                   !< Object containing relevant options for building fields
     type(field_spec), intent(in) :: field_properties               !< The field spec object used to allocate the fields
     type(fluid), intent(inout) :: flow_fields                      !< The fluid fields object being initialised
 
@@ -146,7 +148,7 @@ contains
     call set_field_vector_properties(vec_properties, my_field_properties)
     call set_field_type(face_centred, my_field_properties)
     call set_field_name("mf", my_field_properties)
-    call create_field(par_env, my_field_properties, flow_fields)
+    call create_field(par_env, my_field_properties, run_options%mesh%bnd_names, flow_fields)
 
     if (is_root(par_env)) then
       write(log_unit_out,*) "Built ", size(flow_fields%fields) - nfields_init, " common fields"
@@ -185,7 +187,7 @@ contains
       if (.not. is_field_built(field_names(i), flow_fields)) then
         call set_field_type(field_types(i), my_field_properties)
         call set_field_name(field_names(i), my_field_properties)
-        call create_field(par_env, my_field_properties, flow_fields)
+        call create_field(par_env, my_field_properties, run_options%mesh%bnd_names, flow_fields)
 
         call add_fluid_field_to_outputlist(run_options, field_index, flow_fields)
         field_index = field_index + 1
