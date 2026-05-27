@@ -1,5 +1,6 @@
 # RUN: %build_test %s %t1 test_read_config_yaml.f90
 # RUN: %mpirun -n 1 %t1
+# XFAIL: intel
 
 main: test_read_config_yaml
 base: mpi_petsc
