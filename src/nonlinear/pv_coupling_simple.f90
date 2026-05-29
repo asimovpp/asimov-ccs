@@ -13,7 +13,7 @@ submodule(pv_coupling) pv_coupling_simple
   use vec, only: create_vector, vec_reciprocal, scale_vec, &
                  get_vector_data, get_vector_data_readonly, restore_vector_data, restore_vector_data_readonly, &
                  create_vector_values, set_vector_location, zero_vector, vec_aypx, &
-                 mult_vec_vec
+                 mult_vec_vec, vec_sum, vec_norm
   use mat, only: create_matrix, set_nnz, get_matrix_diagonal, set_matrix_values_spec_nrows, &
                  set_matrix_values_spec_ncols, create_matrix_values, mat_vec_product, &
                  check_operator_symmetry
@@ -764,18 +764,30 @@ contains
     type(cell_locator) :: loc_p
     type(matrix_values_spec) :: mat_val_spec
 
-    integer(ccs_int) :: local_num_cells
+    integer(ccs_int) :: local_num_cells, global_num_cells
     integer(ccs_int) :: index_p
     integer(ccs_int) :: max_faces
     integer(ccs_int) :: max_stencil_width
 
     real(ccs_real), dimension(:), pointer :: invA_data
 
+    real(ccs_real) :: vec_mean, vec_l2
+    character(256) :: msg
+
     type(poisson_equation) :: pois_eqn
 
     call profiler_begin_region("Building coefficients")
     ! First zero matrix
     call zero(M)
+
+    ! To ensure compatibility of the Poisson equation with Neumann conditions subtract the mean of the RHS from the RHS
+    call vec_sum(vec, vec_mean)
+    call get_global_num_cells(global_num_cells)
+    vec_mean = vec_mean / global_num_cells
+    vec_l2 = vec_norm(vec, 2)
+    write(msg, "(A, E23.16,X,E23.16,X,E23.16)") "Mass imbalance (cell avg, L2norm, ratio): ", vec_mean, vec_l2, vec_mean / vec_l2
+    call dprint(trim(msg))
+    !call vec_apy(-vec_mean, vec)
 
     ! The computed mass imbalance is +ve, to have a +ve diagonal coefficient we need to negate this.
     call dprint("P': negate RHS")

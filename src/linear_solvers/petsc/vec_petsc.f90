@@ -355,6 +355,22 @@ contains
 
   end subroutine
 
+  !> Compute the element-wise sum of a PETSc vector
+  module subroutine vec_sum(v, sum)
+    class(ccs_vector), intent(in) :: v
+    real(ccs_real), intent(out) :: sum
+
+    integer(ccs_err) :: ierr
+
+    select type(v)
+    type is (vector_petsc)
+      call VecSum(v%v, sum, ierr)
+    class default
+      call error_abort("Should be unreachable.")
+    end select
+
+  end subroutine
+
   !> Compute the norm of a PETSc vector
   module function vec_norm(v, norm_type) result(n)
 

@@ -26,6 +26,7 @@ module vec
   public :: end_ghost_update_vector
   public :: vec_axpy
   public :: vec_aypx
+  public :: vec_sum
   public :: vec_norm
   public :: initialise_vector
   public :: set_vector_size
@@ -141,6 +142,12 @@ module vec
       class(ccs_vector), intent(in) :: x    !< an input vector
       real(ccs_real), intent(in) :: beta    !< a scalar value
       class(ccs_vector), intent(inout) :: y !< vector serving as input, overwritten with result
+    end subroutine
+
+    !> Interface to compute the element-wise sum of a vector
+    module subroutine vec_sum(x, sum)
+      class(ccs_vector), intent(in) :: x !< an input vector
+      real(ccs_real), intent(out) :: sum !< the element-wise sum
     end subroutine
 
     !> Interface to compute the norm of a vector
