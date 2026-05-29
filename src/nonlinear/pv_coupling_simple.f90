@@ -747,6 +747,7 @@ contains
     use fv, only: compute_boundary_coeffs
     use profiler
     use fv_equations, only: poisson_equation
+    use bc_constants, only: bc_type_neumann
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< the parallel environment
@@ -781,13 +782,16 @@ contains
     call zero(M)
 
     ! To ensure compatibility of the Poisson equation with Neumann conditions subtract the mean of the RHS from the RHS
-    call vec_sum(vec, vec_mean)
-    call get_global_num_cells(global_num_cells)
-    vec_mean = vec_mean / global_num_cells
-    vec_l2 = vec_norm(vec, 2)
-    write(msg, "(A, E23.16,X,E23.16,X,E23.16)") "Mass imbalance (cell avg, L2norm, ratio): ", vec_mean, vec_l2, vec_mean / vec_l2
-    call dprint(trim(msg))
-    !call vec_apy(-vec_mean, vec)
+    if (all(p_prime%bcs%bc_types == bc_type_neumann)) then
+      ! Enforce zero forcing integral
+      call vec_sum(vec, vec_mean)
+      call get_global_num_cells(global_num_cells)
+      vec_mean = vec_mean / global_num_cells
+      vec_l2 = vec_norm(vec, 2)
+      write(msg, "(A, E23.16,X,E23.16,X,E23.16)") "Mass imbalance (cell avg, L2norm, ratio): ", vec_mean, vec_l2, vec_mean / vec_l2
+      call dprint(trim(msg))
+      call vec_apy(-vec_mean, vec)
+    end if
 
     ! The computed mass imbalance is +ve, to have a +ve diagonal coefficient we need to negate this.
     call dprint("P': negate RHS")
