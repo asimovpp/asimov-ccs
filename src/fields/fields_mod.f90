@@ -52,16 +52,14 @@ module fields
 contains
 
   !> Build a field variable with data and gradient vectors + transient data and boundary arrays.
-  subroutine create_field(par_env, field_properties, bnd_names, flow)
+  subroutine create_field(par_env, field_properties, flow)
 
     use utils, only: debug_print
-    use boundary_conditions, only: translate_bcs
 
     implicit none
 
     class(parallel_environment), intent(in) :: par_env
     type(field_spec), intent(in) :: field_properties !< Field descriptor
-    character(len=*), dimension(:), intent(in) :: bnd_names !< List of boundary names used by the mesh
     type(fluid), intent(inout) :: flow !< The flow field container where new field is to be constructed
 
     integer :: nfields
@@ -85,9 +83,6 @@ contains
         phi%enable_cell_corrections = enable_cell_corrections
         phi%name = field_name
 
-        ! translate high level bcs into base ones
-        call translate_bcs(bnd_names, phi)
-
         !! --- Ensure data is updated/parallel-constructed ---
         ! XXX: Potential abstraction --- see update(vec), etc.
         call update(phi%values)
@@ -101,8 +96,6 @@ contains
           call update(phi%x_gradients)
           call update(phi%y_gradients)
           call update(phi%z_gradients)
-
-          call update_gradient(phi)
         end if
 
         !! --- End update ---

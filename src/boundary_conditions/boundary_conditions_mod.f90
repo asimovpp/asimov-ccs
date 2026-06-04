@@ -25,7 +25,7 @@ module boundary_conditions
   public :: set_bc_type
   public :: set_bc_id
   public :: set_bc_profile
-  public :: translate_bcs
+  public :: translate_bcs_phi
 
 contains
 
@@ -53,21 +53,25 @@ contains
 
 
   !v Translate potentially high level boundary contition set by the user into a set of base boundary conditions
-  subroutine translate_bcs(bnd_names, phi)
+  subroutine translate_bcs_phi(bnd_normals, phi)
     use meshing, only: get_mesh_generated
     use constants, only: ccs_string_len
     use ccs_base, only: left, right, bottom, top, back, front
 
-    character(len=*), dimension(:), intent(in) :: bnd_names !< List of boundary names
+    real(ccs_real), dimension(:, :), intent(in) :: bnd_normals !< List of boundary names
     class(field), intent(inout) :: phi       !< Field to process
 
-    character(len=ccs_string_len) :: field_name, bnd_name
+    character(len=ccs_string_len) :: field_name
     integer(ccs_int) :: i
+    real(ccs_real), dimension(3) :: x, y, z
+    real(ccs_real), parameter :: eps = 0.01
     logical :: is_momentum, is_pressure, is_pressure_corr, is_extra, is_mf
-    logical :: is_generated
     logical :: is_mom_normal     !< Flag telling if the bc to be processed is normal to the velocity component
      
-    call get_mesh_generated(is_generated)
+    x = [1.0_ccs_real, 0.0_ccs_real, 0.0_ccs_real]
+    y = [0.0_ccs_real, 1.0_ccs_real, 0.0_ccs_real]
+    z = [0.0_ccs_real, 0.0_ccs_real, 1.0_ccs_real]
+
     is_mom_normal = .false.
     is_momentum = .false.
     is_pressure = .false.
@@ -89,18 +93,17 @@ contains
     end if
 
     do i=1, size(phi%bcs%bc_types)
-      bnd_name = bnd_names(i)
       
       ! Flag telling if the bc to be processed is normal to the velocity component, 
       !  not used for non generated meshes and fields other than the velocity ones
-      is_mom_normal = (field_name == 'u' .and. ((bnd_name == left) .or. (bnd_name == right))) .or. &
-                      (field_name == 'v' .and. ((bnd_name == bottom) .or. (bnd_name == top))) .or. &
-                      (field_name == 'w' .and. ((bnd_name == front) .or. (bnd_name == back)))
+      is_mom_normal = ((field_name == 'u') .and. (abs(abs(dot_product(bnd_normals(:, i), x)) -1.0_ccs_real) <= eps)) .or. &
+                      ((field_name == 'v') .and. (abs(abs(dot_product(bnd_normals(:, i), y)) -1.0_ccs_real) <= eps)) .or. &
+                      ((field_name == 'w') .and. (abs(abs(dot_product(bnd_normals(:, i), z)) -1.0_ccs_real) <= eps))
 
       select case(phi%bcs%bc_types(i))
       case(bc_type_wall)
         if (is_momentum) then
-          if (is_mom_normal .and. is_generated) then
+          if (is_mom_normal) then
             phi%bcs%bc_types(i) = bc_type_neumann
             phi%bcs%values(i) = 0.0_ccs_real
           else
