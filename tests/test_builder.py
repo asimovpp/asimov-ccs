@@ -5,7 +5,7 @@ import yaml
 
 config_file = sys.argv[1]
 output_stub = sys.argv[2]
-test_src_obj = {x: output_stub + os.path.splitext(x)[0] + ".o" for x in sys.argv[3:]}
+test_src_obj = {x: output_stub + os.path.splitext(os.path.basename(x))[0] + ".o" for x in sys.argv[3:]}
 
 test_deps = output_stub + ".deps"
 smod_deps = output_stub + ".smod.deps"
@@ -49,6 +49,8 @@ else:
     idx = 1 #special case for case_setup tests that also have extra files for the test
 
 link_rule = " ".join(link_rule[idx:])
+test_obj_names = {"${OBJ_DIR}/" + os.path.splitext(os.path.basename(x))[0] + ".o" for x in test_src_obj.keys()}
+link_rule = " ".join(x for x in link_rule.split(" ") if x not in test_obj_names)
 
 print("TEST BUILDER: linking test executable")
 sp.run("${FC} ${FFLAGS} -I${OBJ_DIR} ${INC} " + " ".join(test_src_obj.values()) + " " + link_rule + " -o " + test_exe + " ${LIB}",

@@ -205,7 +205,7 @@ if __name__ == "__main__":
     lib_rule = get_min_link_rule("lib", mindeps)
   else:
     link_rule = get_link_rule("ccs_app", mapped_config, deps)
-    link_rule = get_link_rule("lib", mapped_config, deps)
+    lib_rule = get_link_rule("lib", mapped_config, deps)
 
   log.debug("Configurator produced link rule:\n%s", link_rule)
   with open(sys.argv[3], "w") as f:
