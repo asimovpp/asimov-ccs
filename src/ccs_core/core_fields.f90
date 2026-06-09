@@ -96,7 +96,7 @@ contains
   !v Loop through fields and translate their potentially complex boundary conditions 
   ! into basic boundary conditions and also update gradient (this cannot be done before bcs are 'translated')
   subroutine translate_bcs(par_env, run_options, flow_fields)
-    use fields, only: get_field
+    use fields, only: get_field, get_field_is_face_based
     use fv, only: update_gradient
 
     class(parallel_environment), intent(in), allocatable:: par_env !< The parallel environment
@@ -106,6 +106,7 @@ contains
     class(field), pointer :: phi
     real(ccs_real), dimension(:, :), allocatable :: bnd_normals
     integer(ccs_int) :: i
+    logical :: is_face_based
 
     call get_bnd_normals(par_env, run_options, bnd_normals)
 
@@ -114,7 +115,10 @@ contains
 
       call translate_bcs_phi(bnd_normals, phi)
 
-      call update_gradient(phi)
+      call get_field_is_face_based(phi, is_face_based)
+      if (.not. is_face_based) then
+        call update_gradient(phi)
+      endif
     end do
 
   end subroutine
