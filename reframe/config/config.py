@@ -20,10 +20,6 @@ site_configuration = {
                         "Default",
                         "PrgEnv-gnu",
                         "PrgEnv-cray",
-                        "PrgEnv-aocc",
-                        "PrgEnv-gnu-hf",
-                        "PrgEnv-cray-hf",
-                        "PrgEnv-aocc-hf",
                     ],
                 },
                 {
