@@ -5,7 +5,7 @@ contains
 
   module pure function advect_luds_eval_coeffs(self, flux_coeff) result(coeffs)
     class(luds_advection_kernel), intent(in) :: self
-    real(ccs_real), intent(in) :: flux_coeff   ! ρ u A with sign
+    real(ccs_real), intent(in) :: flux_coeff   ! rho u A with sign
     real(ccs_real), dimension(2) :: coeffs       ! (P, F)
 
     associate (foo => self); end associate
@@ -17,11 +17,11 @@ contains
   module pure function advect_luds_eval_explicit(self, phi, flux_coeff, lf, rvecs, grads) result(expl)
     class(luds_advection_kernel), intent(in) :: self
     real(ccs_real), dimension(2), intent(in) :: phi
-    real(ccs_real), intent(in) :: flux_coeff      ! ρ u A
+    real(ccs_real), intent(in) :: flux_coeff      ! rho u A
     real(ccs_real), intent(in) :: lf              ! unused here
     real(ccs_real), dimension(3, 2), intent(in) :: rvecs        ! r_Pf , r_Ff
-    real(ccs_real), dimension(3, 2), intent(in) :: grads        ! ∇φ_P , ∇φ_F
-    real(ccs_real) :: expl                                     ! high-order – UD
+    real(ccs_real), dimension(3, 2), intent(in) :: grads        ! grad phi_P, grad phi_F
+    real(ccs_real) :: expl                                     ! high-order - UD
 
     ! ---------------- bookkeeping ------------------------------------
     logical :: pos
@@ -33,12 +33,12 @@ contains
     associate (foo => lf); end associate
 
     pos = flux_coeff >= 0.0_ccs_real
-    if (pos) then                       ! flow P → F
+    if (pos) then                       ! flow P -> F
       grad_up = grads(:, 1)
-      d_up = rvecs(:, 1)               ! x_f − x_P
-    else                                ! flow F → P
+      d_up = rvecs(:, 1)               ! x_f - x_P
+    else                                ! flow F -> P
       grad_up = grads(:, 2)
-      d_up = rvecs(:, 2)                ! x_f − x_F
+      d_up = rvecs(:, 2)                ! x_f - x_F
     end if
 
     phi_lud = dot_product(grad_up, d_up)   ! linear reconstruction

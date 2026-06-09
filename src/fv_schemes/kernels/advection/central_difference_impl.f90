@@ -4,7 +4,7 @@ submodule(central_difference_kernel) cd_kernel_impl
 contains
   module pure function advect_cd_eval_coeffs(self, flux_coeff) result(coeffs)
     class(cd_advection_kernel), intent(in) :: self
-    real(ccs_real), intent(in) :: flux_coeff   ! ṁ_f
+    real(ccs_real), intent(in) :: flux_coeff   ! m_dot_f
     real(ccs_real), dimension(2) :: coeffs       ! (P, F)
 
     associate (foo => self); end associate

@@ -281,6 +281,7 @@ contains
           call get_centre(loc_f, x_f)
 
           dx_orth = min(dot_product(x_f - x_p, face_normal), dot_product(x_nb - x_f, face_normal))
+          dxmag = 2.0_ccs_real * dx_orth
           x_nb_prime = x_f + dx_orth * face_normal
           x_p_prime = x_f - dx_orth * face_normal
 
