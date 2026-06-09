@@ -97,6 +97,7 @@ contains
   ! into basic boundary conditions and also update gradient (this cannot be done before bcs are 'translated')
   subroutine translate_bcs(par_env, run_options, flow_fields)
     use fields, only: get_field
+    use fv, only: update_gradient
 
     class(parallel_environment), intent(in), allocatable:: par_env !< The parallel environment
     type(ccs_options), intent(in) :: run_options !< Object containing runtime options
