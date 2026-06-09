@@ -36,10 +36,6 @@ site_configuration = {
                     "environs": [
                         "PrgEnv-gnu",
                         "PrgEnv-cray",
-                        "PrgEnv-aocc",
-                        "PrgEnv-gnu-hf",
-                        "PrgEnv-cray-hf",
-                        "PrgEnv-aocc-hf",
                     ],
                     "max_jobs": 64,
                     "processor": {
@@ -59,7 +55,6 @@ site_configuration = {
                     "environs": [
                         "rocm-PrgEnv-gnu",
                         "rocm-PrgEnv-cray",
-                        "rocm-PrgEnv-aocc",
                     ],
                     "resources": [
                         {"name": "qos", "options": ["--qos={qos}"]},
@@ -94,8 +89,6 @@ site_configuration = {
                         "Default",
                         "PrgEnv-gnu",
                         "PrgEnv-cray",
-                        "PrgEnv-aocc",
-                        "PrgEnv-intel"
                     ],
                 },
                 {
@@ -113,8 +106,6 @@ site_configuration = {
                     "environs": [
                         "PrgEnv-gnu",
                         "PrgEnv-cray",
-                        "PrgEnv-aocc",
-                        "PrgEnv-intel"
                     ],
                     "max_jobs": 512,
                     "processor": {
