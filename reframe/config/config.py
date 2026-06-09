@@ -44,34 +44,6 @@ site_configuration = {
                         "num_sockets": 2,
                     },
                 },
-                {
-                    "name": "compute-gpu",
-                    "descr": "Compute nodes with AMD GPUs",
-                    "max_jobs": 2,
-                    "features": ["gpu"],
-                    "scheduler": "slurm",
-                    "launcher": "srun",
-                    "access": ["--partition=gpu"],
-                    "environs": [
-                        "rocm-PrgEnv-gnu",
-                        "rocm-PrgEnv-cray",
-                    ],
-                    "resources": [
-                        {"name": "qos", "options": ["--qos={qos}"]},
-                        {
-                            "name": "gpu",
-                            "options": ["--gres=gpu:{num_gpus_per_node}"],
-                        },
-                    ],
-                    "processor": {
-                        "num_cpus": 32,
-                        "num_cpus_per_socket": 32,
-                        "num_sockets": 1,
-                    },
-                    "devices": [
-                        {"type": "gpu", "num_devices": 4}
-                    ],
-                },
             ],
         },
         {
