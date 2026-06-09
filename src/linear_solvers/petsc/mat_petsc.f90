@@ -5,10 +5,12 @@ submodule(mat) mat_petsc
   use kinds, only: ccs_err
   use petsctypes, only: matrix_petsc, vector_petsc
   use parallel_types_mpi, only: parallel_environment_mpi
+  use parallel, only: is_root
   use petscmat, only: MatAssemblyBegin, MatAssemblyEnd, MAT_FLUSH_ASSEMBLY
   use petsc, only: ADD_VALUES, INSERT_VALUES
   use utils, only: debug_print, str, update, exit_print
   use error_codes
+  use logging, only: log_unit_out
 
   implicit none
 
@@ -68,7 +70,7 @@ contains
         call MatSetFromOptions(M%M, ierr)
 
         if (mat_properties%nnz < 1) then
-          if (par_env%proc_id == par_env%root) then
+          if (is_root(par_env)) then
             call dprint("WARNING: No matrix preallocation set, potentially inefficient.")
           end if
           call MatSetUp(M%M, ierr)
@@ -129,10 +131,10 @@ contains
     select type (M)
     type is (matrix_petsc)
       call MatGetInfo(M%M, MAT_LOCAL, info, ierr)
-      print *, "---"
-      print *, "nnz allocated: ", info%nz_allocated
-      print *, "nnz used: ", info%nz_used
-      print *, "nnz unneeded: ", info%nz_unneeded
+      write(log_unit_out,*) "---"
+      write(log_unit_out,*) "nnz allocated: ", info%nz_allocated
+      write(log_unit_out,*) "nnz used: ", info%nz_used
+      write(log_unit_out,*) "nnz unneeded: ", info%nz_unneeded
 
     end select
 
@@ -148,10 +150,10 @@ contains
     select type (M)
     type is (matrix_petsc)
       call MatGetInfo(M%M, MAT_LOCAL, info, ierr)
-      print *, "---"
-      print *, "nnz allocated: ", info(MAT_INFO_NZ_ALLOCATED)
-      print *, "nnz used: ", info(MAT_INFO_NZ_USED)
-      print *, "nnz unneeded: ", info(MAT_INFO_NZ_UNNEEDED)
+      write(log_unit_out,*) "---"
+      write(log_unit_out,*) "nnz allocated: ", info(MAT_INFO_NZ_ALLOCATED)
+      write(log_unit_out,*) "nnz used: ", info(MAT_INFO_NZ_USED)
+      write(log_unit_out,*) "nnz unneeded: ", info(MAT_INFO_NZ_UNNEEDED)
     end select
     
 #endif
@@ -593,5 +595,30 @@ contains
     end select
 
   end subroutine mat_vec_product
+
+  module subroutine check_operator_symmetry(M)
+#include <petsc/finclude/petscsys.h>
+    use petscsys
+    use petscmat, only: MatIsSymmetric
+
+    class(ccs_matrix), intent(in) :: M
+    PetscBool :: symm
+    integer :: ierr
+
+    real(ccs_real) :: tol
+
+    select type(M)
+    type is (matrix_petsc)
+       tol = 1.0e-6
+       call MatIsSymmetric(M%M, tol, symm, ierr)
+
+       if (.not. symm) then
+          call error_abort("Matrix " // trim(M%name) // " is unsymmetric")
+       end if
+    class default
+       call error_abort("Unknown matrix type.")
+    end select
+    
+  end subroutine check_operator_symmetry
 
 end submodule mat_petsc

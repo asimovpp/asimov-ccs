@@ -9,6 +9,7 @@ module poiseuille_core
   use ccs_base, only: mesh
   use constants, only: ccs_string_len, ndim
   use kinds, only: ccs_real, ccs_int, ccs_long
+  use kinds, only: CCS_MPI_PRECISION
   use types, only: field, fluid, ccs_mesh, bc_profile
   use parallel, only: timer, is_root
   use parallel_types, only: parallel_environment
@@ -19,8 +20,8 @@ module poiseuille_core
   use meshing, only: get_total_num_cells, set_mesh_object, get_global_num_cells, nullify_mesh_object, get_local_num_cells
   use io_visualisation, only: reset_io_visualisation
   use utils, only: str, exit_print, reset_outputlist_counter
-  use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, &
-                    timer_print, timer_get_time, timer_print_all, timer_reset
+  use profiler, only: profiler_init, profiler_shutdown, profiler_begin_region, profiler_end_region
+  use logging, only: log_unit_out
 
   implicit none
 
@@ -43,26 +44,17 @@ module poiseuille_core
     class(field), pointer :: u
     type(bc_profile), allocatable :: profile
 
-    integer(ccs_int) :: irank ! MPI rank ID
-    integer(ccs_int) :: isize ! Size of MPI world
-
-    integer(ccs_int) :: timer_index_total
-    integer(ccs_int) :: timer_index_init
-
     type(fluid) :: flow_fields
 
     type(ccs_options) :: run_options
 
-    irank = par_env%proc_id
-    isize = par_env%num_procs
-
-    call timer_register_start("Elapsed time", timer_index_total)
-    call timer_register_start("Init time", timer_index_init)
+    call profiler_begin_region('Total elapsed time')
+    call profiler_begin_region('Total initialisation')
 
     ! Read case name and runtime parameters from configuration file
     call get_config(par_env, run_options)
 
-    if (is_root(par_env)) print *, "Starting ", run_options%paths%case_name, " case!"
+    if (is_root(par_env)) write(log_unit_out,*) "Starting ", run_options%paths%case_name, " case!"
 
     if (present(input_mesh)) then
       mesh = input_mesh
@@ -72,11 +64,11 @@ module poiseuille_core
     end if
 
     ! Initialise fields
-    if (is_root(par_env)) print *, "Initialise fields"
+    if (is_root(par_env)) write(log_unit_out,*) "Initialise fields"
     call initialise_fields(par_env, run_options, flow_fields)
 
     ! Create and initialise field vectors
-    if (is_root(par_env)) print *, "Initialise field vectors"
+    if (is_root(par_env)) write(log_unit_out,*) "Initialise field vectors"
     
     
     ! Set to 1st boundary condition (inlet)
@@ -86,13 +78,13 @@ module poiseuille_core
     nullify(u)
 
     ! Initialise velocity field
-    if (is_root(par_env)) print *, "Initialise velocity field"
+    if (is_root(par_env)) write(log_unit_out,*) "Initialise velocity field"
     call initialise_flow(par_env, run_options, flow_fields, get_init_flow, get_init_mass_flux)
 
     ! Solve using SIMPLE algorithm
-    if (is_root(par_env)) print *, "Start SIMPLE"
+    if (is_root(par_env)) write(log_unit_out,*) "Start SIMPLE"
 
-    call timer_stop(timer_index_init)
+    call profiler_end_region('Total initialisation')
 
     pois_error_L2_global = 0.0_ccs_real
     pois_error_Linf_global = 0.0_ccs_real
@@ -101,15 +93,12 @@ module poiseuille_core
     error_Linf = pois_error_Linf_global
     
     ! Clean-up
-
-    call timer_stop(timer_index_total)
-
-    call timer_print_all(par_env)
+    call profiler_end_region('Total elapsed time')
+    call profiler_shutdown(par_env)
 
     call reset_timestepping()
     call reset_outputlist_counter()
     call reset_io_visualisation()
-    call timer_reset()
     call dealloc_fluid_fields(flow_fields)
     call nullify_mesh_object()
 
@@ -273,8 +262,8 @@ module poiseuille_core
 
     select type (par_env)
     type is (parallel_environment_mpi)
-      call MPI_AllReduce(error_L2_local, error_L2, size(error_L2), MPI_DOUBLE_PRECISION, MPI_SUM, par_env%comm, ierr)
-      call MPI_AllReduce(error_Linf_local, error_Linf, size(error_Linf), MPI_DOUBLE_PRECISION, MPI_MAX, par_env%comm, ierr)
+      call MPI_AllReduce(error_L2_local, error_L2, size(error_L2), CCS_MPI_PRECISION, MPI_SUM, par_env%comm, ierr)
+      call MPI_AllReduce(error_Linf_local, error_Linf, size(error_Linf), CCS_MPI_PRECISION, MPI_MAX, par_env%comm, ierr)
     class default
       call error_abort("ERROR: Unknown type")
     end select

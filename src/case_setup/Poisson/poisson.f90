@@ -134,7 +134,7 @@ program poisson
   ! ASiMoV-CCS uses
   use core
   use ccs_base, only: mesh, bnd_names_default
-  use constants, only: ndim, add_mode, insert_mode
+  use constants, only: ndim, add_mode, insert_mode, default_pressure_solver, default_pressure_precon
   use kinds, only: ccs_real, ccs_int
   use types, only: vector_spec, ccs_vector, matrix_spec, ccs_matrix, &
                    equation_system, linear_solver, ccs_mesh, cell_locator, face_locator, &
@@ -157,8 +157,8 @@ program poisson
                       cleanup_parallel_environment, &
                       timer, sync, &
                       is_root
-  use timers, only: timer_init, timer_register_start, timer_stop, &
-                    timer_print_all, timer_export_csv
+  use profiler, only: profiler_init, profiler_shutdown, profiler_begin_region, profiler_end_region
+  use logging, only: log_unit_out
 
   implicit none
 
@@ -175,18 +175,16 @@ program poisson
 
   real(ccs_real) :: err_norm
 
-  integer(ccs_int):: timer_index_total
-
   type(ccs_options) :: run_options
 
   call initialise_parallel_environment(par_env)
-  call timer_init()
+  call profiler_init()
 
   call get_config(par_env, run_options)
   call configure_parallelism(run_options, par_env, shared_env)
 
   call sync(par_env)
-  call timer_register_start("Elapsed time", timer_index_total, is_total_time=.true.)
+  call profiler_begin_region('Total elapsed time')
 
   run_options%mesh%bnd_names = bnd_names_default(1:4)
   call initialise_poisson(par_env, shared_env, run_options)
@@ -231,8 +229,8 @@ program poisson
   ! Create linear solver & set options
   call set_equation_system(par_env, b, u, M, poisson_eq)
   call create_solver(poisson_eq, poisson_solver)
-  call set_solver_method(run_options%solve%pressure_solver, poisson_solver)
-  call set_solver_precon(run_options%solve%pressure_precon, poisson_solver)
+  call set_solver_method(default_pressure_solver, poisson_solver)
+  call set_solver_precon(default_pressure_precon, poisson_solver)
   call solve(poisson_solver)
 
   ! Check solution
@@ -241,7 +239,7 @@ program poisson
 
   err_norm = norm(u, 2) * mesh%geo%h
   if (is_root(par_env)) then
-    print *, "Norm of error = ", err_norm
+    write(log_unit_out,*) "Norm of error = ", err_norm
   end if
 
   ! Clean up
@@ -251,10 +249,8 @@ program poisson
   deallocate (M)
   deallocate (poisson_solver)
 
-  call timer_stop(timer_index_total)
-
-  call timer_print_all(par_env)
-
+  call profiler_end_region('Total elapsed time')
+  call profiler_shutdown(par_env)
   call cleanup_parallel_environment(par_env)
 
 contains

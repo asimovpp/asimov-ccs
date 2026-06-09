@@ -55,7 +55,7 @@ contains
           call create_cell_locator(index_p, loc_p)
           call get_centre(loc_p, x_p)
 
-          write (io_unit, '(7(1x,e12.4), 1x,i12, 1x,i12)') x_p(:), u_data(index_p), v_data(index_p), w_data(index_p), p_data(index_p), irank, index_p
+          write(io_unit, '(7(1x,e12.4), 1x,i12, 1x,i12)') x_p(:), u_data(index_p), v_data(index_p), w_data(index_p), p_data(index_p), irank, index_p
 
         end do
         close (io_unit)

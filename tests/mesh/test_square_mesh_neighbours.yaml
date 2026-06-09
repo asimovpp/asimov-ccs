@@ -3,4 +3,6 @@
 
 main: test_square_mesh_neighbours
 base: mpi
+options:
+  reordering: reordering_none
 extra: parhip

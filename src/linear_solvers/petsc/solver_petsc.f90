@@ -11,6 +11,8 @@ submodule(solver) solver_petsc
   use petsctypes, only: linear_solver_petsc, matrix_petsc, vector_petsc
   use parallel_types_mpi, only: parallel_environment_mpi
   use utils, only: update, exit_print
+  use logging, only: log_unit_out
+  use constants, only: ccs_string_len
 
   implicit none
 
@@ -102,17 +104,17 @@ contains
             call KSPSolve(ksp, b%v, u%v, ierr)
             call update(u)
             if (ierr /= 0) then
-              print*, "ERROR in linear solve."
+              write(log_unit_out,*) "ERROR in linear solve."
               call error_abort("ERROR in linear solve.")
             end if
 
           class default
-            print*,"ERROR: Trying to use non-PETSc vector for solution with PETSc solver."
+            write(log_unit_out,*)"ERROR: Trying to use non-PETSc vector for solution with PETSc solver."
             call error_abort("ERROR: Trying to use non-PETSc vector for solution with PETSc solver.")
           end select
 
         class default
-          print*, "ERROR: Trying to use non-PETSc vector for RHS with PETSc solver."
+          write(log_unit_out,*) "ERROR: Trying to use non-PETSc vector for RHS with PETSc solver."
           call error_abort("ERROR: Trying to use non-PETSc vector for RHS with PETSc solver.")
         end select
 
@@ -129,7 +131,7 @@ contains
   module subroutine set_solver_method(method_name, solver)
 
 #if PETSC_VERSION_GE(3,23,0)
-    use petscksp, only: KSPSetType, KSPSetFromOptions, KSPSetOptionsPrefix
+    use petscksp, only: KSPSetType, KSPGetType, KSPSetFromOptions, KSPSetOptionsPrefix
 #else
     use petscksp, only: KSPSetType, KSPSetFromOptions
 #endif
@@ -138,6 +140,7 @@ contains
     class(linear_solver), intent(inout) :: solver !< The linear solver object
 
     ! Local
+    character(len=ccs_string_len) :: petsc_method_name !< Temporary string containing name of solver method to send to PETSc
     integer(ccs_err) :: ierr ! Error code
 
     select type (solver)
@@ -145,6 +148,19 @@ contains
       associate (ksp => solver%KSP)
         ! Set linear solver type directly from method name
         call KSPSetType(ksp, trim(method_name), ierr)
+
+        if (ierr /= 0) then
+          call error_abort("ERROR: setting solver method failed, " // trim(method_name) // " solver likely unsuported.")
+        end if
+
+#if PETSC_VERSION_GE(3,23,0)
+        call KSPGetType(ksp, petsc_method_name, ierr)
+        if (trim(petsc_method_name) /= trim(method_name)) then
+          call error_abort("ERROR: petsc solver method ("//trim(petsc_method_name)//") doesn't match requested method ("// trim(method_name)//")")
+        end if
+#else
+        petsc_method_name = ""
+#endif
 
         if (allocated(solver%linear_system%name)) then
           call KSPSetOptionsPrefix(ksp, solver%linear_system%name // ':', ierr)
@@ -162,7 +178,7 @@ contains
   module subroutine set_solver_precon(precon_name, solver)
 
 #if PETSC_VERSION_GE(3,23,0)
-    use petscksp, only: KSPGetPC, tPC, PCSetType, PCSetReusePreconditioner, PCSetFromOptions, &
+    use petscksp, only: KSPGetPC, tPC, PCSetType, PCGetType, PCSetReusePreconditioner, PCSetFromOptions, &
                         PCSetOptionsPrefix, KSPSetOptionsPrefix
 #else
     use petscksp, only: KSPGetPC
@@ -177,6 +193,7 @@ contains
 
     ! Local
     type(tPC) :: pc          ! PETSc preconditioner object
+    character(len=ccs_string_len) :: petsc_precon_name !< Temporary string containing name of preconditioner to send to PETSc
     integer(ccs_err) :: ierr ! Error code
 
     select type (solver)
@@ -186,6 +203,20 @@ contains
 
         ! Set preconditioner type directly using precon_name
         call PCSetType(pc, trim(precon_name), ierr)
+
+        if (ierr /= 0) then
+          call error_abort("ERROR: setting preconditioner method failed, " // trim(precon_name) // " preconditioner likely unsuported.")
+        end if
+
+#if PETSC_VERSION_GE(3,23,0)
+        call PCGetType(pc, petsc_precon_name, ierr)
+        if (trim(petsc_precon_name) /= trim(precon_name)) then
+          call error_abort("ERROR: petsc precon method ("//trim(petsc_precon_name)//") doesn't match requested precon ("// trim(precon_name)//")")
+        end if
+#else
+        petsc_precon_name = ""
+#endif
+
         call PCSetReusePreconditioner(pc, PETSC_TRUE, ierr)
 
         ! Allow command-line options to override settings in source or config file

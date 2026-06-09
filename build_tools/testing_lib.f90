@@ -15,7 +15,7 @@ module testing_lib
 
   implicit none
 
-  public :: assert_eq, assert_neq, assert_lt, assert_gt, assert_bool, assert_le, assert_ge
+  public :: assert_eq, assert_neq, assert_lt, assert_gt, assert_bool, assert_le, assert_ge, assert_close
 
   !> Assert equality
   interface assert_eq
@@ -24,6 +24,12 @@ module testing_lib
     procedure assert_eq_real_rank0
     procedure assert_eq_real_rank1
     procedure assert_eq_string
+  end interface
+
+  !> Assert real equality using caller-supplied relative and absolute tolerances
+  interface assert_close
+    procedure assert_close_real_rank0
+    procedure assert_close_real_rank1
   end interface
 
   !> Assert first argument is less than the second argument
@@ -163,7 +169,7 @@ contains
 
     character(*), intent(in) :: message !< Error message
 
-    print *, "(rank "   //   str(par_env%proc_id)   //   ") ", trim(message)
+    print *, "(rank " // str(par_env%proc_id) // ") ", trim(message)
 
     ! other PEs might not have encountered a test failure
     ! fin()
@@ -213,6 +219,29 @@ contains
     comparison = (abs(a - b) <= 10 * epsilon(b) * abs(b))
 
   end function a_eq_real
+
+  !> Compare two real values using caller-supplied relative and absolute tolerances
+  elemental logical function a_close_real(received, expected, rtol, atol) result(comparison)
+
+    real(ccs_real), intent(in) :: received
+    real(ccs_real), intent(in) :: expected
+    real(ccs_real), intent(in) :: rtol
+    real(ccs_real), intent(in) :: atol
+
+    comparison = abs(received - expected) <= close_tolerance(expected, rtol, atol)
+
+  end function a_close_real
+
+  !> Absolute tolerance implied by assert_close
+  elemental real(ccs_real) function close_tolerance(expected, rtol, atol) result(tolerance)
+
+    real(ccs_real), intent(in) :: expected
+    real(ccs_real), intent(in) :: rtol
+    real(ccs_real), intent(in) :: atol
+
+    tolerance = max(max(0.0_ccs_real, atol), max(0.0_ccs_real, rtol) * abs(expected), epsilon(expected))
+
+  end function close_tolerance
 !==========================
 
 !==========================Integer equality
@@ -225,7 +254,7 @@ contains
     logical, optional, intent(out) :: outval !< Output value to replace stopping the test
 
     call return_or_stop(a_eq(received, expected), &
-                        message   //   " Expected: "   //   str(expected)   //   " Received: "   //   str(received), &
+                        message // " Expected: " // str(expected) // " Received: " // str(received), &
                         outval)
 
   end subroutine assert_eq_integer_rank0
@@ -239,7 +268,7 @@ contains
     logical, optional, intent(out) :: outval               !< Output value to replace stopping the test
 
     call return_or_stop(all(a_eq(received, expected)), &
-                        message   //   print_failed(received, expected), &
+                        message // print_failed(received, expected), &
                         outval)
 
   end subroutine assert_eq_integer_rank1
@@ -255,7 +284,7 @@ contains
     logical, optional, intent(out) :: outval !< Output value to replace stopping the test
 
     call return_or_stop(a_eq(received, expected), &
-                        message   //   " Expected: "   //   str(expected)   //   " Received: "   //   str(received), &
+                        message // " Expected: " // str(expected) // " Received: " // str(received), &
                         outval)
 
   end subroutine assert_eq_real_rank0
@@ -269,10 +298,45 @@ contains
     logical, optional, intent(out) :: outval             !< Output value to replace stopping the test
 
     call return_or_stop(all(a_eq(received, expected)), &
-                        message   //   print_failed(received, expected), &
+                        message // print_failed(received, expected), &
                         outval)
 
   end subroutine assert_eq_real_rank1
+!==========================
+
+!==========================Real close equality
+  !> Single real comparison with explicit tolerances
+  subroutine assert_close_real_rank0(received, expected, rtol, atol, message, outval)
+
+    real(ccs_real), intent(in) :: received   !< Test value
+    real(ccs_real), intent(in) :: expected   !< Reference value
+    real(ccs_real), intent(in) :: rtol       !< Relative tolerance
+    real(ccs_real), intent(in) :: atol       !< Absolute tolerance
+    character(*), intent(in) :: message      !< Error message
+    logical, optional, intent(out) :: outval !< Output value to replace stopping the test
+
+    call return_or_stop(a_close_real(received, expected, rtol, atol), &
+                        message // " Expected: " // str(expected) // " Received: " // str(received) &
+                         // " Tolerance: " // str(close_tolerance(expected, rtol, atol)), &
+                        outval)
+
+  end subroutine assert_close_real_rank0
+
+  !> Real array comparison with explicit tolerances
+  subroutine assert_close_real_rank1(received, expected, rtol, atol, message, outval)
+
+    real(ccs_real), dimension(:), intent(in) :: received !< Test values
+    real(ccs_real), dimension(:), intent(in) :: expected !< Reference values
+    real(ccs_real), intent(in) :: rtol                   !< Relative tolerance
+    real(ccs_real), intent(in) :: atol                   !< Absolute tolerance
+    character(*), intent(in) :: message                  !< Error message
+    logical, optional, intent(out) :: outval             !< Output value to replace stopping the test
+
+    call return_or_stop(all(a_close_real(received, expected, rtol, atol)), &
+                        message // print_close_failed(received, expected, rtol, atol), &
+                        outval)
+
+  end subroutine assert_close_real_rank1
 !==========================
 
 !==========================String equality
@@ -285,7 +349,7 @@ contains
     logical, optional, intent(out) :: outval !< Output value to replace stopping the test
 
     call return_or_stop(received == expected, &
-                        message   //   " Expected: "   //   expected   //   " Received: "   //   received, &
+                        message // " Expected: " // expected // " Received: " // received, &
                         outval)
 
   end subroutine assert_eq_string
@@ -301,7 +365,7 @@ contains
     logical, optional, intent(out) :: outval    !< Output value to replace stopping the test
 
     call return_or_stop(.not. a_eq(received, notexpected), &
-                        message   //   " Not Expected: "   //   str(notexpected)   //   " Received: "   //   str(received), &
+                        message // " Not Expected: " // str(notexpected) // " Received: " // str(received), &
                         outval)
 
   end subroutine assert_neq_integer
@@ -315,7 +379,7 @@ contains
     logical, optional, intent(out) :: outval  !< Output value to replace stopping the test
 
     call return_or_stop(.not. a_eq(received, notexpected), &
-                        message   //   " Not Expected: "   //   str(notexpected)   //   " Received: "   //   str(received), &
+                        message // " Not Expected: " // str(notexpected) // " Received: " // str(received), &
                         outval)
 
   end subroutine assert_neq_real
@@ -329,7 +393,7 @@ contains
     logical, optional, intent(out) :: outval !< Output value to replace stopping the test
 
     call return_or_stop(.not. received == notexpected, &
-                        message   //   " Not Expected: "   //   notexpected   //   " Received: "   //   received, &
+                        message // " Not Expected: " // notexpected // " Received: " // received, &
                         outval)
 
   end subroutine assert_neq_string
@@ -345,7 +409,7 @@ contains
     logical, optional, intent(out) :: outval    !< Output value to replace stopping the test
 
     call return_or_stop(received < upper_limit, &
-                        message   //   "Upper limit allowed: "   //   str(upper_limit)   //   " Received: "   //   str(received), &
+                        message // "Upper limit allowed: " // str(upper_limit) // " Received: " // str(received), &
                         outval)
 
   end subroutine assert_lt_integer
@@ -359,7 +423,7 @@ contains
     logical, optional, intent(out) :: outval  !< Output value to replace stopping the test
 
     call return_or_stop(received < upper_limit, &
-                        message   //   "Upper limit allowed: "   //   str(upper_limit)   //   " Received: "   //   str(received), &
+                        message // "Upper limit allowed: " // str(upper_limit) // " Received: " // str(received), &
                         outval)
 
   end subroutine assert_lt_real
@@ -375,7 +439,7 @@ contains
     logical, optional, intent(out) :: outval    !< Output value to replace stopping the test
 
     call return_or_stop(received <= upper_limit, &
-                        message   //   "Upper limit allowed: "   //   str(upper_limit)   //   " Received: "   //   str(received), &
+                        message // "Upper limit allowed: " // str(upper_limit) // " Received: " // str(received), &
                         outval)
 
   end subroutine assert_le_integer
@@ -389,7 +453,7 @@ contains
     logical, optional, intent(out) :: outval  !< Output value to replace stopping the test
 
     call return_or_stop(received <= upper_limit, &
-                        message   //   "Upper limit allowed: "   //   str(upper_limit)   //   " Received: "   //   str(received), &
+                        message // "Upper limit allowed: " // str(upper_limit) // " Received: " // str(received), &
                         outval)
 
   end subroutine assert_le_real
@@ -405,7 +469,7 @@ contains
     logical, optional, intent(out) :: outval    !< Output value to replace stopping the test
 
     call return_or_stop(received > lower_limit, &
-                        message   //   "Lower limit allowed: "   //   str(lower_limit)   //   " Received: "   //   str(received), &
+                        message // "Lower limit allowed: " // str(lower_limit) // " Received: " // str(received), &
                         outval)
 
   end subroutine assert_gt_integer
@@ -419,7 +483,7 @@ contains
     logical, optional, intent(out) :: outval  !< Output value to replace stopping the test
 
     call return_or_stop(received > lower_limit, &
-                        message   //   "Lower limit allowed: "   //   str(lower_limit)   //   " Received: "   //   str(received), &
+                        message // "Lower limit allowed: " // str(lower_limit) // " Received: " // str(received), &
                         outval)
 
   end subroutine assert_gt_real
@@ -435,7 +499,7 @@ contains
     logical, optional, intent(out) :: outval    !< Output value to replace stopping the test
 
     call return_or_stop(received >= lower_limit, &
-                        message   //   "Lower limit allowed: "   //   str(lower_limit)   //   " Received: "   //   str(received), &
+                        message // "Lower limit allowed: " // str(lower_limit) // " Received: " // str(received), &
                         outval)
 
   end subroutine assert_ge_integer
@@ -449,7 +513,7 @@ contains
     logical, optional, intent(out) :: outval  !< Output value to replace stopping the test
 
     call return_or_stop(received >= lower_limit, &
-                        message   //   "Lower limit allowed: "   //   str(lower_limit)   //   " Received: "   //   str(received), &
+                        message // "Lower limit allowed: " // str(lower_limit) // " Received: " // str(received), &
                         outval)
 
   end subroutine assert_ge_real
@@ -464,7 +528,7 @@ contains
     logical, optional, intent(out) :: outval !< Output value to replace stopping the test
 
     call return_or_stop(received, &
-                        message   //   " Expected: T (true) Received: "   //   str(received), &
+                        message // " Expected: T (true) Received: " // str(received), &
                         outval)
 
   end subroutine assert_bool_rank0
@@ -477,7 +541,7 @@ contains
     logical, optional, intent(out) :: outval      !< Output value to replace stopping the test
 
     call return_or_stop(all(received), &
-                        message   //   print_failed(received), &
+                        message // print_failed(received), &
                         outval)
 
   end subroutine assert_bool_rank1
@@ -496,10 +560,10 @@ contains
     allocate (mask(size(received)))
     mask = a_eq(received, expected)
 
-    msg = new_line('a')   //   "Index Expected Received"   //   new_line('a')
+    msg = new_line('a') // "Index Expected Received" // new_line('a')
     do i = 1, size(mask)
       if (.not. mask(i)) then
-        msg = msg   //   str(i)   //   achar(9)   //   str(expected(i))   //   achar(9)   //   str(received(i))   //   new_line('a')
+        msg = msg // str(i) // achar(9) // str(expected(i)) // achar(9) // str(received(i)) // new_line('a')
       end if
     end do
 
@@ -517,14 +581,42 @@ contains
     allocate (mask(size(received)))
     mask = a_eq(received, expected)
 
-    msg = new_line('a')   //   "Index Expected Received"   //   new_line('a')
+    msg = new_line('a') // "Index Expected Received" // new_line('a')
     do i = 1, size(mask)
       if (.not. mask(i)) then
-        msg = msg   //   str(i)   //   achar(9)   //   str(expected(i))   //   achar(9)   //   str(received(i))   //   new_line('a')
+        msg = msg // str(i) // achar(9) // str(expected(i)) // achar(9) // str(received(i)) // new_line('a')
       end if
     end do
 
   end function print_failed_real
+
+  !> Print real closeness failures
+  function print_close_failed(received, expected, rtol, atol) result(msg)
+
+    real(ccs_real), dimension(:), intent(in) :: expected !< Test values
+    real(ccs_real), dimension(:), intent(in) :: received !< Reference values
+    real(ccs_real), intent(in) :: rtol                   !< Relative tolerance
+    real(ccs_real), intent(in) :: atol                   !< Absolute tolerance
+    character(len=:), allocatable :: msg                 !< Constructed message
+
+    integer :: i
+    real(ccs_real) :: diff
+    real(ccs_real) :: tolerance
+    logical, dimension(:), allocatable :: mask
+    allocate (mask(size(received)))
+    mask = a_close_real(received, expected, rtol, atol)
+
+    msg = new_line('a') // "Index Expected Received Difference Tolerance" // new_line('a')
+    do i = 1, size(mask)
+      if (.not. mask(i)) then
+        diff = abs(received(i) - expected(i))
+        tolerance = close_tolerance(expected(i), rtol, atol)
+        msg = msg // str(i) // achar(9) // str(expected(i)) // achar(9) // str(received(i)) &
+               // achar(9) // str(diff) // achar(9) // str(tolerance) // new_line('a')
+      end if
+    end do
+
+  end function print_close_failed
 
   !> Print bools
   function print_failed_bool(received) result(msg)
@@ -533,10 +625,10 @@ contains
     character(len=:), allocatable :: msg          !< Constructed message
     integer :: i
 
-    msg = new_line('a')   //   "Index Received"   //   new_line('a')
+    msg = new_line('a') // "Index Received" // new_line('a')
     do i = 1, size(received)
       if (.not. received(i)) then
-        msg = msg   //   str(i)   //   achar(9)   //   "FALSE"   //   new_line('a')
+        msg = msg // str(i) // achar(9) // "FALSE" // new_line('a')
       end if
     end do
 

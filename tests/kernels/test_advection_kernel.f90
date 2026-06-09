@@ -8,10 +8,10 @@ program test_advection_kernels
   implicit none
 
   !---------------------------- configuration --------------------------------
-  integer,        parameter :: nLevels = 6             ! refinements (Δx = L/2^ℓ)
+  integer,        parameter :: nLevels = 6             ! refinements (dx = L/2**level)
   real(ccs_real), parameter :: L       = 1.0_ccs_real
   real(ccs_real), parameter :: u0      = 2.0_ccs_real  ! constant face velocity
-  real(ccs_real), parameter :: phi0    = 3.14_ccs_real ! for const‑φ test
+  real(ccs_real), parameter :: phi0    = 3.14_ccs_real ! for const-phi test
   real(ccs_real), parameter :: interpF = 0.5_ccs_real  ! generic l_f
 
   ! kernel instances
@@ -33,7 +33,7 @@ program test_advection_kernels
   real(ccs_real),  dimension(3) :: gradP, gradF
   real(ccs_real),  dimension(3,2) :: rvecs, grads
   real(ccs_real),  dimension(2)   :: phiCell
-  character(len=*), parameter :: hdr = 'Advection‑kernel test ‖ '
+  character(len=*), parameter :: hdr = 'Advection-kernel test | '
   real(ccs_real), parameter :: pi = acos(-1.0_ccs_real)
 
   logical :: test_pass
@@ -57,11 +57,11 @@ program test_advection_kernels
      gradP(2:3) = 0.0_ccs_real;  gradF(2:3) = 0.0_ccs_real
 
      ! geometry from face to centres (consistent with kernel impl.)
-     rvecs(:,1) = xFace - xP ! face → owner P
-     rvecs(:,2) = xFace - xF ! face → neighbour F
+     rvecs(:,1) = xFace - xP ! face -> owner P
+     rvecs(:,2) = xFace - xF ! face -> neighbour F
 
-     grads(:,1) = gradP      ! ∇φ_P
-     grads(:,2) = gradF      ! ∇φ_F
+     grads(:,1) = gradP      ! grad phi_P
+     grads(:,2) = gradF      ! grad phi_F
 
      phiCell = [phiP, phiF]  ! [P , F]
 
@@ -83,7 +83,7 @@ program test_advection_kernels
   call check_constant_phi(luds  , 'LUDS')
   call check_constant_phi(cd    , 'CD')
 
-  ! ==================== FLOW‑DIRECTION SYMMETRY ===========================
+  ! ==================== FLOW-DIRECTION SYMMETRY ===========================
   call check_reverse_flow(gamma , 'Gamma')
   call check_reverse_flow(upwind, 'Upwind')
   call check_reverse_flow(luds  , 'LUDS')
@@ -113,7 +113,7 @@ contains
   subroutine kernel_error(k, phiCell, phiFace, err)
     class(advection_kernel), intent(in) :: k
     real(ccs_real), dimension(2), intent(in) :: phiCell   ! [P , F]
-    real(ccs_real),               intent(in) :: phiFace   ! analytic φ at face
+    real(ccs_real),               intent(in) :: phiFace   ! analytic phi at face
     real(ccs_real),               intent(out):: err
     real(ccs_real)                            :: flux_disc, flux_exact
     real(ccs_real), dimension(2)              :: coeffs

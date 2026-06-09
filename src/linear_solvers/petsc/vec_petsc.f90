@@ -15,6 +15,7 @@ submodule(vec) vec_petsc
   use petsc, only: ADD_VALUES, INSERT_VALUES, SCATTER_FORWARD
   use utils, only: debug_print, exit_print, str
   use error_codes
+  use logging, only: log_unit_out
 
   implicit none
 
@@ -135,7 +136,7 @@ contains
         ! First check if safe to set
         if (v%modeset) then
           if (val_dat%setter_mode /= v%mode) then
-            print *, ""
+            write(log_unit_out,*) ""
             call error_abort("ERROR: trying to set vector using different mode without updating.")
           end if
         else
@@ -238,7 +239,7 @@ contains
   !v Begin a ghost update of a PETSc vector
   !
   !  Begins the ghost update to allow overlapping comms and compute
-  subroutine begin_ghost_update_vector(v)
+  module subroutine begin_ghost_update_vector(v)
 
     use petsc, only: VecGhostUpdateBegin
 
@@ -259,12 +260,12 @@ contains
 
     end select
 
-  end subroutine
+  end subroutine begin_ghost_update_vector
 
   !v End a ghost update of a PETSc vector.
   !
   !  Ends the ghost update to allow overlapping comms and compute.
-  subroutine end_ghost_update_vector(v)
+  module subroutine end_ghost_update_vector(v)
 
     use petsc, only: VecGhostUpdateEnd
 
@@ -285,7 +286,7 @@ contains
 
     end select
 
-  end subroutine
+  end subroutine end_ghost_update_vector
 
   !v Perform the AXPY vector operation using PETSc
   !

@@ -5,7 +5,7 @@
 module fv
 
   use kinds, only: ccs_real, ccs_int
-  use types, only: ccs_matrix, ccs_vector, ccs_mesh, field, upwind_field, central_field, &
+  use types, only: ccs_matrix, ccs_vector, ccs_mesh, field, field_ptr, upwind_field, central_field, &
                    gamma_field, linear_upwind_field, bc_config, face_locator, cell_locator, &
                    neighbour_locator, bc_profile, fluid
   use constants, only: ndim
@@ -18,6 +18,7 @@ module fv
   public :: calc_advection_coeff
   public :: calc_diffusion_coeff
   public :: calc_mass_flux
+  public :: calc_mass_flux_bc
   public :: calc_cell_coords
   public :: update_gradient
   public :: compute_boundary_values
@@ -38,6 +39,11 @@ module fv
     module procedure calc_mass_flux_uvw
     module procedure calc_mass_flux_no_uvw
   end interface calc_mass_flux
+
+  interface update_gradient
+    module procedure update_gradient_field
+    module procedure update_gradient_fields
+  end interface update_gradient
 
   interface
 
@@ -110,10 +116,11 @@ module fv
     end subroutine
 
     !> Calculates mass flux across given face. Note: assumes rho = 1 and uniform grid
-    module function calc_mass_flux_uvw(u_field, v_field, w_field, p, dpdx, dpdy, dpdz, invA, loc_f, enable_cell_corrections) result(flux)
+    module function calc_mass_flux_uvw(u_field, v_field, w_field, mf_field, p, dpdx, dpdy, dpdz, invA, loc_f, enable_cell_corrections) result(flux)
       class(field), intent(inout) :: u_field           !< x velocities field
       class(field), intent(inout) :: v_field           !< y velocities field
       class(field), intent(inout) :: w_field           !< z velocities field
+      class(field), intent(inout) :: mf_field          !< mf field
       real(ccs_real), dimension(:), intent(in) :: p    !< array containing pressure
       real(ccs_real), dimension(:), intent(in) :: dpdx !< pressure gradients in x
       real(ccs_real), dimension(:), intent(in) :: dpdy !< pressure gradients in y
@@ -123,6 +130,16 @@ module fv
       logical, intent(in) :: enable_cell_corrections   !< whether or not cell shape corrections are to be used
       real(ccs_real) :: flux                           !< the flux across the boundary
     end function calc_mass_flux_uvw
+
+  !v Returns mass flux through a boundary
+    pure module function calc_mass_flux_bc(u_field, v_field, w_field, mf_field, loc_f) result(flux)
+      class(field), intent(in) :: u_field      !< x velocities field
+      class(field), intent(in) :: v_field      !< y velocities field
+      class(field), intent(in) :: w_field      !< z velocities field
+      class(field), intent(in) :: mf_field     !< mf field
+      type(face_locator), intent(in) :: loc_f  !< face locator
+      real(ccs_real) :: flux                   !< The flux across the boundary
+    end function
 
     !> Computes Rhie-Chow correction
     pure module function calc_mass_flux_no_uvw(p, dpdx, dpdy, dpdz, invA, loc_f, enable_cell_corrections) result(flux)
@@ -147,9 +164,14 @@ module fv
     !v Performs an update of the gradients of a field.
     !  @note This will perform a parallel update of the gradient fields to ensure halo cells are
     !  correctly updated on other PEs. @endnote
-    module subroutine update_gradient(phi)
-      class(field), intent(inout) :: phi !< the field whose gradients we want to update
-    end subroutine update_gradient
+    module subroutine update_gradient_field(phi)
+      class(field), target, intent(inout) :: phi !< the field whose gradients we want to update
+    end subroutine update_gradient_field
+
+    !v Performs an update of the gradients for several fields, overlapping communication between fields.
+    module subroutine update_gradient_fields(fields)
+      type(field_ptr), dimension(:), intent(inout) :: fields !< the fields whose gradients we want to update
+    end subroutine update_gradient_fields
 
     !> Computes the value of the scalar field on the boundary
     pure module subroutine compute_boundary_values(phi, component, loc_p, loc_f, normal, bc_value)

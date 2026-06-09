@@ -51,7 +51,6 @@ program test_rcm
     call get_reference_connectivity(global_neighbours_ref)
 
     ! Reorder and compare connectivity
-    call mock_geo(mesh)
     call reorder_cells(par_env, shared_env, mesh)
 
     call test_global_connectivity()
@@ -136,23 +135,5 @@ contains
                        MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
 
   end subroutine get_reference_connectivity
-
-  subroutine mock_geo(mesh)
-
-    type(ccs_mesh), intent(inout) :: mesh
-
-    associate (total_num_cells => mesh%topo%total_num_cells)
-      if (associated(mesh%geo%volumes)) then
-        call destroy_shared_array(shared_env, mesh%geo%volumes, mesh%geo%volumes_window)
-      end if
-      call create_shared_array(shared_env, total_num_cells, mesh%geo%volumes, mesh%geo%volumes_window)
-
-      if (associated(mesh%geo%x_p)) then
-        call destroy_shared_array(shared_env, mesh%geo%x_p, mesh%geo%x_p_window)
-      end if
-      call create_shared_array(shared_env, [ndim, total_num_cells], mesh%geo%x_p, mesh%geo%x_p_window)
-    end associate
-
-  end subroutine
 
 end program test_rcm

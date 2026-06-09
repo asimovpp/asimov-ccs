@@ -1,3 +1,50 @@
+module timestepping_common_types
+
+  use kinds, only: ccs_real, ccs_int
+
+  implicit none
+
+  private
+  public :: ptr_handle
+
+  ! Small type used to enable creating an array of data pointers, this allows the timestep
+  ! application to be implemented more generically across arbitrary transient stencil
+  ! widths. Additionally this allows for data hiding.
+  type ptr_handle
+     private
+     real(ccs_real), dimension(:), pointer :: data
+   contains
+     procedure :: read => read_ptr_handle
+     procedure :: get_pointer
+     procedure :: set_pointer
+  end type ptr_handle
+
+contains
+  
+  pure real(ccs_real) function read_ptr_handle(self, idx) result(val)
+    class(ptr_handle), intent(in) :: self
+    integer(ccs_int), intent(in) :: idx
+
+    val = self%data(idx)
+    
+  end function read_ptr_handle
+
+  function get_pointer(self) result(ptr)
+    class(ptr_handle), intent(in) :: self
+    real(ccs_real), dimension(:), pointer :: ptr
+
+    ptr => self%data
+  end function get_pointer
+
+  subroutine set_pointer(self, ptr)
+    class(ptr_handle), intent(out) :: self
+    real(ccs_real), dimension(:), pointer :: ptr
+
+    self%data => ptr
+  end subroutine set_pointer
+  
+end module timestepping_common_types
+
 submodule(timestepping) timestepping_common
 #include "ccs_macros.inc"
 
@@ -5,6 +52,8 @@ submodule(timestepping) timestepping_common
   use transient_kernels, only: transient_kernel
   use types, only: cell_locator
   use utils, only: exit_print
+
+  use timestepping_common_types, only: ptr_handle
 
   implicit none
 
@@ -113,29 +162,36 @@ contains
 
   module subroutine update_old_values_generic(num_old_vals, x)
 
-    use vec, only: get_vector_data, restore_vector_data
-
     integer(ccs_int), intent(in) :: num_old_vals
     class(field), intent(inout) :: x
 
-    real(ccs_real), dimension(:), pointer :: values_data, old_values_data
     integer(ccs_int) :: i
 
     do i = num_old_vals, 2, -1
-      call get_vector_data(x%old_values(i)%vec, old_values_data)
-      call get_vector_data(x%old_values(i - 1)%vec, values_data)
-      old_values_data = values_data
-      call restore_vector_data(x%old_values(i)%vec, old_values_data)
-      call restore_vector_data(x%old_values(i - 1)%vec, values_data)
+      call copy_old_data(x%old_values(i - 1)%vec, x%old_values(i)%vec)
     end do
-
-    call get_vector_data(x%old_values(1)%vec, old_values_data)
-    call get_vector_data(x%values, values_data)
-    old_values_data = values_data
-    call restore_vector_data(x%old_values(1)%vec, old_values_data)
-    call restore_vector_data(x%values, values_data)
+    call copy_old_data(x%values, x%old_values(1)%vec)
 
   end subroutine
+
+  !> Copies vector data from new to old destination using readonly views of current data.
+  subroutine copy_old_data(newv, oldv)
+    use vec, only: get_vector_data, restore_vector_data, get_vector_data_readonly, restore_vector_data_readonly
+
+    class(ccs_vector), intent(inout) :: newv
+    class(ccs_vector), intent(inout) :: oldv
+
+    real(ccs_real), dimension(:), pointer :: new_data, old_data
+
+    call get_vector_data_readonly(newv, new_data)
+    call get_vector_data(oldv, old_data)
+
+    old_data = new_data
+
+    call restore_vector_data_readonly(newv, old_data)
+    call restore_vector_data(oldv, old_data)
+    
+  end subroutine copy_old_data
 
   module subroutine apply_timestep_kernel(transient, phi, diag, M, b)
     use kinds, only: ccs_int
@@ -151,17 +207,9 @@ contains
 
     real(ccs_real), dimension(:), pointer :: diag_data
     real(ccs_real), dimension(:), pointer :: b_data
-    real(ccs_real), dimension(:), pointer :: phi_old1_data
-    real(ccs_real), dimension(:), pointer :: phi_old2_data
-    real(ccs_real) :: rho
+    real(ccs_real), dimension(:), pointer :: ptr
+    type(ptr_handle), dimension(:), allocatable :: old_pointer
     integer(ccs_int) :: i
-    integer(ccs_int) :: local_num_cells
-
-    type(cell_locator) :: loc_p
-    real(ccs_real) :: V_p, coeff, rhs
-    real(ccs_real), allocatable, dimension(:) :: old
-
-    rho = 1.0
 
     call transient%init()
     call transient%set_step(current_step+1)
@@ -170,16 +218,47 @@ contains
     call finalise(M)
     call get_matrix_diagonal(M, diag)
 
-    allocate(old(transient%get_width()))
-    call get_vector_data_readonly(phi%old_values(1)%vec, phi_old1_data)
-    if (transient%get_width() == 2) then
-      call get_vector_data_readonly(phi%old_values(2)%vec, phi_old2_data)
-    end if
+    allocate(old_pointer(transient%get_width()))
+    do i = 1, transient%get_width()
+       call get_vector_data_readonly(phi%old_values(i)%vec, ptr)
+       call old_pointer(i)%set_pointer(ptr)
+       nullify(ptr)
+    end do
 
     call get_vector_data(diag, diag_data)
     call update(b)
     call get_vector_data(b, b_data)
 
+    call apply_kernel_driver(transient, old_pointer, diag_data, b_data)
+
+    do i = 1, transient%get_width()
+       ptr => old_pointer(i)%get_pointer()
+       call restore_vector_data_readonly(phi%old_values(i)%vec, ptr)
+       nullify(ptr)
+    end do
+    call restore_vector_data(diag, diag_data)
+    call restore_vector_data(b, b_data)
+    call set_matrix_diagonal(diag, M)
+
+  end subroutine apply_timestep_kernel
+
+  subroutine apply_kernel_driver(transient, old_pointer, diag_data, b_data)
+    class(transient_kernel), intent(inout) :: transient
+    type(ptr_handle), dimension(:), intent(in) :: old_pointer
+    real(ccs_real), dimension(:), intent(inout) :: diag_data, b_data
+
+    integer(ccs_int) :: local_num_cells
+    integer(ccs_int) :: i, j
+    type(cell_locator) :: loc_p
+    real(ccs_real) :: V_p, coeff, rhs
+    real(ccs_real) :: rho
+
+    real(ccs_real), allocatable, dimension(:) :: old
+
+    rho = 1.0
+
+    allocate(old(transient%get_width()))
+    
     call get_local_num_cells(local_num_cells)
     do i = 1, local_num_cells
       call create_cell_locator(i, loc_p)
@@ -187,11 +266,9 @@ contains
 
       call transient%eval_coeffs(rho, V_p, coeff)
 
-      if (transient%get_width() == 1) then
-        old = [ phi_old1_data(i) ]
-      else
-        old = [ phi_old1_data(i), phi_old2_data(i) ]
-      end if
+      do j = 1, transient%get_width()
+         old(j) = old_pointer(j)%read(i)
+      end do
 
       call transient%eval_explicit(rho, V_p, old, rhs)
 
@@ -199,15 +276,6 @@ contains
       b_data(i) = b_data(i) + rhs
     end do
 
-    call restore_vector_data_readonly(phi%old_values(1)%vec, phi_old1_data)
-    if (transient%get_width() == 2) then
-      call restore_vector_data_readonly(phi%old_values(2)%vec, phi_old2_data)
-    end if
-    call restore_vector_data(diag, diag_data)
-    call restore_vector_data(b, b_data)
-    call set_matrix_diagonal(diag, M)
-  end subroutine apply_timestep_kernel
-
- 
+  end subroutine apply_kernel_driver
 
 end submodule timestepping_common

@@ -24,6 +24,9 @@ latex/
 obj/
 src/TAGS
 __pycache__
+.venv
+**/.venv
+tests/fv_schemes/uv.lock
 
 ccs_app
 libccs.a
@@ -35,6 +38,5 @@ libccs.a
 *.geo
 **/.DS_Store
 .vscode
-.devcontainer
-
 .idea
+.devcontainer

@@ -53,6 +53,11 @@ program test_mesh_square_mesh_volume
     nneg_vol = 0
 
     call get_local_num_cells(local_num_cells)
+
+    !$omp parallel do default(none) &
+    !$omp private(V, loc_p, message) &
+    !$omp shared(local_num_cells, CV) &
+    !$omp reduction(+:vol, nneg_vol)
     do i = 1, local_num_cells
       call create_cell_locator(i, loc_p)
       call get_volume(loc_p, V)
@@ -67,6 +72,7 @@ program test_mesh_square_mesh_volume
 
       vol = vol + V
     end do
+    !$omp end parallel do
 
     select type (par_env)
     type is (parallel_environment_mpi)

@@ -3,9 +3,6 @@ mesh: 2d
 cps: 16
 L: 1.0
 
-relaxation_factor:
-  pressure: 0.1
-
 target_residual: 1.0e-5
 
 compute_partqual: false
@@ -19,6 +16,7 @@ variables:
     name: pressure
     type: central
     solve: on
+    relaxation: 0.2
 
 post:
   type: center

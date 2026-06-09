@@ -10,6 +10,7 @@ submodule(io) io_setup_adios2
   use adios2
   use adios2_types, only: adios2_env, adios2_io_process
   use parallel_types_mpi, only: parallel_environment_mpi
+  use timestepping, only: get_timestep, get_current_time, timestepping_is_active
 
   implicit none
 
@@ -73,12 +74,18 @@ contains
 
   !> Configure the IO process
   module subroutine configure_io(io_env, process_name, io_proc)
+
     class(io_environment), intent(in) :: io_env            !< ADIOS2 IO environment
     character(len=*), intent(in) :: process_name           !< name of the IO process to be configured - must match a name
     !< defined in the ADIOS2 configuration XML file
     class(io_process), allocatable, intent(out) :: io_proc !< the configured ADIOS2 IO process
 
+    real(ccs_real) :: sim_time
+    real(ccs_real) :: delta_t
+
     integer(ccs_int) :: ierr
+    type(adios2_attribute) :: time_attr
+    type(adios2_attribute) :: dt_attr
 
     allocate (adios2_io_process :: io_proc)
 
@@ -89,6 +96,12 @@ contains
       type is (adios2_io_process)
 
         call adios2_declare_io(io_proc%io_task, io_env%adios, process_name, ierr)
+        if(timestepping_is_active()) then
+          delta_t = get_timestep()
+          call adios2_define_attribute(dt_attr, io_proc%io_task, "dt", delta_t, ierr)
+        end if
+        call get_current_time(sim_time)
+        call adios2_define_attribute(time_attr, io_proc%io_task, "simulation time", sim_time, ierr)
 
       class default
 
@@ -110,12 +123,38 @@ contains
     !< "read", "write", "append"
     class(io_process), intent(inout) :: io_proc !< object that includes ADIOS2 handler information
 
+    character(len=:), allocatable :: engine_type
+    character(len=:), allocatable :: file_type
+    
     integer(ccs_int) :: ierr
+
+    file_type = ""
 
     select type (io_proc)
     type is (adios2_io_process)
 
-      call adios2_open(io_proc%engine, io_proc%io_task, filename, get_mode(mode), ierr)
+      if(mode == "write") then
+
+        ! query the engine type - defined in the ADIOS2 XML configuration file
+        call adios2_io_engine_type(engine_type, io_proc%io_task, ierr)
+
+        ! Support for HDF5, BP4 and BP5
+        if (engine_type == "HDF5") then
+          file_type = ".h5"
+        else if (engine_type == "BP4" .or. engine_type == "BP5") then
+          file_type = ".bp"
+        else
+          call error_abort("Unknown ADIOS2 engine type: " // trim(engine_type))
+        end if
+
+        ! Append the correct file extension
+        call adios2_open(io_proc%engine, io_proc%io_task, filename // file_type, get_mode(mode), ierr)
+
+      else if(mode == "read" .or. mode == "append") then
+
+        call adios2_open(io_proc%engine, io_proc%io_task, filename, get_mode(mode), ierr)
+
+      end if
 
     class default
       call error_abort("Unknown IO process handler type")

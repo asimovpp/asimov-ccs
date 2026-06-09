@@ -56,16 +56,11 @@ LIB_CCS=libccs.a
 # check makedepf90 version
 MAKEDEPF90_SMODS=$(shell makedepf90 -h | grep -q '\-S PATH'; echo $$?)
 
-IGNORE = " "
-
-ifeq ($(CCS_PROPRIETARY),yes)
-  SRC_DIRS += $(CCS_PROPRIETARY_DIR)/src
-endif
-
+# find source files
 find_src_files = $(shell find $(dir) -type f -name '*.f90' -o -name '*.c')
 ALL_SRC = $(foreach dir, $(SRC_DIRS), $(find_src_files))
 
-SRC = $(shell $(PY) $(TOOLS)/filter_out.py $(IGNORE) "$(ALL_SRC)")
+SRC = $(shell $(PY) $(TOOLS)/filter_out.py "$(IGNORE)" "$(ALL_SRC)")
 TMP_OBJ = $(addprefix $(OBJ_DIR)/, $(notdir $(SRC:.f90=.o)))
 OBJ = $(TMP_OBJ:.c=.o)
 
@@ -93,6 +88,16 @@ endif
 ifdef PARMETIS
   INC += -I${PARMETIS}/include
   LIB += -L${PARMETIS}/lib -lGKlib -lmetis -lparmetis -Wl,-rpath,${PARMETIS}/lib
+endif
+
+ifdef CALIPER
+  INC += -I${CALIPER}/include/caliper/fortran
+  LIB += -L${CALIPER}/lib -lcaliper
+endif
+
+ifdef LIKWID
+  INC += -I${LIKWID}/include/
+  LIB += -L${LIKWID}/lib -llikwid
 endif
 
 ifeq ($(NEED_CMP),yes)

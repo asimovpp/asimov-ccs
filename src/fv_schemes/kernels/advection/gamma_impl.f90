@@ -5,7 +5,7 @@ contains
 
   module pure function advect_gamma_eval_coeffs(self, flux_coeff) result(coeffs)
     class(gamma_advection_kernel), intent(in) :: self
-    real(ccs_real), intent(in) :: flux_coeff     ! ṁ_f
+    real(ccs_real), intent(in) :: flux_coeff     ! m_dot_f
     real(ccs_real), dimension(2) :: coeffs       ! (P, F)
 
     associate (foo => self); end associate
@@ -16,11 +16,11 @@ contains
 
   module pure function advect_gamma_eval_explicit(self, phi, flux_coeff, lf, rvecs, grads) result(expl)
     class(gamma_advection_kernel), intent(in) :: self
-    real(ccs_real), dimension(2), intent(in) :: phi ! φ_F , φ_P
-    real(ccs_real), intent(in) :: flux_coeff        ! ρ u A
-    real(ccs_real), intent(in) :: lf                ! face-interp factor (1→P,0→F)
+    real(ccs_real), dimension(2), intent(in) :: phi ! phi_F, phi_P
+    real(ccs_real), intent(in) :: flux_coeff        ! rho u A
+    real(ccs_real), intent(in) :: lf                ! face-interp factor (1->P, 0->F)
     real(ccs_real), dimension(3, 2), intent(in) :: rvecs          ! x_Pf , x_Ff
-    real(ccs_real), dimension(3, 2), intent(in) :: grads          ! ∇φ_P , ∇φ_F
+    real(ccs_real), dimension(3, 2), intent(in) :: grads          ! grad phi_P, grad phi_F
     real(ccs_real) :: expl                                         ! deferred flux
 
     ! ---------------- parameters & helpers ---------------------------

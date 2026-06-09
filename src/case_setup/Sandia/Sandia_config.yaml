@@ -22,12 +22,6 @@ L: 3.1415926535
 
 mesh: read
 
-relaxation_factor:
-  u: 0.7
-  v: 0.7
-  w: 0.7
-  p: 0.30
-
 target_residual: 1.0e-10
 
 # Frequency (in terms of timesteps) of writing solution to file
@@ -81,18 +75,22 @@ variables:
     name: u
     type: central
     solve: on
+    relaxation: 0.7
   variable_2:
     name: v
     type: central
     solve: on
+    relaxation: 0.7
   variable_3:
     name: w
     type: central
     solve: on
+    relaxation: 0.7
   variable_4:
     name: p
     type: central
     solve: on
+    relaxation: 0.3
   variable_5:
     name: p_prime
     type: central

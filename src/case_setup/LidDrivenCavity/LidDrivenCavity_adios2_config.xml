@@ -2,13 +2,13 @@
 <adios-config>
   <io name="geo_reader">
 
-    <engine type="BP5">
+    <engine type="BP4">
     </engine>
 
   </io>
   <io name="geo_writer">
 
-    <engine type="HDF5">
+    <engine type="BP4">
     </engine>
 
   </io>

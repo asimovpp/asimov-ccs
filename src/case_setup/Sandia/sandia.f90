@@ -2,9 +2,6 @@
 program sandia
 #include "ccs_macros.inc"
 
-  use petscvec
-  use petscsys
-
   use core
   use constants, only: ndim
   use meshing, only: nullify_mesh_object, get_local_num_cells
@@ -19,8 +16,8 @@ program sandia
   use boundary_conditions, only: set_bc_profile
   use utils, only: str
   use fields, only: dealloc_fluid_fields
-  use timers, only: timer_init, timer_register_start, timer_register, timer_start, timer_stop, &
-                    timer_print, timer_get_time, timer_print_all, timer_export_csv
+  use profiler, only: profiler_init, profiler_shutdown, profiler_begin_region, profiler_end_region
+  use logging, only: log_unit_out
 
   implicit none
 
@@ -29,35 +26,26 @@ program sandia
 
   type(ccs_options) :: run_options
 
-  integer(ccs_int):: irank  ! MPI rank ID
-  integer(ccs_int):: isize  ! Size of MPI world
-
-  integer(ccs_int):: timer_index_total
-  integer(ccs_int):: timer_index_init
-
   type(fluid):: flow_fields
   ! type(bc_profile), allocatable:: profile
   
   ! Launch MPI
   call initialise_parallel_environment(par_env)
-  call timer_init()
+  call profiler_init()
 
   call get_config(par_env, run_options)
   call configure_parallelism(run_options, par_env, shared_env)
-  irank = par_env%proc_id
-  isize = par_env%num_procs
 
-  call timer_register_start("Elapsed time", timer_index_total, is_total_time=.true.)
+  call profiler_begin_region('Total elapsed time')
+  if (is_root(par_env)) write(log_unit_out,*) "Starting ", run_options%paths%case_name, " case!"
 
-  call timer_register_start("Init time", timer_index_init)
-
-  if (is_root(par_env)) print *, "Starting ", run_options%paths%case_name, " case!"
+  call profiler_begin_region('Total initialisation')
 
   ! Read mesh from .geo file
   call initialise_mesh(par_env, shared_env, run_options)
 
   ! Initialise fields
-  if (is_root(par_env)) print *, "Initialise fields"
+  if (is_root(par_env)) write(log_unit_out,*) "Initialise fields"
 
   ! Initialise the fields
   call initialise_fields(par_env, run_options, flow_fields)
@@ -65,22 +53,19 @@ program sandia
   ! XXX: coupling BCs could be built here
 
   ! Initialise velocity field
-  if (is_root(par_env)) print *, "Initialise velocity field"
+  if (is_root(par_env)) write(log_unit_out,*) "Initialise velocity field"
   call initialise_flow(par_env, run_options, flow_fields, get_init_flow, get_init_mass_flux)
 
   ! Solve using SIMPLE algorithm
-  if (is_root(par_env)) print *, "Start SIMPLE"
+  if (is_root(par_env)) write(log_unit_out,*) "Start SIMPLE"
 
-  call timer_stop(timer_index_init)
+  call profiler_end_region('Total initialisation')
 
   call run_solver(par_env, run_options, eval_sources, postproc_sandia, flow_fields)
   
   ! Clean-up
-
-  call timer_stop(timer_index_total)
-
-  call timer_print_all(par_env)
-  call timer_export_csv(par_env)
+  call profiler_end_region('Total elapsed time')
+  call profiler_shutdown(par_env)
 
   call dealloc_fluid_fields(flow_fields)
   call nullify_mesh_object()

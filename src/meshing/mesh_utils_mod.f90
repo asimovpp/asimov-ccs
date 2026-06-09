@@ -10,6 +10,7 @@ module mesh_utils
 
   use mpi
 
+  use profiler
   use core, only: ccs_options
   use constants, only: ndim, geoext, adiosconfig
   use utils, only: exit_print, str, debug_print
@@ -47,6 +48,7 @@ module mesh_utils
                      set_topo_object, nullify_topo_object
   use bc_constants
   use reordering, only: reorder_cells, print_bandwidth
+  use logging, only: log_unit_out
 
   implicit none
 
@@ -106,6 +108,7 @@ module mesh_utils
   public :: print_topo
   public :: print_geo
   public :: build_adjacency_matrix
+  public :: test_mesh_internal_neighbours
 
 contains
 
@@ -115,8 +118,7 @@ contains
     use partitioning, only: compute_connectivity_get_local_cells, &
                             compute_partitioner_input
 
-    use parallel, only: timer
-    use timers, only: timer_register, timer_start, timer_stop
+    use profiler  
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The parallel environment
@@ -131,15 +133,7 @@ contains
     class(io_environment), allocatable :: io_env
     class(io_process), allocatable :: geo_reader
 
-    integer(ccs_int) :: timer_read_topo
-    integer(ccs_int) :: timer_read_geo
-    integer(ccs_int) :: timer_partitioner_input
-
     character(len=:), allocatable :: case_name
-
-    call timer_register("Read mesh topology", timer_read_topo)
-    call timer_register("Compute partitioner input", timer_partitioner_input)
-    call timer_register("Read mesh geometry", timer_read_geo)
 
     call set_mesh_object(mesh)
     call set_mesh_generated(.false.)
@@ -149,7 +143,7 @@ contains
     geo_file = case_name // "_mesh" // geoext
     adios2_file = case_name // adiosconfig
     if (is_root(par_env)) then
-      print *, "Mesh file:", geo_file
+      write(log_unit_out,*) "Mesh file:", geo_file
     end if
 
     call create_shared_roots_comm(par_env, shared_env, reader_env)
@@ -159,21 +153,21 @@ contains
 
     call open_file(geo_file, "read", geo_reader)
 
-    call timer_start(timer_read_topo)
+    call profiler_begin_region("Read mesh topology")
     call read_topology(par_env, shared_env, reader_env, geo_reader, mesh)
-    call timer_stop(timer_read_topo)
+    call profiler_end_region("Read mesh topology")
 
-    call timer_start(timer_partitioner_input)
+    call profiler_begin_region("Compute partitioner input")
     call compute_partitioner_input(par_env, shared_env, mesh)
-    call timer_stop(timer_partitioner_input)
+    call profiler_end_region("Compute partitioner input")
 
     call mesh_partition_reorder(par_env, shared_env, run_options, mesh)
 
     call set_offsets(shared_env, mesh)
 
-    call timer_start(timer_read_geo)
+    call profiler_begin_region("Read mesh geometry")
     call read_geometry(shared_env, reader_env, geo_reader, mesh)
-    call timer_stop(timer_read_geo)
+    call profiler_end_region("Read mesh geometry")
 
     ! Close the file and ADIOS2 engine
     call close_file(geo_reader)
@@ -204,10 +198,10 @@ contains
     integer :: ierr
     
     if (is_root(par_env)) then
-      print *, "=========================="
-      print *, "Boundary ID map"
+      write(log_unit_out,*) "=========================="
+      write(log_unit_out,*) "Boundary ID map"
       do i = 1, size(mesh%bnd_names)
-        print *, i, trim(mesh%bnd_names(i))
+        write(log_unit_out,*) i, trim(mesh%bnd_names(i))
       end do
     end if
 
@@ -243,8 +237,8 @@ contains
     call sync(par_env)
 
     if (is_root(par_env)) then
-      print *, "Boundary name list / ID compatibility: PASS"
-      print *, "=========================="
+      write(log_unit_out,*) "Boundary name list / ID compatibility: PASS"
+      write(log_unit_out,*) "=========================="
     end if
     
   end subroutine check_mesh_bnd_names
@@ -483,6 +477,8 @@ contains
   !v Read the geometry data from an input (HDF5) file
   subroutine read_geometry(shared_env, reader_env, geo_reader, mesh)
 
+    use kinds, only: CCS_MPI_PRECISION
+
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: reader_env !< The reader parallel environment
     class(io_process) :: geo_reader                                         !< The IO process for reading the file
@@ -562,7 +558,7 @@ contains
     if (is_valid(reader_env)) then
       call read_scalar(geo_reader, "scalefactor", mesh%geo%scalefactor)
     end if
-    call MPI_Bcast(mesh%geo%scalefactor, 1, MPI_DOUBLE_PRECISION, 0, shared_comm, ierr)
+    call MPI_Bcast(mesh%geo%scalefactor, 1, CCS_MPI_PRECISION, 0, shared_comm, ierr)
 
     ! Starting point for reading chunk of data
     vol_p_start = 0
@@ -1322,8 +1318,7 @@ contains
   function build_mesh(par_env, shared_env, run_options) result(mesh)
 
     use partitioning, only: compute_partitioner_input
-    use parallel, only: timer
-    use timers, only: timer_register, timer_start, timer_stop
+    use profiler  
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env    !< The parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared memory environment
@@ -1335,10 +1330,6 @@ contains
 
     character(:), allocatable :: error_message
 
-    integer(ccs_int) :: timer_build_topo
-    integer(ccs_int) :: timer_build_geo
-    integer(ccs_int) :: timer_partitioner_input
-
     real(ccs_real) :: side_length
     integer :: nx, ny, nz
 
@@ -1349,10 +1340,6 @@ contains
     
     bnd_names = run_options%mesh%bnd_names
     
-    call timer_register("Build mesh topology", timer_build_topo)
-    call timer_register("Compute partitioner input", timer_partitioner_input)
-    call timer_register("Build mesh geometry", timer_build_geo)
-
     call set_mesh_object(mesh)
     call set_mesh_generated(.true.)
     call nullify_mesh_object()
@@ -1368,21 +1355,21 @@ contains
       call error_abort(error_message)
     end if
 
-    call timer_start(timer_build_topo)
+    call profiler_begin_region("Build mesh topology")
     call build_topology(par_env, shared_env, nx, ny, nz, mesh)
-    call timer_stop(timer_build_topo)
+    call profiler_end_region("Build mesh topology")
 
-    call timer_start(timer_partitioner_input)
+    call profiler_begin_region("Compute partitioner input")
     call compute_partitioner_input(par_env, shared_env, mesh)
-    call timer_stop(timer_partitioner_input)
+    call profiler_end_region("Compute partitioner input")
 
     call mesh_partition_reorder(par_env, shared_env, run_options, mesh)
 
     call set_offsets(shared_env, mesh)
 
-    call timer_start(timer_build_geo)
+    call profiler_begin_region("Build mesh geometry")
     call build_geometry(par_env, shared_env, nx, ny, nz, side_length, mesh)
-    call timer_stop(timer_build_geo)
+    call profiler_end_region("Build mesh geometry")
 
     call cleanup_topo(shared_env, mesh)
 
@@ -2292,7 +2279,7 @@ contains
 
     call get_total_num_cells(total_num_cells)
     if (total_num_cells /= (size(mesh%topo%global_indices) + size(new_halos))) then
-      print *, total_num_cells, size(mesh%topo%global_indices), size(new_halos)
+      write(log_unit_out,*) total_num_cells, size(mesh%topo%global_indices), size(new_halos)
       call error_abort("ERROR: Local total cell count and size of global indices + new halos not in agreement")
     end if
 
@@ -2582,78 +2569,78 @@ contains
     integer(ccs_int) :: i          ! loop counters
     integer(ccs_int) :: nb_elem = 10
 
-    print *, par_env%proc_id, "############################# Print Geometry ########################################"
+    write(log_unit_out,*) par_env%proc_id, "############################# Print Geometry ########################################"
 
-    print *, par_env%proc_id, "h                  : ", mesh%geo%h
-    print *, par_env%proc_id, "scalefactor        : ", mesh%geo%scalefactor
-    print *, ""
+    write(log_unit_out,*) par_env%proc_id, "h                  : ", mesh%geo%h
+    write(log_unit_out,*) par_env%proc_id, "scalefactor        : ", mesh%geo%scalefactor
+    write(log_unit_out,*) ""
 
     associate (local_offset => mesh%topo%shared_array_local_offset, &
                total_offset => mesh%topo%shared_array_total_offset)
 
       if (associated(mesh%geo%volumes)) then
-        print *, par_env%proc_id, "volumes     : ", mesh%geo%volumes(1 + total_offset:nb_elem + total_offset)
+        write(log_unit_out,*) par_env%proc_id, "volumes     : ", mesh%geo%volumes(1 + total_offset:nb_elem + total_offset)
       else
-        print *, par_env%proc_id, "volumes     : UNALLOCATED"
+        write(log_unit_out,*) par_env%proc_id, "volumes     : UNALLOCATED"
       end if
 
       if (allocated(mesh%geo%face_interpol)) then
-        print *, par_env%proc_id, "face_interpol          : ", mesh%geo%face_interpol(1:nb_elem)
+        write(log_unit_out,*) par_env%proc_id, "face_interpol          : ", mesh%geo%face_interpol(1:nb_elem)
       else
-        print *, par_env%proc_id, "face_interpol          : UNALLOCATED"
+        write(log_unit_out,*) par_env%proc_id, "face_interpol          : UNALLOCATED"
       end if
 
-      print *, ""
+      write(log_unit_out,*) ""
       if (associated(mesh%geo%face_areas)) then
         do i = 1, nb_elem
-          print *, par_env%proc_id, "face_areas(1:" // str(nb_elem / 2) // ", " // str(i) // ")", &
+          write(log_unit_out,*) par_env%proc_id, "face_areas(1:" // str(nb_elem / 2) // ", " // str(i) // ")", &
             mesh%geo%face_areas(1:nb_elem / 2, i + local_offset)
         end do
       else
-        print *, par_env%proc_id, "face_areas             : UNALLOCATED"
+        write(log_unit_out,*) par_env%proc_id, "face_areas             : UNALLOCATED"
       end if
 
-      print *, ""
+      write(log_unit_out,*) ""
       if (associated(mesh%geo%x_p)) then
         do i = 1, nb_elem
-          print *, par_env%proc_id, "x_p(:)", mesh%geo%x_p(:, i + total_offset)
+          write(log_unit_out,*) par_env%proc_id, "x_p(:)", mesh%geo%x_p(:, i + total_offset)
         end do
       else
-        print *, par_env%proc_id, "x_p                    : UNALLOCATED"
+        write(log_unit_out,*) par_env%proc_id, "x_p                    : UNALLOCATED"
       end if
 
-      print *, ""
+      write(log_unit_out,*) ""
       if (associated(mesh%geo%x_f)) then
         do i = 1, nb_elem
-          print *, par_env%proc_id, "x_f(2, 1:" // str(nb_elem / 2) // ", " // str(i) // ")", &
+          write(log_unit_out,*) par_env%proc_id, "x_f(2, 1:" // str(nb_elem / 2) // ", " // str(i) // ")", &
             mesh%geo%x_f(2, 1:nb_elem / 2, i + local_offset)
         end do
       else
-        print *, par_env%proc_id, "x_f                    : UNALLOCATED"
+        write(log_unit_out,*) par_env%proc_id, "x_f                    : UNALLOCATED"
       end if
 
-      print *, ""
+      write(log_unit_out,*) ""
       if (associated(mesh%geo%face_normals)) then
         do i = 1, nb_elem
-          print *, par_env%proc_id, "face_normals(2, 1:" // str(nb_elem / 2) // ", " // str(i) // ")", &
+          write(log_unit_out,*) par_env%proc_id, "face_normals(2, 1:" // str(nb_elem / 2) // ", " // str(i) // ")", &
             mesh%geo%face_normals(2, 1:nb_elem / 2, i + local_offset)
         end do
       else
-        print *, par_env%proc_id, "face_normals          : UNALLOCATED"
+        write(log_unit_out,*) par_env%proc_id, "face_normals          : UNALLOCATED"
       end if
 
-      print *, ""
+      write(log_unit_out,*) ""
       if (associated(mesh%geo%vert_coords)) then
         do i = 1, nb_elem
-          print *, par_env%proc_id, "vert_coords(2, 1:" // str(nb_elem / 2) // ", " // str(i) // ")", &
+          write(log_unit_out,*) par_env%proc_id, "vert_coords(2, 1:" // str(nb_elem / 2) // ", " // str(i) // ")", &
             mesh%geo%vert_coords(2, 1:nb_elem / 2, i + local_offset)
         end do
       else
-        print *, par_env%proc_id, "vert_coords           : UNALLOCATED"
+        write(log_unit_out,*) par_env%proc_id, "vert_coords           : UNALLOCATED"
       end if
     end associate
 
-    print *, par_env%proc_id, "############################# End Print Geometry ########################################"
+    write(log_unit_out,*) par_env%proc_id, "############################# End Print Geometry ########################################"
 
   end subroutine print_geo
 
@@ -2671,7 +2658,7 @@ contains
     integer(ccs_int) :: global_num_faces, num_faces, max_faces
     integer(ccs_int) :: vert_per_cell, global_num_vertices
 
-    print *, par_env%proc_id, "############################# Print Topology ########################################"
+    write(log_unit_out,*) par_env%proc_id, "############################# Print Topology ########################################"
 
     call get_local_num_cells(local_num_cells)
     call get_global_num_cells(global_num_cells)
@@ -2683,108 +2670,108 @@ contains
     call get_vert_per_cell(vert_per_cell)
     call get_global_num_vertices(global_num_vertices)
 
-    print *, par_env%proc_id, "global_num_cells    : ", global_num_cells
-    print *, par_env%proc_id, "local_num_cells     : ", local_num_cells
-    print *, par_env%proc_id, "halo_num_cells      : ", halo_num_cells
-    print *, par_env%proc_id, "total_num_cells     : ", total_num_cells
-    print *, par_env%proc_id, "global_num_vertices : ", global_num_vertices
-    print *, par_env%proc_id, "vert_per_cell       : ", vert_per_cell
-    print *, par_env%proc_id, "global_num_faces    : ", global_num_faces
-    print *, par_env%proc_id, "num_faces           : ", num_faces
-    print *, par_env%proc_id, "max_faces           : ", max_faces
-    print *, ""
+    write(log_unit_out,*) par_env%proc_id, "global_num_cells    : ", global_num_cells
+    write(log_unit_out,*) par_env%proc_id, "local_num_cells     : ", local_num_cells
+    write(log_unit_out,*) par_env%proc_id, "halo_num_cells      : ", halo_num_cells
+    write(log_unit_out,*) par_env%proc_id, "total_num_cells     : ", total_num_cells
+    write(log_unit_out,*) par_env%proc_id, "global_num_vertices : ", global_num_vertices
+    write(log_unit_out,*) par_env%proc_id, "vert_per_cell       : ", vert_per_cell
+    write(log_unit_out,*) par_env%proc_id, "global_num_faces    : ", global_num_faces
+    write(log_unit_out,*) par_env%proc_id, "num_faces           : ", num_faces
+    write(log_unit_out,*) par_env%proc_id, "max_faces           : ", max_faces
+    write(log_unit_out,*) ""
 
     if (allocated(mesh%topo%global_indices)) then
-      print *, par_env%proc_id, "global_indices     : ", mesh%topo%global_indices(1:nb_elem)
+      write(log_unit_out,*) par_env%proc_id, "global_indices     : ", mesh%topo%global_indices(1:nb_elem)
     else
-      print *, par_env%proc_id, "global_indices     : UNALLOCATED"
+      write(log_unit_out,*) par_env%proc_id, "global_indices     : UNALLOCATED"
     end if
 
     if (allocated(mesh%topo%num_nb)) then
-      print *, par_env%proc_id, "num_nb             : ", mesh%topo%num_nb(1:nb_elem)
+      write(log_unit_out,*) par_env%proc_id, "num_nb             : ", mesh%topo%num_nb(1:nb_elem)
     else
-      print *, par_env%proc_id, "num_nb             : UNALLOCATED"
+      write(log_unit_out,*) par_env%proc_id, "num_nb             : UNALLOCATED"
     end if
 
     if (associated(mesh%topo%face_cell1)) then
-      print *, par_env%proc_id, "face_cell1        : ", mesh%topo%face_cell1(1:nb_elem)
+      write(log_unit_out,*) par_env%proc_id, "face_cell1        : ", mesh%topo%face_cell1(1:nb_elem)
     else
-      print *, par_env%proc_id, "face_cell1        : UNALLOCATED"
+      write(log_unit_out,*) par_env%proc_id, "face_cell1        : UNALLOCATED"
     end if
 
     if (associated(mesh%topo%face_cell2)) then
-      print *, par_env%proc_id, "face_cell2        : ", mesh%topo%face_cell2(1:nb_elem)
+      write(log_unit_out,*) par_env%proc_id, "face_cell2        : ", mesh%topo%face_cell2(1:nb_elem)
     else
-      print *, par_env%proc_id, "face_cell2        : UNALLOCATED"
+      write(log_unit_out,*) par_env%proc_id, "face_cell2        : UNALLOCATED"
     end if
 
     if (associated(mesh%topo%bnd_rid)) then
-      print *, par_env%proc_id, "bnd_rid           : ", mesh%topo%bnd_rid(1:nb_elem)
+      write(log_unit_out,*) par_env%proc_id, "bnd_rid           : ", mesh%topo%bnd_rid(1:nb_elem)
     else
-      print *, par_env%proc_id, "bnd_rid           : UNALLOCATED"
+      write(log_unit_out,*) par_env%proc_id, "bnd_rid           : UNALLOCATED"
     end if
 
     if (allocated(mesh%topo%graph_conn%vwgt)) then
-      print *, par_env%proc_id, "vwgt              : ", mesh%topo%graph_conn%vwgt(1:nb_elem)
+      write(log_unit_out,*) par_env%proc_id, "vwgt              : ", mesh%topo%graph_conn%vwgt(1:nb_elem)
     else
-      print *, par_env%proc_id, "vwgt              : UNALLOCATED"
+      write(log_unit_out,*) par_env%proc_id, "vwgt              : UNALLOCATED"
     end if
 
     if (allocated(mesh%topo%graph_conn%adjwgt)) then
-      print *, par_env%proc_id, "adjwgt            : ", mesh%topo%graph_conn%adjwgt(1:nb_elem)
+      write(log_unit_out,*) par_env%proc_id, "adjwgt            : ", mesh%topo%graph_conn%adjwgt(1:nb_elem)
     else
-      print *, par_env%proc_id, "adjwgt            : UNALLOCATED"
+      write(log_unit_out,*) par_env%proc_id, "adjwgt            : UNALLOCATED"
     end if
 
     if (allocated(mesh%topo%graph_conn%local_partition)) then
-      print *, par_env%proc_id, "local_partition   : ", mesh%topo%graph_conn%local_partition(1:nb_elem)
+      write(log_unit_out,*) par_env%proc_id, "local_partition   : ", mesh%topo%graph_conn%local_partition(1:nb_elem)
     else
-      print *, par_env%proc_id, "local_partition   : UNALLOCATED"
+      write(log_unit_out,*) par_env%proc_id, "local_partition   : UNALLOCATED"
     end if
 
     if (associated(mesh%topo%graph_conn%global_partition)) then
-      print *, par_env%proc_id, "global_partition  : ", mesh%topo%graph_conn%global_partition(1:nb_elem)
+      write(log_unit_out,*) par_env%proc_id, "global_partition  : ", mesh%topo%graph_conn%global_partition(1:nb_elem)
     else
-      print *, par_env%proc_id, "global_partition  : UNALLOCATED"
+      write(log_unit_out,*) par_env%proc_id, "global_partition  : UNALLOCATED"
     end if
 
-    print *, ""
+    write(log_unit_out,*) ""
     if (associated(mesh%topo%global_face_indices)) then
       do i = 1, nb_elem
-        print *, par_env%proc_id, "global_face_indices(1:"   //   str(nb_elem / 2)   //   ", "   //   str(i)   //   ")", mesh%topo%global_face_indices(1:nb_elem / 2, i)
+        write(log_unit_out,*) par_env%proc_id, "global_face_indices(1:"   //   str(nb_elem / 2)   //   ", "   //   str(i)   //   ")", mesh%topo%global_face_indices(1:nb_elem / 2, i)
       end do
     else
-      print *, par_env%proc_id, "global_face_indices   : UNALLOCATED"
+      write(log_unit_out,*) par_env%proc_id, "global_face_indices   : UNALLOCATED"
     end if
 
-    print *, ""
+    write(log_unit_out,*) ""
     if (associated(mesh%topo%global_vertex_indices)) then
       do i = 1, nb_elem
-        print *, par_env%proc_id, "global_vertex_indices(1:"   //   str(nb_elem / 2)   //   ", "   //   str(i)   //   ")", mesh%topo%global_vertex_indices(1:nb_elem / 2, i)
+        write(log_unit_out,*) par_env%proc_id, "global_vertex_indices(1:"   //   str(nb_elem / 2)   //   ", "   //   str(i)   //   ")", mesh%topo%global_vertex_indices(1:nb_elem / 2, i)
       end do
     else
-      print *, par_env%proc_id, "global_vertex_indices : UNALLOCATED"
+      write(log_unit_out,*) par_env%proc_id, "global_vertex_indices : UNALLOCATED"
     end if
 
-    print *, ""
+    write(log_unit_out,*) ""
     if (allocated(mesh%topo%face_indices)) then
       do i = 1, nb_elem
-    print *, par_env%proc_id, "face_indices(1:" // str(nb_elem / 2) // ", " // str(i) // ")", mesh%topo%face_indices(1:nb_elem / 2, i)
+    write(log_unit_out,*) par_env%proc_id, "face_indices(1:" // str(nb_elem / 2) // ", " // str(i) // ")", mesh%topo%face_indices(1:nb_elem / 2, i)
       end do
     else
-      print *, par_env%proc_id, "face_indices          : UNALLOCATED"
+      write(log_unit_out,*) par_env%proc_id, "face_indices          : UNALLOCATED"
     end if
 
-    print *, ""
+    write(log_unit_out,*) ""
     if (allocated(mesh%topo%nb_indices)) then
       do i = 1, nb_elem
-        print *, par_env%proc_id, "nb_indices(1:" // str(nb_elem / 2) // ", " // str(i) // ")", mesh%topo%nb_indices(1:nb_elem / 2, i)
+        write(log_unit_out,*) par_env%proc_id, "nb_indices(1:" // str(nb_elem / 2) // ", " // str(i) // ")", mesh%topo%nb_indices(1:nb_elem / 2, i)
       end do
     else
-      print *, par_env%proc_id, "nb_indices            : UNALLOCATED"
+      write(log_unit_out,*) par_env%proc_id, "nb_indices            : UNALLOCATED"
     end if
 
-    print *, par_env%proc_id, "############################# End Print Topology ########################################"
+    write(log_unit_out,*) par_env%proc_id, "############################# End Print Topology ########################################"
 
   end subroutine print_topo
 
@@ -2831,8 +2818,7 @@ contains
                             compute_partitioner_input, &
                             cleanup_partitioner_data, &
                             print_partition_quality
-    use parallel, only: timer
-    use timers, only: timer_register, timer_start, timer_stop
+    use profiler
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The parallel environment
@@ -2841,37 +2827,33 @@ contains
     class(parallel_environment), allocatable, target :: roots_env !< The parallel environment
 
 
-    integer(ccs_int) :: timer_partitioning
-    integer(ccs_int) :: timer_compute_connectivity
-    integer(ccs_int) :: timer_reordering
-
-    call timer_register("Partitioning", timer_partitioning)
-    call timer_register("Computing connectivity", timer_compute_connectivity)
-    call timer_register("Reordering", timer_reordering)
     call set_mesh_object(mesh)
 
     call create_shared_roots_comm(par_env, shared_env, roots_env)
 
-    call timer_start(timer_partitioning)
     if (par_env%num_procs > 1) then
+      call profiler_begin_region("Kway partitioning")
       call partition_kway(par_env, shared_env, roots_env, mesh)
+      call profiler_end_region("Kway partitioning")
     else
+      call profiler_begin_region("Strided partitioning")
       call partition_stride(par_env, shared_env, roots_env, mesh)
+      call profiler_end_region("Strided partitioning")
     end if
-    call print_partition_quality(par_env, run_options)
-    call timer_stop(timer_partitioning)
 
-    call timer_start(timer_compute_connectivity)
+    call print_partition_quality(par_env, run_options)
+
+    call profiler_begin_region("Computing connectivity")
     call compute_connectivity(par_env, shared_env, mesh)
-    call timer_stop(timer_compute_connectivity)
+    call profiler_end_region("Computing connectivity")
 
 ! insert halo / local cells computation here
 
     call print_bandwidth(par_env, run_options)
 
-    call timer_start(timer_reordering)
+    call profiler_begin_region("Reordering")
     call reorder_cells(par_env, shared_env, mesh)
-    call timer_stop(timer_reordering)
+    call profiler_end_region("Reordering")
 
     call cleanup_partitioner_data(shared_env, mesh)
 
@@ -3011,5 +2993,51 @@ contains
       call error_abort("invalid parallel environment")
     end select
   end subroutine set_offsets
+
+  !v check if parent of loc_nb (neighbour locator) is in loc_nb neighbour list, fail using assert if not
+  subroutine test_mesh_internal_neighbours(loc_nb)
+
+    use testing_lib, only: assert_neq, assert_bool
+
+    type(neighbour_locator), intent(in) :: loc_nb ! Neighbour locator to test
+
+    integer(ccs_int) :: index_nb
+    integer(ccs_int) :: nnb
+    integer(ccs_int) :: j
+    logical :: found_parent
+    logical :: is_boundary
+    logical :: is_local
+    type(cell_locator) :: cell_loc_nb
+    type(neighbour_locator) :: loc_nb_nb
+
+    associate (parent_idx => loc_nb%index_p)
+      call get_local_index(loc_nb, index_nb)
+
+      ! Neighbour index should not be its parents
+      call assert_neq(index_nb, parent_idx, "Neighbour has same index as parent cell")
+
+      call get_local_status(loc_nb, is_local)
+      if (is_local) then
+        ! Parent should be in neighbour's neighbour list
+        call create_cell_locator(index_nb, cell_loc_nb)
+        call count_neighbours(cell_loc_nb, nnb)
+        found_parent = .false.
+        do j = 1, nnb
+          call create_neighbour_locator(cell_loc_nb, j, loc_nb_nb)
+          call get_boundary_status(loc_nb_nb, is_boundary)
+          if (.not. is_boundary) then ! We are looking for parent cell - by definition not a boundary!
+            call get_local_index(loc_nb_nb, index_nb)
+            if (index_nb == parent_idx) then
+              found_parent = .true.
+              exit
+            end if
+          end if
+        end do
+        call assert_bool(found_parent, "Couldn't find cell in neighbour's neighbour list")
+      end if
+
+    end associate
+
+  end subroutine test_mesh_internal_neighbours
 
 end module mesh_utils

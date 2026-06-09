@@ -14,6 +14,8 @@ submodule(read_config) read_config_utils
                             type_list_item, &
                             type_scalar
   use boundary_conditions, only: set_bc_real_value, set_bc_id, set_bc_type
+  use types, only: solver_params
+  use logging, only: log_unit_out
 
   implicit none
 
@@ -170,7 +172,7 @@ contains
     type(type_error), pointer, intent(inout) :: io_err
 
     if (associated(io_err)) then
-      print *, trim(io_err%message)
+      write(log_unit_out,*) trim(io_err%message)
     end if
 
   end subroutine
@@ -312,10 +314,11 @@ contains
   !  certain variables will not be solved by setting in to "off"
   !
   !  @todo extend list of variables
-  module subroutine get_solve(config_file, solved_variables)
-    
+  module subroutine get_solver_eq_parameters(config_file, solver_parameters)
+    use constants, only: L2, Linfty
+
     class(*), pointer, intent(in) :: config_file                      !< the entry point to the config file
-    character(len=ccs_string_len), dimension(:), allocatable, intent(out) :: solved_variables
+    type(solver_params), dimension(:), allocatable, intent(out) :: solver_parameters !< Solver parameters to write to
 
     class(*), pointer :: dict
     class(*), pointer :: dict_var
@@ -324,31 +327,73 @@ contains
     integer :: i
     character(len=25) :: key
     character(len=:), allocatable :: solved
+    character(len=:), allocatable :: residuals_norm
+    character(len=:), allocatable :: solver_name
+    character(len=:), allocatable :: precon_name
+    real(ccs_real) :: res_target
+    real(ccs_real) :: relaxation
+    logical :: val_present
     character(len=:), allocatable :: variable
     character(len=ccs_string_len) :: var
-    logical :: val_present
 
-   allocate(solved_variables(0))
-    
     select type (config_file)
     type is (type_dictionary)
 
       dict => config_file%get_dictionary('variables', required=.true., error=io_err)
       call get_value(dict, "n_variables", n_var)
 
+      allocate(solver_parameters(n_var))
+
       select type (dict)
       type is(type_dictionary)
         do i = 1, n_var
           write (key, '(A, I0)') "variable_", i
           dict_var => dict%get_dictionary(key, required=.true., error=io_err)
+
+          ! Get name of variable
+          call get_value(dict_var, "name", variable)
+          var = adjustl(variable)
+          solver_parameters(i)%name = trim(var)
+
           call get_value(dict_var, 'solve', solved, value_present=val_present, required=.false.)
           if (val_present) then
-            if (trim(solved) == "on") then
-              call get_value(dict_var, "name", variable)
-              var = adjustl(variable)
-              solved_variables = [solved_variables, var]
-            end if
+            solver_parameters(i)%solve = (trim(solved) == "on")
+          else
+            solver_parameters(i)%solve = .false.
           end if
+
+          call get_value(dict_var, 'relaxation', relaxation, value_present=val_present, required=.false.)
+          if (val_present) then
+            solver_parameters(i)%relaxation_factor = relaxation
+          end if
+
+          call get_value(dict_var, 'target_residual', res_target, value_present=val_present, required=.false.)
+          if (val_present) then
+            solver_parameters(i)%res_target = res_target
+          end if
+
+          call get_value(dict_var, 'norm_residual', residuals_norm, value_present=val_present, required=.false.)
+          if (val_present) then
+            select case(trim(residuals_norm))
+            case ("L2")
+              solver_parameters(i)%res_norm = L2
+            case ("Linfty")
+              solver_parameters(i)%res_norm = Linfty
+            case default
+              call error_abort("Unknown residual norm for " // trim(solver_parameters(i)%name) // ", should be L2 or Linfty")
+            end select
+          end if
+
+          call get_value(dict_var, 'solver_name', solver_name, value_present=val_present, required=.false.)
+          if (val_present) then
+            solver_parameters(i)%solver_name = trim(solver_name)
+          end if
+
+          call get_value(dict_var, 'precon_name', precon_name, value_present=val_present, required=.false.)
+          if (val_present) then
+            solver_parameters(i)%precon_name = trim(precon_name)
+          end if
+
         end do
         class default
           call error_abort("Unknown type")
@@ -557,51 +602,6 @@ contains
 
   end subroutine
 
-  !v Get relaxation factor values
-  !
-  !  Get relaxation factors
-  module subroutine get_relaxation_factors(config_file, u_relax, v_relax, p_relax, te_relax, ed_relax)
-    class(*), pointer, intent(in) :: config_file        !< the entry point to the config file
-    real(ccs_real), optional, intent(inout) :: u_relax  !< relaxation factor for u
-    real(ccs_real), optional, intent(inout) :: v_relax  !< relaxation factor for v
-    real(ccs_real), optional, intent(inout) :: p_relax  !< relaxation factor for p
-    real(ccs_real), optional, intent(inout) :: te_relax !< relaxation factor for te
-    real(ccs_real), optional, intent(inout) :: ed_relax !< relaxation factor for ed
-
-    class(*), pointer :: dict
-    type(type_error), allocatable :: io_err
-
-    select type (config_file)
-    type is (type_dictionary)
-
-      dict => config_file%get_dictionary('relaxation_factor', required=.false., error=io_err)
-
-      if (present(u_relax)) then
-        call get_value(dict, "u", u_relax)
-      end if
-
-      if (present(v_relax)) then
-        call get_value(dict, "v", v_relax)
-      end if
-
-      if (present(p_relax)) then
-        call get_value(dict, "p", p_relax)
-      end if
-
-      if (present(te_relax)) then
-        call get_value(dict, "te", te_relax)
-      end if
-
-      if (present(ed_relax)) then
-        call get_value(dict, "ed", ed_relax)
-      end if
-
-    class default
-      call error_abort("Unknown type")
-    end select
-
-  end subroutine
-
   !> Get output file format
   module subroutine get_plot_format(config_file, plot_format)
     class(*), pointer, intent(in) :: config_file                !< the entry point to the config file
@@ -651,7 +651,7 @@ contains
               end select
             end do
           else
-            print *, "COULDN'T FIND POST VARIABLES"
+            write(log_unit_out,*) "COULDN'T FIND POST VARIABLES"
           end if
 
         class default

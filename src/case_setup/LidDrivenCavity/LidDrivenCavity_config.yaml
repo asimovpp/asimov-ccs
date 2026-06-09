@@ -24,12 +24,6 @@ cps: 16
 # domain size
 L: 1.0
 
-relaxation_factor:
-  u: 0.9
-  v: 0.9
-  w: 0.9
-  p: 0.1
-
 target_residual: 1.0e-10
 
 # Report partition quality (true/false)
@@ -81,18 +75,22 @@ variables:
     name: u
     type: central
     solve: on
+    relaxation: 0.9
   variable_2:
     name: v
     type: upwind
     solve: on
+    relaxation: 0.9
   variable_3:
     name: w
     type: upwind
-    solve: on
+    solve: off
+    relaxation: 0.9
   variable_4:
     name: p
     type: central
     solve: on
+    relaxation: 0.1
   variable_5:
     name: p_prime
     type: central
@@ -102,54 +100,20 @@ boundaries:
   n_boundaries: 4
   boundary_1: 
     name: left
-    type: dirichlet
+    type: wall
     value: 0
-    variable_p:
-      type: extrapolate
-    variable_p_prime:
-      type: neumann
-      value: 0
   boundary_2:
     name: right
-    type: dirichlet
+    type: wall
     value: 0
-    variable_p:
-      type: extrapolate
-    variable_p_prime:
-      type: neumann
-      value: 0
   boundary_3:
     name: bottom
-    type: dirichlet
-    value: 0
-    variable_p:
-      type: extrapolate
-    variable_p_prime:
-      type: neumann
-      value: 0
+    type: wall
   boundary_4:
     name: top
-    type: dirichlet
+    type: wall
     value: 0
     variable_u:
       type: dirichlet
       value: 1
-    variable_p:
-      type: extrapolate
-    variable_p_prime:
-      type: neumann
-      value: 0
-  boundary_5:
-    name: back
-    type: neumann
-    value: 0
-    variable_w:
-      type: dirichlet
-      value: 0
-  boundary_6:
-    name: front
-    type: neumann
-    value: 0
-    variable_w:
-      type: dirichlet
-      value: 0
+

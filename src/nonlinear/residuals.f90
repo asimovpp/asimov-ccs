@@ -6,7 +6,7 @@
 module residuals
 #include "ccs_macros.inc"
 
-  use ccs_base, only: L2, Linfty
+  use constants, only: L2, Linfty
   use kinds, only: ccs_int, ccs_real
   use types, only: fluid, field, ccs_vector, ccs_matrix, ccs_residuals
   use parallel_types, only: parallel_environment
@@ -17,6 +17,8 @@ module residuals
   use vec, only: vec_aypx
   use meshing, only: get_global_num_cells
   use timestepping, only: get_current_step, get_current_time
+  use kinds, only: CCS_MPI_PRECISION
+  use logging, only: log_unit_out
 
 contains
 
@@ -93,6 +95,24 @@ contains
 
   end subroutine
 
+  !v Check if a particular residual is below the res_target
+  logical function is_converged(residuals, phi, ifield) result(converged)
+    type(ccs_residuals), intent(in) :: residuals !< residuals object 
+    class(field), intent(in) :: phi !< field to get the residual target from
+    integer(ccs_int), intent(in) :: ifield !< index of the residual in 'residuals' object
+    real(ccs_real) :: res_target
+
+    res_target = phi%solver_parameters%res_target
+
+    select case (phi%solver_parameters%res_norm)
+    case (L2)
+      converged = residuals%L2(ifield) <= res_target
+    case (Linfty)
+      converged = residuals%Linfty(ifield) <= res_target
+    end select
+
+  end function
+
   !v Get the maximum residuals for a specific norm
   real(ccs_real) function get_max_residuals(residuals, norm) result(max_value)
     type(ccs_residuals), intent(in) :: residuals
@@ -126,11 +146,11 @@ contains
     type is (parallel_environment_mpi)
       do ifield = 1, nfields
         ! Computes RMS from L2 squared
-        call MPI_ALLREDUCE(MPI_IN_PLACE, residuals%L2(ifield), 1, MPI_DOUBLE_PRECISION, MPI_SUM, par_env%comm, ierr)
+        call MPI_ALLREDUCE(MPI_IN_PLACE, residuals%L2(ifield), 1, CCS_MPI_PRECISION, MPI_SUM, par_env%comm, ierr)
         residuals%L2(ifield) = sqrt(residuals%L2(ifield) / real(global_num_cells, kind=ccs_real))
 
         ! Linf
-        call MPI_ALLREDUCE(MPI_IN_PLACE, residuals%Linfty(ifield), 1, MPI_DOUBLE_PRECISION, MPI_MAX, par_env%comm, ierr)
+        call MPI_ALLREDUCE(MPI_IN_PLACE, residuals%Linfty(ifield), 1, CCS_MPI_PRECISION, MPI_MAX, par_env%comm, ierr)
       end do
     class default
       call error_abort("invalid parallel environment")
@@ -172,13 +192,13 @@ contains
         ! Write header
         open (newunit=io_unit, file="residuals.log", status="replace", form="formatted")
 
-        write (*, *)
+        write (log_unit_out, *)
         if (step >= 0) then
-          write (*, '(a5, 1x, a12, 1x, a6, 2x)', advance='no') 'Step', 'time', 'Iter'
+          write (log_unit_out, '(a5, 1x, a12, 1x, a6, 2x)', advance='no') 'Step', 'time', 'Iter'
 
           write (io_unit, '(a6, 1x, a12, 1x, a6)', advance='no') '#step', 'time', 'iter'
         else
-          write (*, '(a5)', advance='no') 'Iter'
+          write (log_unit_out, '(a5)', advance='no') 'Iter'
 
           write (io_unit, '(a6)', advance='no') '#iter'
         end if
@@ -194,12 +214,12 @@ contains
             call get_is_field_solved(phi, phi_sol)
 
             if (phi_sol) then
-              write (*, '(1x,a12)', advance='no') phi%name
+              write (log_unit_out, '(1x,a12)', advance='no') phi%name
               write (io_unit, '(1x,a12)', advance='no') trim(prefix) // phi%name
             end if
           end do
         end do
-        write (*, *)
+        write (log_unit_out, *)
         write (io_unit, *)
         first_time = .false.
       else
@@ -208,10 +228,10 @@ contains
 
       ! Write step, iteration and residuals
       if (step >= 0) then
-        write (*, '(i5,1x,e12.4,1x,i6,1x)', advance='no') step, time, itr
+        write (log_unit_out, '(i5,1x,e12.4,1x,i6,1x)', advance='no') step, time, itr
         write (io_unit, '(i6,1x,e12.4,1x,i6,1x)', advance='no') step, time, itr
       else
-        write (*, '(i5,1x,e12.4,1x)', advance='no') step, time, itr
+        write (log_unit_out, '(i5,1x,e12.4,1x)', advance='no') step, time, itr
         write (io_unit, '(i6,1x,e12.4,1x)', advance='no') step, time, itr
       end if
 
@@ -220,7 +240,7 @@ contains
         call get_is_field_solved(phi, phi_sol)
 
         if (phi_sol) then
-          write (*, '(e12.4,1x)', advance='no') residuals%L2(ifield)
+          write (log_unit_out, '(e12.4,1x)', advance='no') residuals%L2(ifield)
           write (io_unit, '(e12.4,1x)', advance='no') residuals%L2(ifield)
         end if
       end do
@@ -230,12 +250,12 @@ contains
         call get_is_field_solved(phi, phi_sol)
 
         if (phi_sol) then
-          write (*, '(e12.4,1x)', advance='no') residuals%Linfty(ifield)
+          write (log_unit_out, '(e12.4,1x)', advance='no') residuals%Linfty(ifield)
           write (io_unit, '(e12.4,1x)', advance='no') residuals%Linfty(ifield)
         end if
       end do
 
-      write (*, *)
+      write (log_unit_out, *)
       write (io_unit, *)
       close (io_unit)
     end if

@@ -8,7 +8,7 @@ restart: false
 unsteady: false
 
 #  number of steady iterations
-iterations: 4000
+iterations: 3000
 
 #  number of timesteps
 steps: 100
@@ -21,12 +21,6 @@ mesh: 2d
 cps: 16
 # domain size
 L: 1.0
-
-relaxation_factor:
-  u: 0.8
-  v: 0.8
-  w: 0.8
-  p: 0.1
 
 target_residual: 1.0e-10
 
@@ -75,73 +69,45 @@ variables:
     name: u
     type: central
     solve: on
+    relaxation: 0.8
   variable_2:
     name: v
     type: central
     solve: on
+    relaxation: 0.8
   variable_3:
     name: w
     type: central
     solve: on
+    relaxation: 0.8
   variable_4:
     name: p
     type: central
     solve: on
+    relaxation: 0.12
   variable_5:
     name: p_prime
     type: central
-    solve: on
+    solve: off
 
 boundaries:
   n_boundaries: 4
   boundary_1: 
     name: left
-    type: neumann
+    type: inflow
     value: 0
-    variable_p:
-      type: extrapolate
     variable_u:
       type: profile
       value: 1
-    variable_v:
-      type: dirichlet
-      value: 0
-    variable_w:
-      type: dirichlet
-      value: 0
   boundary_2:
     name: right
-    type: neumann
+    type: outflow
     value: 0
-    variable_p:
-      type: dirichlet
-      value: 0
-    variable_p_prime:
-      type: dirichlet
-      value: 0
   boundary_3:
     name: bottom
-    type: neumann
+    type: wall
     value: 0
-    variable_u:
-      type: dirichlet
-      value: 0
-    variable_v:
-      type: dirichlet
-      value: 0
-    variable_w:
-      type: dirichlet
-      value: 0
   boundary_4:
     name: top
-    type: neumann
+    type: wall
     value: 0
-    variable_u:
-      type: dirichlet
-      value: 0
-    variable_v:
-      type: dirichlet
-      value: 0
-    variable_w:
-      type: dirichlet
-      value: 0

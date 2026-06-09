@@ -22,7 +22,7 @@ program test_partition_tri_mesh
                      create_cell_locator, get_global_index
   use meshing, only: set_mesh_object, nullify_mesh_object
   use utils, only: debug_print
-  use parallel, only: destroy_shared_array
+  use parallel, only: destroy_shared_array, is_root
 
   implicit none
 
@@ -53,7 +53,7 @@ program test_partition_tri_mesh
 
   call partition_kway(par_env, shared_env, roots_env, mesh)
 
-  if (par_env%proc_id == 0) then
+  if (is_root(par_env)) then
     print *, "Global partition after partitioning:"
     call get_global_num_cells(global_num_cells)
     do i = 1, global_num_cells

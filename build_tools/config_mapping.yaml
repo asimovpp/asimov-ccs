@@ -25,10 +25,11 @@ bases:
       timestepping_common: timestepping_common
       partitioning: partitioning_parhip
       partitioning_common: partitioning_common
-      reordering: reordering_rcm
+      reordering: reordering_petsc
       reordering_common: reordering_common
       poisson_discretisation: poisson_discretisation_ref
       scalars_common: scalars_common
+      profiler: profiler_timers
       core: core_solver
       core_par: core_parallel
       core_mesh: core_init_mesh
@@ -51,6 +52,7 @@ bases:
       reordering: [reordering_rcm, reordering_petsc, reordering_zcurve, reordering_none]
       poisson_discretisation: [poisson_discretisation_ref]
       partitioning: [partitioning_parhip, partitioning_parmetis]
+      profiler: [profiler_timers, profiler_caliper, profiler_likwid]
   mpi:
     defaults:
       mat_common: mat_common
@@ -77,10 +79,11 @@ bases:
       timestepping_common: timestepping_common
       partitioning: partitioning_parhip
       partitioning_common: partitioning_common
-      reordering: reordering_rcm
+      reordering: reordering_petsc
       reordering_common: reordering_common
       poisson_discretisation: poisson_discretisation_ref
       scalars_common: scalars_common
+      profiler: profiler_timers
       core: core_solver
       core_par: core_parallel
       core_mesh: core_init_mesh
@@ -103,3 +106,4 @@ bases:
       reordering: [reordering_rcm, reordering_petsc, reordering_zcurve, reordering_none]
       poisson_discretisation: [poisson_discretisation_ref]
       partitioning: [partitioning_parhip, partitioning_parmetis]
+      profiler: [profiler_timers, profiler_caliper, profiler_likwid]

@@ -4,7 +4,7 @@ submodule(core) core_fields
   use types, only: vector_spec, field_spec, field
   use constants, only: face, cell, face_centred, cell_centred_central
   use bc_constants
-  use boundary_conditions, only: set_bc_type
+  use boundary_conditions, only: set_bc_type, translate_bcs
   use ccs_base, only: mesh
   use parallel, only: is_root
   use utils, only: set_size, initialise, add_field_to_outputlist, exit_print
@@ -12,8 +12,10 @@ submodule(core) core_fields
   use vec, only: set_vector_location
   use fields, only: set_field_config_file, set_field_n_boundaries, set_field_store_residuals, &
                     set_field_enable_cell_corrections, set_field_vector_properties, create_field, &
-                    set_field_name, set_field_type, set_is_field_solved, get_field
+                    set_field_name, set_field_type, set_is_field_solved, get_field, print_field_config
   use fortran_yaml_c_interface, only: parse
+  use profiler, only: profiler_begin_region, profiler_end_region
+  use logging, only: log_unit_out
 
 implicit none
 
@@ -34,7 +36,7 @@ contains
 
     ! Read boundary conditions
     if (is_root(par_env)) then
-      print *, "Read and allocate BCs"
+      write(log_unit_out,*) "Read and allocate BCs"
     end if
     ! XXX: these calls should probably be moved to the config reading section
     config_file => parse(run_options%paths%ccs_config_file, error)
@@ -47,7 +49,7 @@ contains
 
     ! Create and initialise field vectors
     if (is_root(par_env)) then
-      print *, "Initialise field vectors"
+      write(log_unit_out,*) "Initialise field vectors"
     end if
     call initialise(vec_properties)
 
@@ -70,6 +72,7 @@ contains
     
     type(field_spec) :: field_properties
     
+    call profiler_begin_region('Field initialisation')
     ! Set field properties
     call set_field_properties(par_env, run_options, field_properties)
 
@@ -77,11 +80,17 @@ contains
     call build_user_fields(par_env, run_options, field_properties, flow_fields)
     
     ! build the common fields specified.
-    call build_common_fields(par_env, field_properties, flow_fields)
+    call build_common_fields(par_env, run_options, field_properties, flow_fields)
     
     ! Finally build any case specific fields.
     call build_case_fields(par_env, run_options, field_properties, flow_fields)
+
+    call profiler_end_region('Field initialisation')
+
+    call print_field_config(par_env, flow_fields)
+
   end subroutine initialise_fields
+  
 
   !> Builds the user specified fields from the case config file
   subroutine build_user_fields(par_env, run_options, field_properties, flow_fields)
@@ -93,11 +102,6 @@ contains
     integer(ccs_int) :: i
     type(field_spec) :: my_field_properties
     
-    ! Expect to find u, v, w, p, p_prime, scalar
-    if (is_root(par_env)) then
-      print *, "Build field list"
-    end if
-
     ! Create a local copyt of field_properties
     my_field_properties = field_properties
     
@@ -105,29 +109,27 @@ contains
       ! Make sure we don't attempt to define mf. 
       if (trim(run_options%variables%variable_names(i)) == 'mf') then 
         if (is_root(par_env)) then
-          print *, "mf already defined in code. skipping definition in case config file"
+          write(log_unit_out,*) "mf already defined in code. skipping definition in case config file"
         end if
         cycle
       end if
 
-      if (is_root(par_env)) then
-        print *, "Creating field ", trim(run_options%variables%variable_names(i))
-      end if
       call set_field_type(run_options%variables%variable_types(i), my_field_properties)
       call set_field_name(run_options%variables%variable_names(i), my_field_properties)
-      call create_field(par_env, my_field_properties, flow_fields)
+      call create_field(par_env, my_field_properties, run_options%mesh%bnd_names, flow_fields)
       call add_fluid_field_to_outputlist(run_options, i, flow_fields)
-      call set_is_fluid_field_solved(run_options, i, flow_fields)
+      call set_field_solver_params(run_options, i, flow_fields)
     end do
 
     if (is_root(par_env)) then
-      print *, "Built ", size(flow_fields%fields), " dynamically-defined fields"
+      write(log_unit_out,*) "Built ", size(flow_fields%fields), " dynamically-defined fields"
     end if
   end subroutine build_user_fields
 
   !> builds any common fields that should be inaccessible to the user.
-  subroutine build_common_fields(par_env, field_properties, flow_fields)
+  subroutine build_common_fields(par_env, run_options, field_properties, flow_fields)
     class(parallel_environment), intent(in), allocatable:: par_env !< The parallel environment
+    type(ccs_options), intent(in) :: run_options                   !< Object containing relevant options for building fields
     type(field_spec), intent(in) :: field_properties               !< The field spec object used to allocate the fields
     type(fluid), intent(inout) :: flow_fields                      !< The fluid fields object being initialised
 
@@ -146,10 +148,10 @@ contains
     call set_field_vector_properties(vec_properties, my_field_properties)
     call set_field_type(face_centred, my_field_properties)
     call set_field_name("mf", my_field_properties)
-    call create_field(par_env, my_field_properties, flow_fields)
+    call create_field(par_env, my_field_properties, run_options%mesh%bnd_names, flow_fields)
 
     if (is_root(par_env)) then
-      print *, "Built ", size(flow_fields%fields) - nfields_init, " common fields"
+      write(log_unit_out,*) "Built ", size(flow_fields%fields) - nfields_init, " common fields"
     end if
 
   end subroutine build_common_fields
@@ -185,10 +187,9 @@ contains
       if (.not. is_field_built(field_names(i), flow_fields)) then
         call set_field_type(field_types(i), my_field_properties)
         call set_field_name(field_names(i), my_field_properties)
-        call create_field(par_env, my_field_properties, flow_fields)
+        call create_field(par_env, my_field_properties, run_options%mesh%bnd_names, flow_fields)
 
         call add_fluid_field_to_outputlist(run_options, field_index, flow_fields)
-        call set_is_fluid_field_solved(run_options, field_index, flow_fields)
         field_index = field_index + 1
       end if
     end do
@@ -228,22 +229,21 @@ contains
     end if
     nullify(phi)
   end subroutine add_fluid_field_to_outputlist
+  
 
-  !> Sets the solve flag for field specified by field index
-  subroutine set_is_fluid_field_solved(run_options, field_index, flow)
-    type(ccs_options), intent(in) :: run_options  !< Object containing relevant options for setting whether the field should be solved
+  ! Sets field solver parameters from run_options
+  subroutine set_field_solver_params(run_options, field_index, flow)
+    type(ccs_options), intent(in) :: run_options  !< Runtime options to extract solver parameters information from
     integer(ccs_int), intent(in) :: field_index   !< The index of the field being set
     type(fluid), intent(inout) :: flow            !< The fluid fields object being initialised
-    
+
     class(field), pointer :: phi
-    
-    call get_field(flow, field_index, phi)
-    if (any(phi%name == run_options%variables%solved_variables)) then
-      call set_is_field_solved(.true., phi)
-    else
-      call set_is_field_solved(.false., phi)
-    end if
+
+    ! Get field using the run_options equation name
+    call get_field(flow, run_options%solve%solver_eq_parameters(field_index)%name, phi)
+    phi%solver_parameters = run_options%solve%solver_eq_parameters(field_index)
     nullify(phi)
-  end subroutine set_is_fluid_field_solved
+
+  end subroutine
 
 end submodule core_fields
