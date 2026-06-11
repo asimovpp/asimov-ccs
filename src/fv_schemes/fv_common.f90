@@ -631,12 +631,21 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
     type(cell_locator) :: loc_p
     real(ccs_real), dimension(ndim) :: grad_p
 
+    call profiler_begin_region("[OMP] gradient loop")
+
     local_num_cells = size(gradients, 1)
+    !$omp parallel do default(none) schedule(static) &
+    !$omp shared(local_num_cells, gradients, phi)    &
+    !$omp private(i, loc_p, grad_p)
     do i = 1, local_num_cells
       call create_cell_locator(i, loc_p)
       call compute_gradient_at_point(phi, loc_p, grad_p)
       gradients(i, :) = grad_p(:)
     end do
+    !$omp end parallel do
+
+    call profiler_end_region("[OMP] gradient loop")
+
   end subroutine compute_gradients
 
   subroutine set_gradients(phi, gradients)
@@ -779,7 +788,12 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
     call get_vector_data(R, R_data)
     call get_vector_data(S, S_data)
 
+    call profiler_begin_region("[OMP] zero sources loop")
+
     call get_local_num_cells(local_num_cells)
+    !$omp parallel do default(none) schedule(static) &
+    !$omp shared(local_num_cells, R_data, S_data)    &
+    !$omp private(index_p, loc_p, V_p)
     do index_p = 1, local_num_cells
       ! XXX: Dummy implementation, use flow/phi to compute field-specific sources
       call create_cell_locator(index_p, loc_p)
@@ -787,6 +801,8 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
       R_data(index_p) = 0 * V_p
       S_data(index_p) = 0 * V_p
     end do
+
+    call profiler_end_region("[OMP] zero sources loop")
 
     call restore_vector_data(R, R_data)
     call restore_vector_data(S, S_data)
