@@ -30,6 +30,7 @@ site_configuration = {
                     "access": [
                         "--hint=nomultithread",
                         "--distribution=block:block",
+                        "--cpu-freq=2250000",
                         "--partition=standard",
                         "--qos=standard",
                     ],
