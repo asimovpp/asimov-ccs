@@ -17,6 +17,7 @@ contains
   module subroutine get_reordering(new_indices)
 #include "petsc/finclude/petscmat.h"
 
+    use mpi
     use petscmat
 #if PETSC_VERSION_GE(3,23,0)
     use petsc, only: PETSC_NULL_INTEGER_ARRAY, PETSC_DETERMINE, INSERT_VALUES
