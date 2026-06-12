@@ -2,29 +2,28 @@
 title: TaylorGreenVortex
 
 # restart capability
-restart: false 
+restart: false  
 
 # unstaedy state
 unsteady: true
+
+#  number of steady iterations
+iterations: 7
+
 #  number of timesteps
-steps: 5
-#  number of iterations
-iterations: 10
+steps: 10
 # time step size
 dt: 1.0e-2
 
 mesh: 3d
 # Square/cubic mesh generation parameters
 # cells per side
-cps: 90
+cps: 8
 # domain size
 L: 3.1415926535
 
-relaxation_factor:
-  u: 0.9
-  v: 0.9
-  w: 0.9
-  p: 0.1
+# Enable/disable solver debugging at runtime
+debug_solver: false
 
 target_residual: 1.0e-10
 
@@ -33,6 +32,12 @@ write_frequency: 5
 
 # Fluid properties
 viscocity : 1.0e-3
+
+# Report partition quality (true/false)
+compute_partqual : false
+
+# Compute matrix bandwidth (true/false)
+compute_bwidth : false
 
 ### VALUES BELOW THIS POINT ARE NOT CURRENTLY USED
 
@@ -67,23 +72,33 @@ post:
   variables: [u, v, w, p]
 
 variables:
+  store_residuals: false
+  enable_cell_corrections: false
   n_variables: 5
   variable_1:
     name: u
     type: central
     solve: on
+    relaxation: 0.9
   variable_2:
     name: v
     type: central
     solve: on
+    relaxation: 0.9
   variable_3:
     name: w
     type: central
     solve: on
+    relaxation: 0.9
   variable_4:
     name: p
     type: central
     solve: on
+    relaxation: 0.1
+    # target_residual: 1.0e-10
+    # norm_residual: L2|Linfty
+    # solver_name: cg
+    # precon_name: gamg
   variable_5:
     name: p_prime
     type: central
@@ -145,4 +160,3 @@ boundaries:
     variable_w:
       type: dirichlet
       value: 0
-
