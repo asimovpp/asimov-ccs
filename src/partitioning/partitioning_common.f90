@@ -48,6 +48,8 @@ contains
 
   end subroutine compute_connectivity
 
+  ! Convert the per-process counts to the vtxdist - i.e. where in the global index set does each process' ownership range begin.
+  ! N.B. This amounts to performing a prefix sum.
   module function compute_vtxdist_local(proc_ctr) result(vtxdist)
     integer(ccs_int), dimension(:), intent(in) :: proc_ctr
     integer(ccs_int), dimension(:), allocatable :: vtxdist
@@ -70,6 +72,7 @@ contains
     
   end function compute_vtxdist_local_
   
+  ! Order the global indices of our global index set according to the partition.
   module function compute_global_indices_partition(partition, proc_ctr, vtxdist, global_idx_start) result(global_indices)
     integer(ccs_long), dimension(:), intent(in) :: partition
     integer(ccs_int), dimension(:), intent(in) :: proc_ctr
@@ -104,6 +107,7 @@ contains
     end do
   end function compute_global_indices_partition_
 
+  ! Count how many entries each rank has in the partition
   pure module function partition_count(nproc, partition) result(proc_count)
     integer(ccs_int), intent(in) :: nproc
     integer(ccs_long), dimension(:), intent(in) :: partition
@@ -129,8 +133,7 @@ contains
     ! Recompute vtxdist array based on the new partition
     associate(local_partition => graph_conn%local_partition, &
               vtxdist => graph_conn%vtxdist)
-      vtxdist = compute_vtxdist_count(par_env, local_partition)
-      call vtxdist_count_to_offset(vtxdist)
+      vtxdist = proccnt_to_vtxdist(partition_count(par_env%num_procs, local_partition))
     end associate
     
     if (is_root(par_env)) then
@@ -141,58 +144,29 @@ contains
 
   end subroutine compute_vtxdist
 
-  ! Get the distribution counts, i.e. how many elements are on each process
-  function compute_vtxdist_count(par_env, local_partition) result(vtxdist)
-
-    use mpi
-    
-    class(parallel_environment), intent(in) :: par_env
-    integer(ccs_long), dimension(:), intent(in) :: local_partition
+  ! Convert the processor counts to the vtx distribution
+  function proccnt_to_vtxdist(proccnt) result(vtxdist)
+    integer(ccs_int), dimension(:), intent(in) :: proccnt
     integer(ccs_long), dimension(:), allocatable :: vtxdist
 
-    integer :: ierr
+    integer(ccs_int) :: nproc
 
-    vtxdist = compute_vtxdist_count_(par_env%num_procs, local_partition)
-    select type(par_env)
-    type is(parallel_environment_mpi)
-       call MPI_Allreduce(MPI_IN_PLACE, vtxdist, size(vtxdist), MPI_INTEGER8, MPI_SUM, &
-                          par_env%comm, ierr)
-    class default
-       error stop
-    end select
-
-  end function compute_vtxdist_count
-  
-  ! Get the local distribution counts, i.e. how many elements are on each process, using the local
-  ! partition information
-  pure function compute_vtxdist_count_(nproc, local_partition) result(vtxdist)
+    nproc = size(proccnt)
+    vtxdist = proccnt_to_vtxdist_(nproc, proccnt)
+  end function proccnt_to_vtxdist
+  pure function proccnt_to_vtxdist_(nproc, proccnt) result(vtxdist)
     integer(ccs_int), intent(in) :: nproc
-    integer(ccs_long), dimension(:), intent(in) :: local_partition
-    integer(ccs_int), dimension(nproc + 1) :: vtxdist
-
-    integer :: i
-    integer(ccs_int) :: partition_rank
-
-    vtxdist(:) = 0
-
-    ! Store counts at rank + 1
-    do i = 1, size(local_partition)
-       partition_rank = int(local_partition(i), ccs_int) + 1 ! Ranks are C-indexed...
-       vtxdist(partition_rank + 1) = vtxdist(partition_rank + 1) + 1
-    end do
-
-  end function compute_vtxdist_count_
-
-  pure subroutine vtxdist_count_to_offset(vtxdist) 
-    integer(ccs_long), dimension(:), intent(inout) :: vtxdist
+    integer(ccs_int), dimension(nproc), intent(in) :: proccnt
+    integer(ccs_long), dimension(nproc + 1) :: vtxdist
     
     integer(ccs_int) :: i
     
+    ! N.B. this is essentially a prefix sum
     vtxdist(1) = 1
-    do i= 2, size(vtxdist)
-       vtxdist(i) = vtxdist(i) + vtxdist(i - 1)
+    do i= 2, nproc + 1
+       vtxdist(i) = vtxdist(i - 1) + proccnt(i - 1)
     end do
-  end subroutine vtxdist_count_to_offset
+  end function
 
   subroutine compute_face_connectivity(par_env, shared_env, mesh)
 
@@ -448,11 +422,7 @@ contains
     end select
 
     ! Determine where in our global index buffer data goes
-    !!vtxdist2 = [0, proc_ctr2] ! Temporarily fill with shifted counts
-    vtxdist2 = vtxdist
-    vtxdist2(1) = 0
-    vtxdist2(2:) = proc_ctr2
-    call vtxdist_count_to_offset(vtxdist2)
+    vtxdist2 = proccnt_to_vtxdist(proc_ctr2)
 
     ! Scatter/gather global indices to all processors
     local_num_cells = sum(proc_ctr2)
