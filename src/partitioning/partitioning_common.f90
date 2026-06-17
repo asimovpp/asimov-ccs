@@ -73,7 +73,7 @@ contains
   module function compute_global_indices_partition(partition, proc_ctr, vtxdist, global_idx_start) result(global_indices)
     integer(ccs_long), dimension(:), intent(in) :: partition
     integer(ccs_int), dimension(:), intent(in) :: proc_ctr
-    integer(ccs_int), dimension(:), intent(in) :: vtxdist
+    integer(ccs_long), dimension(:), intent(in) :: vtxdist
     integer(ccs_long), intent(in) :: global_idx_start
     integer(ccs_long), dimension(:), allocatable :: global_indices
 
@@ -82,23 +82,25 @@ contains
     nlocal = size(partition)
     nproc = size(proc_ctr)
 
-    vtxdist = compute_global_indices_partition_(nlocal, nproc, partition, proc_ctr, vtxdist, global_idx_start)
+    global_indices = compute_global_indices_partition_(nlocal, nproc, partition, vtxdist, global_idx_start)
   end function compute_global_indices_partition
-  pure function compute_global_indices_partition_(nlocal, nproc, partition, proc_ctr, vtxdist, global_idx_start) result(global_indices)
+  pure function compute_global_indices_partition_(nlocal, nproc, partition, vtxdist, global_idx_start) result(global_indices)
     integer(ccs_int), intent(in) :: nlocal
     integer(ccs_int), intent(in) :: nproc
     integer(ccs_long), dimension(nlocal), intent(in) :: partition
-    integer(ccs_int), dimension(nproc), intent(in) :: proc_ctr
-    integer(ccs_int), dimension(nproc + 1), intent(in) :: vtxdist
+    integer(ccs_long), dimension(nproc + 1), intent(in) :: vtxdist
     integer(ccs_long), intent(in) :: global_idx_start
-    integer(ccs_long), dimension(nlocal), allocatable :: global_indices
+    integer(ccs_long), dimension(nlocal) :: global_indices
 
     integer(ccs_int) :: i
     integer(ccs_long) :: irank
+    integer(ccs_int), dimension(nproc) :: proc_ctr
     
-    do i = 1, size(nlocal)
+    proc_ctr(:) = 0
+    do i = 1, nlocal
        irank = partition(i) + 1 ! Ranks are C-indexed
-       global_indices_partition(vtxdist(irank + proc_ctr(irank))) = global_idx_start + (i - 1)
+       global_indices(vtxdist(irank) + proc_ctr(irank)) = global_idx_start + (i - 1)
+       proc_ctr(irank) = proc_ctr(irank) + 1
     end do
   end function compute_global_indices_partition_
 
@@ -245,7 +247,6 @@ contains
       deallocate (mesh%topo%num_nb)
     end if
     allocate (mesh%topo%num_nb(local_num_cells))
-
 
     ! Construct a cell->faces lookup table 
     call get_global_num_cells(global_num_cells)
@@ -429,7 +430,7 @@ contains
     ! 1) get our local vtxdist - which processes do we have global indices for, and how many?
     proc_ctr = partition_count(par_env%num_procs, partition)
     vtxdist = compute_vtxdist_local(proc_ctr)
-    global_indices = compute_global_indices_partition(partition, proc_ctr, vtxdist, global_idx_start)
+    global_indices_partition = compute_global_indices_partition(partition, proc_ctr, vtxdist, global_idx_start)
     
     ! 3) send global indices to destinations using Alltoallv
     ! -- first tell destinations how many you are sending
@@ -437,6 +438,8 @@ contains
     ! -- call Alltoallv to scatter/gather global indices
 
     ! Scatter/gather element counts to all processors
+    proc_ctr2 = proc_ctr ! Initially allocates space
+    proc_ctr2(:) = 0     ! Initially no one sends us anything
     select type(par_env)
     type is(parallel_environment_mpi)
        call MPI_Alltoall(proc_ctr, 1, MPI_INTEGER, proc_ctr2, 1, MPI_INTEGER, par_env%comm, ierr)
@@ -445,7 +448,10 @@ contains
     end select
 
     ! Determine where in our global index buffer data goes
-    vtxdist2 = [0, proc_ctr2] ! Temporarily fill with shifted counts
+    !!vtxdist2 = [0, proc_ctr2] ! Temporarily fill with shifted counts
+    vtxdist2 = vtxdist
+    vtxdist2(1) = 0
+    vtxdist2(2:) = proc_ctr2
     call vtxdist_count_to_offset(vtxdist2)
 
     ! Scatter/gather global indices to all processors
@@ -455,9 +461,9 @@ contains
     select type(par_env)
     type is(parallel_environment_mpi)
        call MPI_Alltoallv(global_indices_partition, proc_ctr, &
-                          int(vtxdist(1:par_env%num_procs), ccs_int), MPI_INTEGER8, &
+                          vtxdist - 1, MPI_INTEGER8, &
                           global_indices, proc_ctr2, &
-                          int(vtxdist2(1:par_env%num_procs), ccs_int), MPI_INTEGER8, &
+                          vtxdist2 - 1, MPI_INTEGER8, &
                           par_env%comm, ierr)
     class default
        error stop
@@ -728,7 +734,7 @@ contains
     local_num_cells = end_index - start_index
 
     ! Allocate adjacency index array xadj based on vtxdist
-    allocate (graph_conn%xadj((end_index + 1) - start_index))
+    allocate (graph_conn%xadj((end_index + 1) - start_index + 1))
 
     ! Allocate temporary 2D integer work array and initialise to 0
     allocate (tmp_int2d((end_index + 1) - start_index, max_faces + 1))
@@ -748,7 +754,7 @@ contains
 
     local_index = 1
 
-    do i = 1, end_index - start_index + 1  ! Loop over local cells
+    do i = 1, local_num_cells + 1  ! Loop over local cells
 
       graph_conn%xadj(i) = local_index                          ! Pointer to start of current
 
