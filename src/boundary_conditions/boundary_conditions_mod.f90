@@ -63,15 +63,10 @@ contains
 
     character(len=ccs_string_len) :: field_name
     integer(ccs_int) :: i
-    real(ccs_real), dimension(3) :: x, y, z
     real(ccs_real), parameter :: eps = 0.01
     logical :: is_momentum, is_pressure, is_pressure_corr, is_extra, is_mf
     logical :: is_mom_normal     !< Flag telling if the bc to be processed is normal to the velocity component
      
-    x = [1.0_ccs_real, 0.0_ccs_real, 0.0_ccs_real]
-    y = [0.0_ccs_real, 1.0_ccs_real, 0.0_ccs_real]
-    z = [0.0_ccs_real, 0.0_ccs_real, 1.0_ccs_real]
-
     is_mom_normal = .false.
     is_momentum = .false.
     is_pressure = .false.
@@ -96,9 +91,10 @@ contains
       
       ! Flag telling if the bc to be processed is normal to the velocity component, 
       !  not used for non generated meshes and fields other than the velocity ones
-      is_mom_normal = ((field_name == 'u') .and. (abs(abs(dot_product(bnd_normals(:, i), x)) -1.0_ccs_real) <= eps)) .or. &
-                      ((field_name == 'v') .and. (abs(abs(dot_product(bnd_normals(:, i), y)) -1.0_ccs_real) <= eps)) .or. &
-                      ((field_name == 'w') .and. (abs(abs(dot_product(bnd_normals(:, i), z)) -1.0_ccs_real) <= eps))
+      is_mom_normal = ((field_name == 'u') .and. (abs(abs(bnd_normals(1, i)) -1.0_ccs_real) <= eps)) .or. &
+                      ((field_name == 'v') .and. (abs(abs(bnd_normals(2, i)) -1.0_ccs_real) <= eps)) .or. &
+                      ((field_name == 'w') .and. (abs(abs(bnd_normals(3, i)) -1.0_ccs_real) <= eps))
+
 
       select case(phi%bcs%bc_types(i))
       case(bc_type_wall)

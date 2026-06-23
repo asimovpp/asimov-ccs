@@ -123,7 +123,7 @@ contains
 
   end subroutine
 
-  !v For each boundary get normal vector
+  !v For each boundary get its normal vector
   ! Only handles flat boundaries
   subroutine get_bnd_normals(par_env, run_options, bnd_normals)
      use mpi
@@ -141,6 +141,7 @@ contains
     type(neighbour_locator) :: loc_nb
     type(face_locator) :: loc_f
     real(ccs_real), dimension(3) :: normal
+    real(ccs_real), parameter :: unset_normal = -huge(1.0_ccs_real)
     integer(ccs_int) :: index_p, index_nb, j, local_num_cells, nnb
     integer(ccs_int) :: n_boundaries
     logical :: is_boundary
@@ -149,7 +150,7 @@ contains
     n_boundaries = size(run_options%mesh%bnd_names)
 
     allocate(bnd_normals(3, n_boundaries))
-    bnd_normals(:, :) = -10.0_ccs_real
+    bnd_normals(:, :) = unset_normal
 
     call get_local_num_cells(local_num_cells)
 
