@@ -62,7 +62,7 @@ contains
     class(field), intent(inout) :: phi       !< Field to process
 
     character(len=ccs_string_len) :: field_name
-    integer(ccs_int) :: i
+    integer(ccs_int) :: i, vel_normal_id
     real(ccs_real), parameter :: eps = 0.01
     logical :: is_momentum, is_pressure, is_pressure_corr, is_extra, is_mf
     logical :: is_mom_normal     !< Flag telling if the bc to be processed is normal to the velocity component
@@ -87,15 +87,22 @@ contains
       is_extra = .true.
     end if
 
+    if (field_name == "u") then
+      vel_normal_id = 1
+    else if (field_name == "v") then
+      vel_normal_id = 2
+    else if (field_name == "w") then
+      vel_normal_id = 3
+    else
+      vel_normal_id = 1
+    end if
+
     do i=1, size(phi%bcs%bc_types)
       
       ! Flag telling if the bc to be processed is normal to the velocity component, 
-      !  not used for non generated meshes and fields other than the velocity ones
-      is_mom_normal = ((field_name == 'u') .and. (abs(abs(bnd_normals(1, i)) -1.0_ccs_real) <= eps)) .or. &
-                      ((field_name == 'v') .and. (abs(abs(bnd_normals(2, i)) -1.0_ccs_real) <= eps)) .or. &
-                      ((field_name == 'w') .and. (abs(abs(bnd_normals(3, i)) -1.0_ccs_real) <= eps))
-
-
+      !  not used for fields other than the velocity ones
+      is_mom_normal = (abs(abs(bnd_normals(vel_normal_id, i)) -1.0_ccs_real) <= eps)
+      
       select case(phi%bcs%bc_types(i))
       case(bc_type_wall)
         if (is_momentum) then
