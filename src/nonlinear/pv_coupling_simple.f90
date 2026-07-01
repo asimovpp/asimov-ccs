@@ -37,6 +37,7 @@ submodule(pv_coupling) pv_coupling_simple
                        get_max_residuals, print_residuals, is_converged
   use parallel, only: is_root
   use logging, only: log_unit_out
+  use profiler, only: profiler_begin_region, profiler_end_region
 
   implicit none
 
@@ -1218,11 +1219,19 @@ contains
 
     call dprint("UR: apply UR")
     call get_local_num_cells(local_num_cells)
+    
+    call profiler_begin_region("[OMP] underrelax")
+
+    !$omp parallel do default(none) schedule(static) &
+    !$omp shared(local_num_cells, diag_data, b_data, alpha, phi) &
+    !$omp private(i)
     do i = 1, local_num_cells
       diag_data(i) = diag_data(i) / alpha
 
       b_data(i) = b_data(i) + (1.0_ccs_real - alpha) * diag_data(i) * phi%values_ro(i)
     end do
+
+    call profiler_end_region("[OMP] underrelax")
 
     call dprint("UR: Restore data")
     call restore_vector_data(diag, diag_data)
