@@ -303,7 +303,7 @@ contains
     select type (y)
     type is (vector_petsc)
 
-      ! PETSc performs AXPY as YPAX, with result stored in Y.
+      ! PETSc performs alpha+Y with result stored in Y.
       call VecSHIFT(y%v, alpha, ierr)
 
     class default
