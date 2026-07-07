@@ -772,8 +772,7 @@ contains
 
     real(ccs_real), dimension(:), pointer :: invA_data
 
-    real(ccs_real) :: vec_mean, vec_l2
-    character(256) :: msg
+    real(ccs_real) :: vec_mean
 
     type(poisson_equation) :: pois_eqn
 
@@ -787,9 +786,6 @@ contains
       call vec_sum(vec, vec_mean)
       call get_global_num_cells(global_num_cells)
       vec_mean = vec_mean / global_num_cells
-      vec_l2 = vec_norm(vec, 2)
-      write(msg, "(A, E23.16,2X,E23.16,2X,E23.16)") "Mass imbalance (cell avg, L2norm, ratio): ", vec_mean, vec_l2, vec_mean / vec_l2
-      call dprint(trim(msg))
       call vec_shift(-vec_mean, vec)
     end if
 
