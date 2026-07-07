@@ -24,6 +24,7 @@ module vec
   public :: end_update_vector
   public :: begin_ghost_update_vector
   public :: end_ghost_update_vector
+  public :: vec_shift
   public :: vec_axpy
   public :: vec_aypx
   public :: vec_sum
@@ -122,6 +123,14 @@ module vec
       class(ccs_vector), intent(inout) :: v !< the vector
     end subroutine end_ghost_update_vector
 
+    !v Perform the 'shift' vector operation using PETSc (aka APY)
+    !
+    !          y[i] = alpha + y[i]
+    module subroutine vec_shift(alpha, y)
+      real(ccs_real), intent(in) :: alpha     !< a scalar value
+      class(ccs_vector), intent(inout) :: y   !< PETSc vector serving as input, overwritten with result
+    end subroutine
+
     !v Interface to perform the AXPY vector operation.
     !
     !  Performs the AXPY operation
@@ -145,8 +154,8 @@ module vec
     end subroutine
 
     !> Interface to compute the element-wise sum of a vector
-    module subroutine vec_sum(x, sum)
-      class(ccs_vector), intent(in) :: x !< an input vector
+    module subroutine vec_sum(v, sum)
+      class(ccs_vector), intent(in) :: v !< an input vector
       real(ccs_real), intent(out) :: sum !< the element-wise sum
     end subroutine
 

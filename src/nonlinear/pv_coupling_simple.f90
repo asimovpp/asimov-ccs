@@ -13,7 +13,7 @@ submodule(pv_coupling) pv_coupling_simple
   use vec, only: create_vector, vec_reciprocal, scale_vec, &
                  get_vector_data, get_vector_data_readonly, restore_vector_data, restore_vector_data_readonly, &
                  create_vector_values, set_vector_location, zero_vector, vec_aypx, &
-                 mult_vec_vec, vec_sum, vec_norm
+                 mult_vec_vec, vec_sum, vec_norm, vec_shift
   use mat, only: create_matrix, set_nnz, get_matrix_diagonal, set_matrix_values_spec_nrows, &
                  set_matrix_values_spec_ncols, create_matrix_values, mat_vec_product, &
                  check_operator_symmetry
@@ -788,9 +788,9 @@ contains
       call get_global_num_cells(global_num_cells)
       vec_mean = vec_mean / global_num_cells
       vec_l2 = vec_norm(vec, 2)
-      write(msg, "(A, E23.16,X,E23.16,X,E23.16)") "Mass imbalance (cell avg, L2norm, ratio): ", vec_mean, vec_l2, vec_mean / vec_l2
+      write(msg, "(A, E23.16,2X,E23.16,2X,E23.16)") "Mass imbalance (cell avg, L2norm, ratio): ", vec_mean, vec_l2, vec_mean / vec_l2
       call dprint(trim(msg))
-      call vec_apy(-vec_mean, vec)
+      call vec_shift(-vec_mean, vec)
     end if
 
     ! The computed mass imbalance is +ve, to have a +ve diagonal coefficient we need to negate this.
