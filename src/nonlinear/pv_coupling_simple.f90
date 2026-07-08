@@ -13,7 +13,7 @@ submodule(pv_coupling) pv_coupling_simple
   use vec, only: create_vector, vec_reciprocal, scale_vec, &
                  get_vector_data, get_vector_data_readonly, restore_vector_data, restore_vector_data_readonly, &
                  create_vector_values, set_vector_location, zero_vector, vec_aypx, &
-                 mult_vec_vec
+                 mult_vec_vec, vec_sum, vec_norm, vec_shift
   use mat, only: create_matrix, set_nnz, get_matrix_diagonal, set_matrix_values_spec_nrows, &
                  set_matrix_values_spec_ncols, create_matrix_values, mat_vec_product, &
                  check_operator_symmetry
@@ -747,6 +747,7 @@ contains
     use fv, only: compute_boundary_coeffs
     use profiler
     use fv_equations, only: poisson_equation
+    use bc_constants, only: bc_type_neumann
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< the parallel environment
@@ -764,18 +765,29 @@ contains
     type(cell_locator) :: loc_p
     type(matrix_values_spec) :: mat_val_spec
 
-    integer(ccs_int) :: local_num_cells
+    integer(ccs_int) :: local_num_cells, global_num_cells
     integer(ccs_int) :: index_p
     integer(ccs_int) :: max_faces
     integer(ccs_int) :: max_stencil_width
 
     real(ccs_real), dimension(:), pointer :: invA_data
 
+    real(ccs_real) :: vec_mean
+
     type(poisson_equation) :: pois_eqn
 
     call profiler_begin_region("Building coefficients")
     ! First zero matrix
     call zero(M)
+
+    ! To ensure compatibility of the Poisson equation with Neumann conditions subtract the mean of the RHS from the RHS
+    if (all(p_prime%bcs%bc_types == bc_type_neumann)) then
+      ! Enforce zero forcing integral
+      call vec_sum(vec, vec_mean)
+      call get_global_num_cells(global_num_cells)
+      vec_mean = vec_mean / global_num_cells
+      call vec_shift(-vec_mean, vec)
+    end if
 
     ! The computed mass imbalance is +ve, to have a +ve diagonal coefficient we need to negate this.
     call dprint("P': negate RHS")

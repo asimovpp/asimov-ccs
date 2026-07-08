@@ -288,6 +288,31 @@ contains
 
   end subroutine end_ghost_update_vector
 
+  !v Perform the 'shift' vector operation using PETSc (aka APY)
+  !
+  !          y[i] = alpha + y[i]
+  module subroutine vec_shift(alpha, y)
+
+    use petscvec, only: VecSHIFT
+
+    real(ccs_real), intent(in) :: alpha     !< a scalar value
+    class(ccs_vector), intent(inout) :: y   !< PETSc vector serving as input, overwritten with result
+
+    integer(ccs_err) :: ierr ! Error code
+
+    select type (y)
+    type is (vector_petsc)
+
+      ! PETSc performs alpha+Y with result stored in Y.
+      call VecSHIFT(y%v, alpha, ierr)
+
+    class default
+      call error_abort("Unknown vector type.")
+
+    end select
+
+  end subroutine
+
   !v Perform the AXPY vector operation using PETSc
   !
   !          y[i] = alpha * x[i] + y[i]
@@ -351,6 +376,22 @@ contains
     class default
       call error_abort("Unknown vector type.")
 
+    end select
+
+  end subroutine
+
+  !> Compute the element-wise sum of a PETSc vector
+  module subroutine vec_sum(v, sum)
+    class(ccs_vector), intent(in) :: v
+    real(ccs_real), intent(out) :: sum
+
+    integer(ccs_err) :: ierr
+
+    select type(v)
+    type is (vector_petsc)
+      call VecSum(v%v, sum, ierr)
+    class default
+      call error_abort("Should be unreachable.")
     end select
 
   end subroutine
