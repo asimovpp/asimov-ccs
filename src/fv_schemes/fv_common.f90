@@ -631,9 +631,10 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
     type(cell_locator) :: loc_p
     real(ccs_real), dimension(ndim) :: grad_p
 
-    call profiler_begin_region("[OMP] gradient loop")
+    call profiler_begin_region("[OMP] compute gradient loop")
 
     local_num_cells = size(gradients, 1)
+
     !$omp parallel do default(none) schedule(static) &
     !$omp shared(local_num_cells, gradients, phi)    &
     !$omp private(i, loc_p, grad_p)
@@ -644,7 +645,7 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
     end do
     !$omp end parallel do
 
-    call profiler_end_region("[OMP] gradient loop")
+    call profiler_end_region("[OMP] compute gradient loop")
 
   end subroutine compute_gradients
 
@@ -656,6 +657,7 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
     real(ccs_real), dimension(:), pointer :: y_gradient_data
     real(ccs_real), dimension(:), pointer :: z_gradient_data
     integer(ccs_int) :: local_num_cells
+    integer(ccs_int) :: i
 
     local_num_cells = size(gradients, 1)
 
@@ -663,9 +665,20 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
     call get_vector_data(phi%y_gradients, y_gradient_data)
     call get_vector_data(phi%z_gradients, z_gradient_data)
 
-    x_gradient_data(1:local_num_cells) = gradients(:, 1)
-    y_gradient_data(1:local_num_cells) = gradients(:, 2)
-    z_gradient_data(1:local_num_cells) = gradients(:, 3)
+    call profiler_begin_region("[OMP] set gradients loop")
+
+    !$omp parallel do default(none) schedule(static)         &
+    !$omp shared(local_num_cells, gradients,                 &
+    !$omp x_gradient_data, y_gradient_data, z_gradient_data) &
+    !$omp private(i)
+    do i = 1, local_num_cells
+      x_gradient_data(i) = gradients(i, 1)
+      y_gradient_data(i) = gradients(i, 2)
+      z_gradient_data(i) = gradients(i, 3)
+    end do
+    !$omp end parallel do
+
+    call profiler_end_region("[OMP] set gradients loop")
 
     call restore_vector_data(phi%x_gradients, x_gradient_data)
     call restore_vector_data(phi%y_gradients, y_gradient_data)
