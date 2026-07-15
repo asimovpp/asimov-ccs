@@ -92,7 +92,6 @@ module poiseuille_core
     
     ! Clean-up
     call profiler_end_region('Total elapsed time')
-    call profiler_shutdown(par_env)
 
     call reset_timestepping()
     call reset_outputlist_counter()
@@ -188,6 +187,7 @@ module poiseuille_core
 
     use meshing, only: get_centre, create_cell_locator, get_local_num_cells
 
+    use parallel, only: allreduce
     use parallel_types_mpi, only: parallel_environment_mpi
     use timestepping, only: get_current_step
 
