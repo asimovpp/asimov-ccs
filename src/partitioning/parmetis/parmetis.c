@@ -13,12 +13,9 @@ void partition_parmetiskway(idx_t *vtxdist,idx_t *xadj,idx_t *adjncy,
                               idx_t *edgecut, idx_t *part, MPI_Fint *ccomm)
 
 {
-  int mype, npes;
   MPI_Comm comm;
 
   comm=MPI_Comm_f2c(*ccomm);
-  MPI_Comm_size(comm, &npes);
-  MPI_Comm_rank(comm, &mype);
 
   ParMETIS_V3_PartKway(vtxdist, xadj, adjncy, vwgt, adjwgt, 
                        wgtflag, numflag, ncon, nparts, 

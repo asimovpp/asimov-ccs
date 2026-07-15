@@ -9,9 +9,6 @@ module logging
   logical :: initialised = .false.
 
   integer :: log_unit_out = output_unit
-  integer :: log_unit_err = error_unit
-
-  character(256) :: message_buf
 
   contains
 

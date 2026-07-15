@@ -27,8 +27,6 @@ module poiseuille_core
 
   public :: run_poiseuille
 
-  integer(ccs_int), dimension(:), allocatable :: variable_types              ! cell centred upwind, central, etc.
-
   ! Global variables to pass errors to/from postprocessing
   real(ccs_real), dimension(3) :: pois_error_L2_global, pois_error_Linf_global
   

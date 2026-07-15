@@ -25,8 +25,6 @@ module tgv2d_core
 
   public :: run_tgv2d
 
-  integer(ccs_int), dimension(:), allocatable :: variable_types              ! cell centred upwind, central, etc.
-
   ! Global variables to pass error calculations to the postprocessing subroutine
   real(ccs_real), dimension(3) :: tgv2d_error_L2_global, tgv2d_error_Linf_global
   
