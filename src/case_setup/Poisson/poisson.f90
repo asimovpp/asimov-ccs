@@ -94,10 +94,12 @@ module poisson_discretisation
   use types, only: ccs_vector, vector_values, &
                    ccs_matrix, matrix_values_spec, matrix_values, &
                    ccs_mesh, cell_locator, neighbour_locator, face_locator
+
+  use mat, only: create_matrix_values, set_matrix_values_spec_ncols, set_matrix_values_spec_nrows
   use meshing, only: get_local_num_cells, create_cell_locator, get_centre, get_volume, &
-                     get_global_index, create_neighbour_locator, &
-                     create_face_locator
-  use utils, only: clear_entries, set_mode, set_row, set_entry, set_values
+                     get_global_index, count_neighbours, create_neighbour_locator, get_boundary_status, &
+                     create_face_locator, get_face_area
+  use utils, only: clear_entries, set_mode, set_col, set_row, set_entry, set_values
   use vec, only: create_vector_values
 
   use problem_setup, only: eval_solution
@@ -137,19 +139,23 @@ program poisson
   use types, only: vector_spec, ccs_vector, matrix_spec, ccs_matrix, &
                    equation_system, linear_solver, ccs_mesh, cell_locator, face_locator, &
                    neighbour_locator, vector_values, matrix_values, matrix_values_spec
-  use meshing, only: create_cell_locator, create_face_locator, create_neighbour_locator, get_local_num_cells, &
-                     get_centre, get_volume, get_global_index
-  use vec, only: create_vector, create_vector_values
-  use mat, only: create_matrix, set_nnz
+  use meshing, only: create_cell_locator, create_face_locator, create_neighbour_locator, get_local_num_cells
+  use meshing, only: nullify_mesh_object
+  use vec, only: create_vector
+  use mat, only: create_matrix, set_nnz, create_matrix_values, set_matrix_values_spec_nrows, &
+                 set_matrix_values_spec_ncols
   use solver, only: create_solver, solve, set_equation_system, axpy, norm, &
                     set_solver_method, set_solver_precon
   use utils, only: update, begin_update, end_update, finalise, initialise, &
                    set_size, &
-                   set_values, clear_entries, set_values, set_row, set_entry, set_mode
+                   set_values, clear_entries, set_values, set_row, set_col, set_entry, set_mode
+  use vec, only: create_vector_values
+  use meshing, only: get_face_area, get_centre, get_volume, get_global_index, &
+                     count_neighbours, get_boundary_status
   use parallel_types, only: parallel_environment
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, &
-                      sync, &
+                      timer, sync, &
                       is_root
   use profiler, only: profiler_init, profiler_shutdown, profiler_begin_region, profiler_end_region
   use logging, only: log_unit_out
