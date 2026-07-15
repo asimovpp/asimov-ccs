@@ -3,6 +3,7 @@ submodule(partitioning) partitioning_parhip
 
   use kinds, only: ccs_int, ccs_long
   use types, only: topology, graph_connectivity
+  use utils, only: str, debug_print
   use parallel_types_mpi, only: parallel_environment_mpi
   use meshing, only: get_global_num_cells
   use parallel, only: is_root, is_valid, create_shared_array, destroy_shared_array, sync
