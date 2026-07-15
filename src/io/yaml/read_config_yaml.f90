@@ -168,15 +168,6 @@ contains
 
   end subroutine get_logical_value
  
-  subroutine error_handler(io_err)
-    type(type_error), pointer, intent(inout) :: io_err
-
-    if (associated(io_err)) then
-      write(log_unit_out,*) trim(io_err%message)
-    end if
-
-  end subroutine
-
   !v Get the name of the test case
   !
   !  Get the case name for the configuration file and store it in a string.
@@ -637,7 +628,6 @@ contains
         type is (type_dictionary)
 
           list => dict%get_list('variables', required=.false., error=io_err)
-          ! call error_handler(io_err)
 
           if (.not. allocated(io_err)) then
             item => list%first
@@ -675,7 +665,6 @@ contains
     select type (config_file)
     type is (type_dictionary)
       dict => config_file%get_dictionary("boundaries", required=.true., error=io_err)
-      !call error_handler(io_err)
 
       call get_value(dict, "n_boundaries", n_boundaries)
     class default
@@ -708,14 +697,12 @@ contains
     select type (config_file)
     type is (type_dictionary)
       dict => config_file%get_dictionary("boundaries", required=.true., error=io_err)
-      !call error_handler(io_err)
 
       do i = 1, n_boundaries
         write(boundary_entry, '(A, I0)') "boundary_", i
         select type(dict)
         type is(type_dictionary)
           dict2 => dict%get_dictionary(boundary_entry, required=.true., error=io_err)
-          !call error_handler(io_err)
           
           call get_value(dict2, "name", tmpstr)
           bnd_names(i) = trim(tmpstr)
@@ -748,7 +735,6 @@ contains
     select type (config_file)
     type is (type_dictionary)
       dict => config_file%get_dictionary("variables", required=.true., error=io_err)
-      !call error_handler(io_err)
 
       call get_value(dict, "store_residuals", store_residuals, value_present)
       ! do not store residuals by default
@@ -778,7 +764,6 @@ contains
     select type (config_file)
     type is (type_dictionary)
       dict => config_file%get_dictionary("variables", required=.true., error=io_err)
-      !call error_handler(io_err)
 
       call get_value(dict, "enable_cell_corrections", enable_cell_corrections, value_present)
       ! do not store residuals by default
@@ -805,7 +790,6 @@ contains
     select type (config_file)
     type is (type_dictionary)
       dict => config_file%get_dictionary("variables", required=.true., error=io_err)
-      ! call error_handler(io_err)
 
       call get_value(dict, "n_variables", n_var)
       if (allocated(variables)) then
@@ -818,7 +802,6 @@ contains
         select type (dict)
         type is (type_dictionary)
           dict_var => dict%get_dictionary(key, required=.true., error=io_err)
-          ! call error_handler(io_err)
           call get_value(dict_var, "name", variable)
           write (variables(i), '(A)') trim(variable)
         class default
@@ -846,7 +829,6 @@ contains
     select type (config_file)
     type is (type_dictionary)
       dict => config_file%get_dictionary("variables", required=.true., error=io_err)
-      ! call error_handler(io_err)
 
       call get_value(dict, "n_variables", n_var)
       allocate (variable_types(n_var))
@@ -856,7 +838,6 @@ contains
         select type (dict)
         type is (type_dictionary)
           dict_var => dict%get_dictionary(key, required=.true., error=io_err)
-          ! call error_handler(io_err)
           call get_value(dict_var, "type", scheme)
           variable_types(i) = get_scheme_id(trim(scheme))
         class default
@@ -893,7 +874,6 @@ contains
     select type (config_file)
     type is (type_dictionary)
       dict => config_file%get_dictionary("boundaries", required=.true., error=io_err)
-      ! call error_handler(io_err)
 
       i = 1
       n_boundaries = size(phi%bcs%ids)
@@ -902,7 +882,6 @@ contains
         select type (dict)
         type is (type_dictionary)
           dict2 => dict%get_dictionary(boundary_index, required=.true., error=io_err)
-          ! call error_handler(io_err)
 
           select case (bc_field)
           case ("name")
@@ -923,7 +902,6 @@ contains
             type is (type_dictionary)
               write (variable, '(A, A)') "variable_", trim(bc_field)
               variable_dict => dict2%get_dictionary(trim(variable), required=.false., error=io_err)
-              ! call error_handler(io_err)
 
               if (associated(variable_dict)) then
                 call get_value(variable_dict, "type", bc_type, field_exists)
