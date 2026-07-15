@@ -615,7 +615,7 @@ contains
     character(len=ccs_string_len) :: elt
 
     allocate(post_vars(0)) ! Set initial size to zero
-    
+
     select type (config_file)
     type is (type_dictionary)
 

@@ -296,7 +296,7 @@ contains
 
     integer(ccs_int) :: i
 
-    logical :: found
+    logical :: found = .false.
 
     do i = 1, size(flow%fields)
       call get_field_byidx(flow, i, flow_field)
@@ -361,6 +361,10 @@ contains
 
     if (field_index > size(flow%fields)) then
       error stop field_index_exceeded ! Field index exceeds number of flow fields
+    end if
+
+    if (field_index <= 0)) then
+      error stop "Field index less than or equal to zero"
     end if
 
     flow_field => flow%fields(field_index)%ptr
