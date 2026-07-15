@@ -319,7 +319,7 @@ contains
 
     ! XXX: Potentially expensive...
     call get_total_num_cells(total_num_cells)
-    if (index_p > total_num_cells) then
+    if (index_p > total_num_cells .or. index_p <= 0) then
       error stop no_access_to_cell ! Trying to access cell I don't have access to
     end if
   end subroutine create_cell_locator

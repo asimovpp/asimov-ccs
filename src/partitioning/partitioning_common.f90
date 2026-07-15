@@ -846,6 +846,11 @@ contains
     n = size(a)
     first = 1
     last = n
+
+    if (n == 0) then
+      error stop "findloc_in_sorted: array is empty"     
+    end if 
+    
     do while (first /= last)
       mid = ceiling((first + last)/2.0_ccs_real, ccs_int)
       if (a(mid) > value) then
