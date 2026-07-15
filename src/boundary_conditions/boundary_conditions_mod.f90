@@ -5,7 +5,7 @@
 module boundary_conditions
 #include "ccs_macros.inc"
 
-  use utils, only: exit_print
+  use utils, only: exit_print, debug_print
   use types, only: bc_config, field, bc_profile
   use kinds, only: ccs_int, ccs_real
   use fortran_yaml_c_interface, only: parse

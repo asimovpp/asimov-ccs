@@ -9,8 +9,7 @@ submodule(fv) fv_common
                  create_vector_values, begin_ghost_update_vector, end_ghost_update_vector
 
   use mat, only: create_matrix_values, set_matrix_values_spec_nrows, set_matrix_values_spec_ncols
-  use utils, only: clear_entries, set_entry, set_row, set_col, set_values, set_mode, update
-  use utils, only: debug_print
+  use utils, only: clear_entries, set_entry, set_row, set_col, set_values, set_mode, update, debug_print
   use fv_equations, only: momentum_equation
   use fv_kernels, only: advection_kernel, create_advection_kernel
   use meshing, only: count_neighbours, get_boundary_status, create_neighbour_locator, &

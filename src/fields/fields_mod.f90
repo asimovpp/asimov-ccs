@@ -11,7 +11,7 @@ module fields
                    vector_spec, face_field, central_field, upwind_field, gamma_field, linear_upwind_field
   use kinds, only: ccs_int
 
-  use utils, only: update, get_scheme_name
+  use utils, only: update, get_scheme_name, debug_print
   use parallel, only: is_root
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
   use vec, only: create_vector, get_vector_data_readonly
