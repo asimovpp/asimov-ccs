@@ -2,7 +2,7 @@
 module logging
 #include "ccs_macros.inc"
 
-  use iso_fortran_env, only : output_unit, error_unit
+  use iso_fortran_env, only : output_unit
 
   implicit none
 

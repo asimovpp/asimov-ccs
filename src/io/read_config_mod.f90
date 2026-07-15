@@ -5,7 +5,7 @@
 module read_config
 
   use kinds, only: ccs_real, ccs_int
-  use types, only: bc_config, field, solver_params
+  use types, only: field, solver_params
   use constants, only: ccs_string_len
 
   implicit none

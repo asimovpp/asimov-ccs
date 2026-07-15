@@ -15,7 +15,6 @@ module fields
   use parallel, only: is_root
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
   use vec, only: create_vector, get_vector_data_readonly
-  use fv, only: update_gradient
   use timestepping, only: initialise_old_values
   use error_codes
   use logging, only: log_unit_out

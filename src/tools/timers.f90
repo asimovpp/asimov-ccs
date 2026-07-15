@@ -9,7 +9,6 @@ module timers
   use parallel_types_mpi, only: parallel_environment_mpi
   use parallel, only: timer, is_root
 
-  use utils, only: exit_print
   use logging, only: log_unit_out
 
   implicit none

@@ -1,11 +1,10 @@
 submodule(partitioning) partitioning_parmetis
 #include "ccs_macros.inc"
 
-  use kinds, only: ccs_int, ccs_real, ccs_long
+  use kinds, only: ccs_int, ccs_long
   use types, only: topology, graph_connectivity
-  use utils, only: str, debug_print
   use parallel_types_mpi, only: parallel_environment_mpi
-  use meshing, only: set_local_num_cells, get_local_num_cells, get_global_num_cells
+  use meshing, only: get_global_num_cells
   use parallel, only: is_root, is_valid, create_shared_array, destroy_shared_array, sync
   use logging, only: log_unit_out
 

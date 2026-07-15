@@ -13,7 +13,7 @@ module petsctypes
 
   use kinds, only: ccs_err, ccs_int
   use types, only: ccs_vector, ccs_matrix, linear_solver
-  use utils, only: debug_print, exit_print
+  use utils, only: exit_print
 
   implicit none
 

@@ -12,7 +12,6 @@ module flow_stats
   use meshing, only: get_local_num_cells, get_global_num_cells, create_cell_locator, get_volume
   use parallel, only: is_root
   use timestepping, only: get_timestep, timestepping_is_active
-  use vec, only: get_vector_data_readonly, restore_vector_data_readonly
 
   implicit none
   

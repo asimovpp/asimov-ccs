@@ -39,7 +39,6 @@ module mortif
 !< SIGGRAPH/Eurographics conference on High-Performance Graphics, 2013.
 
 use iso_fortran_env
-use kinds, only: ccs_int, ccs_real, ccs_long
 
 implicit none
 save

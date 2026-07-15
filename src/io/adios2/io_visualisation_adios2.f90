@@ -9,7 +9,7 @@ submodule(io_visualisation) io_visualisation_adios2
   use adios2
   use adios2_types, only: adios2_io_process
   use profiler, only: profiler_begin_region, profiler_end_region
-  use utils, only: exit_print, update, set_values
+  use utils, only: exit_print, update
   use fields, only: get_field
   use types, only: field
   
@@ -190,7 +190,6 @@ contains
                        create_cell_locator, &
                        get_global_index
     use utils, only: get_natural_data
-    use parallel, only: is_root
 
     ! Arguments
     class(parallel_environment), allocatable, target, intent(in) :: par_env  !< The parallel environment

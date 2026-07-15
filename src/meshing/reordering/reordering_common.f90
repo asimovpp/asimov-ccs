@@ -8,14 +8,13 @@ submodule(reordering) reordering_common
   use meshing, only: get_local_num_cells, create_cell_locator, count_neighbours, &
                      get_local_index, create_neighbour_locator, &
                      get_boundary_status, get_local_status, &
-                     get_centre, set_centre, &
                      get_global_index, set_global_index, &
                      get_natural_index, &
                      get_global_num_cells, &
                      set_natural_index, &
                      get_total_num_cells, &
                      get_vert_per_cell
-  use parallel, only: create_shared_array, destroy_shared_array, is_root
+  use parallel, only: destroy_shared_array, is_root
 
   implicit none
 

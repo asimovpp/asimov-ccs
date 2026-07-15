@@ -6,7 +6,7 @@
 submodule(read_config) read_config_utils
 #include "ccs_macros.inc"
 
-  use utils, only: exit_print, debug_print, str, get_scheme_id
+  use utils, only: exit_print,get_scheme_id
   use fortran_yaml_c_interface, only: parse
   use fortran_yaml_c, only: type_dictionary, &
                             type_error, &

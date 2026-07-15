@@ -4,22 +4,15 @@ module fv_equations
   ! TODO: trim these
   use kinds, only: ccs_int, ccs_real
   use fv_kernels, only: diffusion_kernel, advection_kernel
-  use types, only: vector_spec, ccs_vector, matrix_spec, ccs_matrix, equation_system, &
-                   linear_solver, bc_config, vector_values, cell_locator, &
-                   face_locator, neighbour_locator, matrix_values, matrix_values_spec, upwind_field, field
-  use constants, only: insert_mode, add_mode, ndim, cell
-  use utils, only: update, initialise, finalise, set_size, set_values, &
-                   mult, zero, clear_entries, set_entry, set_row, set_col, set_mode, &
-                   str, exit_print, debug_print
+  use types, only: vector_values, cell_locator, &
+                   face_locator, neighbour_locator, matrix_values, field
+  use constants, only: ndim
+  use utils, only: set_entry, set_row, set_col, exit_print
   use bc_constants, only: bc_type_dirichlet
   use meshing, only: get_face_area, get_global_index, get_local_index, count_neighbours, &
                      get_boundary_status, get_face_normal, create_neighbour_locator, create_face_locator, &
                      create_cell_locator, get_volume, get_distance, &
-                     get_local_num_cells, get_face_interpolation, &
-                     get_global_num_cells, &
-                     get_max_faces, is_mesh_set, get_centre
-  use mat, only: create_matrix, set_nnz, get_matrix_diagonal, set_matrix_values_spec_nrows, &
-                 set_matrix_values_spec_ncols, create_matrix_values, mat_vec_product
+                     get_face_interpolation, get_global_num_cells, get_centre
 
   implicit none
 

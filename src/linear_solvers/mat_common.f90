@@ -1,7 +1,7 @@
 submodule(mat) mat_common
 #include "ccs_macros.inc"
 
-  use utils, only: exit_print, str
+  use utils, only: str
   use error_codes
 
   implicit none

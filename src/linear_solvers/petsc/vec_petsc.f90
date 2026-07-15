@@ -13,7 +13,7 @@ submodule(vec) vec_petsc
   use parallel_types_mpi, only: parallel_environment_mpi
   use constants, only: cell, face
   use petsc, only: ADD_VALUES, INSERT_VALUES, SCATTER_FORWARD
-  use utils, only: debug_print, exit_print, str
+  use utils, only: exit_print, str
   use error_codes
   use logging, only: log_unit_out
 
