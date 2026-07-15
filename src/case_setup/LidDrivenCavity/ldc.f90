@@ -6,11 +6,10 @@ program ldc
 #include "ccs_macros.inc"
 
   use core
-  use constants, only: cell, face
-  use kinds, only: ccs_real, ccs_int
+  use kinds, only: ccs_real
   use types, only: fluid
   use parallel, only: initialise_parallel_environment, &
-                      cleanup_parallel_environment, timer, &
+                      cleanup_parallel_environment, &
                       is_root
   use meshing, only: nullify_mesh_object
   use parallel_types, only: parallel_environment
@@ -79,7 +78,6 @@ contains
   pure subroutine get_init_flow(loc_p, field_name, init_val)
 
     use types, only: cell_locator
-    use meshing, only: get_centre
 
     type(cell_locator), intent(in) :: loc_p
     character(len=*), intent(in) :: field_name

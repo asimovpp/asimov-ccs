@@ -4,8 +4,6 @@
 
 module error_codes
 
-  use kinds, only: ccs_int
-
   implicit none
 
   private

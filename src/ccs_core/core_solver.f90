@@ -8,7 +8,6 @@ submodule (core) core_solver
   use types, only: fluid
   use parallel, only: is_root
   use parallel_types, only: parallel_environment
-  use utils, only: debug_print
 
   use ccs_base, only: mesh
   

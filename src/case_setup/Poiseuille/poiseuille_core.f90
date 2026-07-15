@@ -8,10 +8,10 @@ module poiseuille_core
   use core
   use ccs_base, only: mesh
   use constants, only: ccs_string_len, ndim
-  use kinds, only: ccs_real, ccs_int, ccs_long
+  use kinds, only: ccs_real, ccs_int
   use kinds, only: CCS_MPI_PRECISION
   use types, only: field, fluid, ccs_mesh, bc_profile
-  use parallel, only: timer, is_root
+  use parallel, only: is_root
   use parallel_types, only: parallel_environment
   use utils, only:  calc_kinetic_energy, calc_enstrophy
   use fields, only: get_field, dealloc_fluid_fields
@@ -20,7 +20,7 @@ module poiseuille_core
   use meshing, only: get_total_num_cells, set_mesh_object, get_global_num_cells, nullify_mesh_object, get_local_num_cells
   use io_visualisation, only: reset_io_visualisation
   use utils, only: str, exit_print, reset_outputlist_counter
-  use profiler, only: profiler_init, profiler_shutdown, profiler_begin_region, profiler_end_region
+  use profiler, only: profiler_begin_region, profiler_end_region
   use logging, only: log_unit_out
 
   implicit none
@@ -188,7 +188,6 @@ module poiseuille_core
 
     use meshing, only: get_centre, create_cell_locator, get_local_num_cells
 
-    use parallel, only: allreduce
     use parallel_types_mpi, only: parallel_environment_mpi
     use timestepping, only: get_current_step
 

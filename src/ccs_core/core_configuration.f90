@@ -3,7 +3,7 @@ submodule(core) core_configuration
 
   use read_config, only: get_variable_types, &
                          get_value, &
-                         get_variables, get_relaxation_factors, &
+                         get_variables, &
                          get_output_type, &
                          get_reference_number, &
                          get_boundary_names, get_solver_eq_parameters

@@ -7,32 +7,31 @@ submodule(pv_coupling) pv_coupling_simple
   use core, only: ccs_options
   use kinds, only: ccs_int, ccs_real
   use types, only: vector_spec, ccs_vector, matrix_spec, ccs_matrix, equation_system, &
-                   linear_solver, bc_config, vector_values, cell_locator, ccs_residuals, &
-                   face_locator, neighbour_locator, matrix_values, matrix_values_spec, upwind_field, field_ptr
+                   linear_solver, vector_values, cell_locator, ccs_residuals, &
+                   face_locator, neighbour_locator, matrix_values, matrix_values_spec, field_ptr
   use fv, only: compute_fluxes, calc_mass_flux, calc_mass_flux_bc, update_gradient
   use vec, only: create_vector, vec_reciprocal, scale_vec, &
                  get_vector_data, get_vector_data_readonly, restore_vector_data, restore_vector_data_readonly, &
-                 create_vector_values, set_vector_location, zero_vector, vec_aypx, &
-                 mult_vec_vec, vec_sum, vec_norm, vec_shift
+                 create_vector_values, zero_vector, vec_aypx, &
+                 vec_sum, vec_shift
   use mat, only: create_matrix, set_nnz, get_matrix_diagonal, set_matrix_values_spec_nrows, &
-                 set_matrix_values_spec_ncols, create_matrix_values, mat_vec_product, &
+                 set_matrix_values_spec_ncols, create_matrix_values, &
                  check_operator_symmetry
   use utils, only: update, initialise, finalise, set_size, set_values, &
-                   mult, zero, clear_entries, set_entry, set_row, set_col, set_mode, &
+                   mult, zero, clear_entries, set_entry, set_row, set_mode, &
                    str, exit_print, debug_print
   use fields, only:  count_fields, get_field_idx, get_field, get_is_field_solved
 
-  use solver, only: create_solver, solve, set_equation_system, axpy, norm, set_solver_method, set_solver_precon
-  use constants, only: add_mode, insert_mode, ndim, cell
+  use solver, only: create_solver, solve, set_equation_system, axpy, set_solver_method, set_solver_precon
+  use constants, only: add_mode, insert_mode, ndim
   use meshing, only: get_face_area, get_global_index, get_local_index, count_neighbours, &
                      get_boundary_status, get_face_normal, create_neighbour_locator, create_face_locator, &
-                     create_cell_locator, get_volume, get_distance, &
+                     create_cell_locator, get_volume, &
                      get_local_num_cells, get_face_interpolation, &
                      get_global_num_cells, &
                      get_max_faces, is_mesh_set
   use scalars, only: update_scalars
-  use timestepping, only: update_old_values, get_current_step, get_current_time
-  use bc_constants, only: bc_type_dirichlet
+  use timestepping, only: update_old_values
   use residuals, only: compute_residuals, compute_global_residuals, init_residuals, normalise_residuals, &
                        get_max_residuals, print_residuals, is_converged
   use parallel, only: is_root
@@ -744,7 +743,6 @@ contains
   !  Solves the pressure correction equation formed by the mass-imbalance.
   subroutine calculate_pressure_correction(par_env, run_options, invA, M, vec, lin_sys, p_prime, lin_solver)
 
-    use fv, only: compute_boundary_coeffs
     use profiler
     use fv_equations, only: poisson_equation
     use bc_constants, only: bc_type_neumann
@@ -875,7 +873,6 @@ contains
 
   !> Computes the per-cell mass imbalance, updating the face velocity flux as it does so.
   subroutine compute_mass_imbalance(invA, flow, input_b, residuals)
-    use fv, only: compute_boundary_coeffs
 
     class(ccs_vector), intent(inout) :: invA !< The inverse momentum equation diagonal coefficient
     type(fluid), intent(inout) :: flow                   !< Container for flow fields
