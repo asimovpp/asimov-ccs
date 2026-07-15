@@ -363,7 +363,7 @@ contains
       error stop field_index_exceeded ! Field index exceeds number of flow fields
     end if
 
-    if (field_index <= 0)) then
+    if (field_index <= 0) then
       error stop "Field index less than or equal to zero"
     end if
 
