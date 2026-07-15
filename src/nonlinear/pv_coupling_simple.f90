@@ -350,6 +350,10 @@ contains
       dim = dim + 1.0_ccs_real
     end if
 
+    if (dim == 0.0_ccs_real) then
+      error stop "No velocity fields are being solved" ! Abort to avoid division by zero
+    end if
+
     ! Compute the inverse diagonal coefficient
     call scale_vec(1.0_ccs_real / dim, invA)
     call vec_reciprocal(invA)
@@ -1227,6 +1231,11 @@ contains
 
     call dprint("UR: apply UR")
     call get_local_num_cells(local_num_cells)
+
+    if (alpha == 0.0_ccs_real) then
+      error stop "Underrelaxation factor alpha is zero" ! Abort to avoid division by zero
+    end if
+
     do i = 1, local_num_cells
       diag_data(i) = diag_data(i) / alpha
 

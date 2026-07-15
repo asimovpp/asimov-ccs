@@ -170,6 +170,8 @@ contains
     else if (field_type == cell_centred_central) then
       call dprint("Create central field")
       allocate (central_field :: phi_ptr%ptr)
+    else
+      error stop "Trying to allocate an unknown field type"
     end if
 
     call dprint("Create field values vector")

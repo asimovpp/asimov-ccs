@@ -36,6 +36,8 @@ contains
 
     mat_properties%mesh => null()
     mat_properties%par_env => null()
+    mat_properties%nnz = -1
+
   end subroutine initialise_matrix
 
   !> Setter for global matrix size
