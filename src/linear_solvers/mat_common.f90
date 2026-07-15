@@ -34,7 +34,7 @@ contains
     ! Arguments
     type(matrix_spec), intent(inout) :: mat_properties !< The initialised matrix values
 
-    mat_properties%par_env => null()
+    mat_properties%mesh => null()
     mat_properties%par_env => null()
   end subroutine initialise_matrix
 
