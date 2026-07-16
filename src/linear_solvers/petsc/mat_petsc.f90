@@ -108,9 +108,11 @@ contains
     integer(ccs_err) :: ierr
 
     select type (M)
-    type is (matrix_petsc)
-      call MatAssemblyBegin(M%M, MAT_FINAL_ASSEMBLY, ierr)
-      call MatAssemblyEnd(M%M, MAT_FINAL_ASSEMBLY, ierr)
+      type is (matrix_petsc)
+        call MatAssemblyBegin(M%M, MAT_FINAL_ASSEMBLY, ierr)
+        call MatAssemblyEnd(M%M, MAT_FINAL_ASSEMBLY, ierr)
+      case default
+        error stop "Unsupported matrix type"
     end select
 
   end subroutine finalise_matrix
@@ -129,13 +131,14 @@ contains
     integer(ccs_err) :: ierr
 
     select type (M)
-    type is (matrix_petsc)
-      call MatGetInfo(M%M, MAT_LOCAL, info, ierr)
-      write(log_unit_out,*) "---"
-      write(log_unit_out,*) "nnz allocated: ", info%nz_allocated
-      write(log_unit_out,*) "nnz used: ", info%nz_used
-      write(log_unit_out,*) "nnz unneeded: ", info%nz_unneeded
-
+      type is (matrix_petsc)
+        call MatGetInfo(M%M, MAT_LOCAL, info, ierr)
+        write(log_unit_out,*) "---"
+        write(log_unit_out,*) "nnz allocated: ", info%nz_allocated
+        write(log_unit_out,*) "nnz used: ", info%nz_used
+        write(log_unit_out,*) "nnz unneeded: ", info%nz_unneeded
+      case default
+        error stop "Unsupported matrix type"
     end select
 
 #else
@@ -148,12 +151,14 @@ contains
     integer(ccs_err) :: ierr
 
     select type (M)
-    type is (matrix_petsc)
-      call MatGetInfo(M%M, MAT_LOCAL, info, ierr)
-      write(log_unit_out,*) "---"
-      write(log_unit_out,*) "nnz allocated: ", info(MAT_INFO_NZ_ALLOCATED)
-      write(log_unit_out,*) "nnz used: ", info(MAT_INFO_NZ_USED)
-      write(log_unit_out,*) "nnz unneeded: ", info(MAT_INFO_NZ_UNNEEDED)
+      type is (matrix_petsc)
+        call MatGetInfo(M%M, MAT_LOCAL, info, ierr)
+        write(log_unit_out,*) "---"
+        write(log_unit_out,*) "nnz allocated: ", info(MAT_INFO_NZ_ALLOCATED)
+        write(log_unit_out,*) "nnz used: ", info(MAT_INFO_NZ_USED)
+        write(log_unit_out,*) "nnz unneeded: ", info(MAT_INFO_NZ_UNNEEDED)
+      case default
+        error stop "Unsupported matrix type"
     end select
     
 #endif
@@ -166,14 +171,13 @@ contains
     class(ccs_matrix), intent(inout) :: M   !< the matrix
 
     select type (M)
-    type is (matrix_petsc)
+      type is (matrix_petsc)
 
-      call begin_update_matrix(M)
-      call end_update_matrix(M)
+        call begin_update_matrix(M)
+        call end_update_matrix(M)
 
-    class default
-      call error_abort("Unsupported matrix type")
-
+      class default
+        error stop "Unsupported matrix type"
     end select
 
   end subroutine
@@ -193,7 +197,7 @@ contains
       call MatAssemblyBegin(M%M, MAT_FLUSH_ASSEMBLY, ierr)
 
     class default
-      call error_abort("Unsupported matrix type")
+      error stop "Unsupported matrix type"
 
     end select
 
@@ -215,7 +219,7 @@ contains
 
       M%modeset = .false. ! It's safe to change modes now
     class default
-      call error_abort("Unsupported matrix type")
+      error stop "Unsupported matrix type"
 
     end select
 

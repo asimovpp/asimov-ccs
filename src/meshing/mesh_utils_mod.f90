@@ -254,7 +254,7 @@ contains
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: reader_env !< The reader parallel environment
-    class(io_process) :: geo_reader                                         !< The IO process for reading the file
+    class(io_process), intent(in) :: geo_reader                                         !< The IO process for reading the file
     type(ccs_mesh), intent(inout) :: mesh                                   !< The mesh that will be read
 
     call set_mesh_object(mesh)
@@ -289,7 +289,7 @@ contains
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: reader_env !< The reader parallel environment
-    class(io_process) :: geo_reader                                         !< The IO process for reading the file
+    class(io_process), intent(in) :: geo_reader                                         !< The IO process for reading the file
     type(topology), intent(inout) :: topo                                   !< The mesh topology that will be read
 
     integer(ccs_int) :: i
@@ -425,7 +425,7 @@ contains
 
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: reader_env !< The reader parallel environment
-    class(io_process) :: geo_reader                                            !< The IO process for reading the file
+    class(io_process), intent(in) :: geo_reader                                            !< The IO process for reading the file
     integer(ccs_int), intent(out) :: global_num_faces
     integer(ccs_int), intent(out) :: max_faces
     integer(ccs_int), dimension(:), pointer, intent(out) :: face_cell1
@@ -479,7 +479,7 @@ contains
 
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: reader_env !< The reader parallel environment
-    class(io_process) :: geo_reader                                         !< The IO process for reading the file
+    class(io_process), intent(in) :: geo_reader                                         !< The IO process for reading the file
     type(ccs_mesh), intent(inout) :: mesh                                   !< The mesh%geometry that will be read
 
     integer(ccs_int) :: i, j, n, global_icell, local_icell

@@ -28,7 +28,8 @@ module poiseuille_core
   public :: run_poiseuille
 
   ! Global variables to pass errors to/from postprocessing
-  real(ccs_real), dimension(3) :: pois_error_L2_global, pois_error_Linf_global
+  real(ccs_real), dimension(3) :: pois_error_L2_global = huge(0.0_ccs_real)
+  real(ccs_real), dimension(3) :: pois_error_Linf_global = huge(0.0_ccs_real)
   
   contains
 

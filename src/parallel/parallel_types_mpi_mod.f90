@@ -18,7 +18,7 @@ module parallel_types_mpi
   !  the MPI operator values that are passed to
   !  reductions
   type, extends(reduction_operator), public :: reduction_operator_mpi
-    integer :: op
+    integer :: op = huge(0_ccs_int) 
   end type reduction_operator_mpi
 
   !v parallel environment type for MPI
@@ -27,17 +27,17 @@ module parallel_types_mpi
   !  a communicator and reduction operators in
   !  addition to the common parameters
   type, extends(parallel_environment), public :: parallel_environment_mpi
-    integer :: comm
-    integer :: sum_op
-    integer :: min_op
-    integer :: max_op
-    integer :: prod_op
-    integer :: land_op
-    integer :: lor_op
-    integer :: band_op
-    integer :: bor_op
-    integer :: maxloc_op
-    integer :: minloc_op
+    integer :: comm = huge(0_ccs_int) 
+    integer :: sum_op = huge(0_ccs_int) 
+    integer :: min_op = huge(0_ccs_int) 
+    integer :: max_op = huge(0_ccs_int) 
+    integer :: prod_op = huge(0_ccs_int) 
+    integer :: land_op = huge(0_ccs_int) 
+    integer :: lor_op = huge(0_ccs_int) 
+    integer :: band_op = huge(0_ccs_int) 
+    integer :: bor_op = huge(0_ccs_int) 
+    integer :: maxloc_op = huge(0_ccs_int) 
+    integer :: minloc_op = huge(0_ccs_int) 
   contains
     procedure :: set_rop => set_mpi_reduction_operator
   end type parallel_environment_mpi

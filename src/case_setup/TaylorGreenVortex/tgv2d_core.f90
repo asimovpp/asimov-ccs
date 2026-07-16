@@ -25,7 +25,8 @@ module tgv2d_core
   public :: run_tgv2d
 
   ! Global variables to pass error calculations to the postprocessing subroutine
-  real(ccs_real), dimension(3) :: tgv2d_error_L2_global, tgv2d_error_Linf_global
+  real(ccs_real), dimension(3) :: tgv2d_error_L2_global = huge(0.0_ccs_real)
+  real(ccs_real), dimension(3) :: tgv2d_error_Linf_global = huge(0.0_ccs_real)
   
 contains
 

@@ -6,8 +6,8 @@ submodule(meshing) meshing_accessors
 
   implicit none
 
-  type(ccs_mesh), pointer :: mesh
-  type(topology), pointer :: topo
+  type(ccs_mesh), pointer :: mesh => null()
+  type(topology), pointer :: topo => null()
 
 contains
 

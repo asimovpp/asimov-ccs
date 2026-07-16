@@ -20,7 +20,7 @@ module timers
   double precision, dimension(:), allocatable :: tocks
   integer(ccs_int), dimension(:), allocatable :: counters
   character(len=64), dimension(:), allocatable :: timer_names
-  integer(ccs_int) :: total_index
+  integer(ccs_int) :: total_index = huge(0_ccs_int)
   logical :: initialised = .false.
 
   public :: timer_init
@@ -162,8 +162,10 @@ contains
     call timer_get_time(timer_index, time)
 
     select type(par_env)
-    type is (parallel_environment_mpi)
-      call MPI_Allreduce(time, max_time, 1, MPI_DOUBLE_PRECISION, MPI_MAX, par_env%comm, ierr)
+      type is (parallel_environment_mpi)
+        call MPI_Allreduce(time, max_time, 1, MPI_DOUBLE_PRECISION, MPI_MAX, par_env%comm, ierr)
+      class default
+        error stop "Unknown parallel environment"
     end select
 
     if (is_root(par_env)) then
