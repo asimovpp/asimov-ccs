@@ -109,9 +109,9 @@ module fv_equations
   !  contributions without re-querying the mesh.
   type momentum_payload
     logical, allocatable :: is_boundary(:)
-    integer(ccs_int) :: owner_local = huge(0_ccs_int)
-    integer(ccs_int) :: owner_global = huge(0_ccs_int)
-    integer(ccs_int) :: nfaces = huge(0_ccs_int)
+    integer(ccs_int) :: owner_local = 0
+    integer(ccs_int) :: owner_global = 0
+    integer(ccs_int) :: nfaces = 0
     integer(ccs_int), allocatable :: nb_global(:)
     real(ccs_real), allocatable :: flux(:)
     real(ccs_real), allocatable :: diff_coeff(:)
