@@ -130,8 +130,8 @@ module fv_equations
   !  data during `gather` and reusing it in `apply` to form the linearised
   !  momentum balance for a single velocity component.
   type, extends(equation) :: momentum_equation
-    integer(ccs_int) :: component = 0
-    integer(ccs_int) :: capacity = 0
+    integer(ccs_int) :: component = huge(0_ccs_int)
+    integer(ccs_int) :: capacity = huge(0_ccs_int)
     real(ccs_real), pointer :: mf(:) => null()
     real(ccs_real), pointer :: viscosity(:) => null()
     real(ccs_real), pointer :: density(:) => null()
@@ -458,7 +458,12 @@ contains
     self%mf => mf
     self%viscosity => viscosity
     self%density => density
-    self%component = component
+    if (present(component)) then
+      self%component = component
+    else
+      self%component = 0
+    end if
+    self%capacity = 0
 
     call ensure_payload_capacity(self, max_faces)
     self%data%nfaces = 0
