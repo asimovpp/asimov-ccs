@@ -90,8 +90,8 @@ module fv_equations
   type, extends(equation) :: poisson_equation
     logical :: fix_cached = .false.
     logical :: needs_fix = .false.
-    integer(ccs_int) :: fix_row = -1
-    integer(ccs_int) :: capacity = 0
+    integer(ccs_int) :: fix_row = huge(0_ccs_int)
+    integer(ccs_int) :: capacity = huge(0_ccs_int)
     real(ccs_real), pointer :: invA_data(:) => null()
     type(diffusion_kernel) :: diff_kernel
     type(poisson_payload) :: data
@@ -109,9 +109,9 @@ module fv_equations
   !  contributions without re-querying the mesh.
   type momentum_payload
     logical, allocatable :: is_boundary(:)
-    integer(ccs_int) :: owner_local = 0
-    integer(ccs_int) :: owner_global = 0
-    integer(ccs_int) :: nfaces = 0
+    integer(ccs_int) :: owner_local = huge(0_ccs_int)
+    integer(ccs_int) :: owner_global = huge(0_ccs_int)
+    integer(ccs_int) :: nfaces = huge(0_ccs_int)
     integer(ccs_int), allocatable :: nb_global(:)
     real(ccs_real), allocatable :: flux(:)
     real(ccs_real), allocatable :: diff_coeff(:)
@@ -169,6 +169,7 @@ contains
     self%fix_cached = .false.
     self%needs_fix = .false.
     self%fix_row = -1
+    self%capacity = 0
 
   end subroutine poisson_init
 
