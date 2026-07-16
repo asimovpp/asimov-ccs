@@ -75,9 +75,9 @@ module fv_equations
   !v Face-oriented payload backing the pressure Poisson equation assembly
   type poisson_payload
     logical, allocatable :: is_boundary(:)
-    integer(ccs_int) :: owner_local = huge(0_ccs_int)
-    integer(ccs_int) :: owner_global = huge(0_ccs_int)
-    integer(ccs_int) :: nfaces = huge(0_ccs_int)
+    integer(ccs_int) :: owner_local = 0
+    integer(ccs_int) :: owner_global = 0
+    integer(ccs_int) :: nfaces = 0
     integer(ccs_int), allocatable :: nb_global(:)
     real(ccs_real), allocatable :: coeff_face(:)
     real(ccs_real), allocatable :: coeff_nb(:)
@@ -91,7 +91,7 @@ module fv_equations
     logical :: fix_cached = .false.
     logical :: needs_fix = .false.
     integer(ccs_int) :: fix_row = -1
-    integer(ccs_int) :: capacity = huge(0_ccs_int)
+    integer(ccs_int) :: capacity = 0
     real(ccs_real), pointer :: invA_data(:) => null()
     type(diffusion_kernel) :: diff_kernel
     type(poisson_payload) :: data
@@ -130,8 +130,8 @@ module fv_equations
   !  data during `gather` and reusing it in `apply` to form the linearised
   !  momentum balance for a single velocity component.
   type, extends(equation) :: momentum_equation
-    integer(ccs_int) :: component = huge(0_ccs_int)
-    integer(ccs_int) :: capacity = huge(0_ccs_int)
+    integer(ccs_int) :: component = 0
+    integer(ccs_int) :: capacity = 0
     real(ccs_real), pointer :: mf(:) => null()
     real(ccs_real), pointer :: viscosity(:) => null()
     real(ccs_real), pointer :: density(:) => null()
