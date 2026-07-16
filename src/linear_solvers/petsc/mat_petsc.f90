@@ -111,7 +111,7 @@ contains
       type is (matrix_petsc)
         call MatAssemblyBegin(M%M, MAT_FINAL_ASSEMBLY, ierr)
         call MatAssemblyEnd(M%M, MAT_FINAL_ASSEMBLY, ierr)
-      case default
+      class default
         error stop "Unsupported matrix type"
     end select
 
@@ -137,7 +137,7 @@ contains
         write(log_unit_out,*) "nnz allocated: ", info%nz_allocated
         write(log_unit_out,*) "nnz used: ", info%nz_used
         write(log_unit_out,*) "nnz unneeded: ", info%nz_unneeded
-      case default
+      class default
         error stop "Unsupported matrix type"
     end select
 
@@ -157,7 +157,7 @@ contains
         write(log_unit_out,*) "nnz allocated: ", info(MAT_INFO_NZ_ALLOCATED)
         write(log_unit_out,*) "nnz used: ", info(MAT_INFO_NZ_USED)
         write(log_unit_out,*) "nnz unneeded: ", info(MAT_INFO_NZ_UNNEEDED)
-      case default
+      class default
         error stop "Unsupported matrix type"
     end select
     
