@@ -186,9 +186,9 @@ contains
     call get_vector_data_readonly(newv, new_data)
     call get_vector_data(oldv, old_data)
 
-    old_data = new_data
+    old_data(:) = new_data(:)
 
-    call restore_vector_data_readonly(newv, old_data)
+    call restore_vector_data_readonly(newv, new_data)
     call restore_vector_data(oldv, old_data)
     
   end subroutine copy_old_data
