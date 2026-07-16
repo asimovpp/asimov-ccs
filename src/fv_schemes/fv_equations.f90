@@ -455,9 +455,15 @@ contains
       error stop "momentum_equation%init: missing required arguments"
     end if
 
-    self%mf => mf
-    self%viscosity => viscosity
-    self%density => density
+    if (present(mf)) then 
+      self%mf => mf
+    end if
+    if (present(viscosity)) then
+      self%viscosity => viscosity
+    end if
+    if (present(density)) then
+      self%density => density
+    end if
     if (present(component)) then
       self%component = component
     else
