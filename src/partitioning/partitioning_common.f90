@@ -129,7 +129,8 @@ contains
 
     ! Construct a cell->faces lookup table 
     call get_global_num_cells(global_num_cells)
-    call create_shared_array(shared_env, [global_num_cells, max_faces], cell_faces, cell_faces_window)
+    ! Allocate as (faces, cells)
+    call create_shared_array(shared_env, [max_faces, global_num_cells], cell_faces, cell_faces_window)
     if (is_root(shared_env)) then
       allocate (cell_faces_counters(global_num_cells))
       cell_faces(:,:) = -1
@@ -141,11 +142,11 @@ contains
 
         ! Only add non-boundary cells to the table
         if (face_nb1 /= 0) then
-          cell_faces(face_nb1, cell_faces_counters(face_nb1)) = i 
+          cell_faces(cell_faces_counters(face_nb1), face_nb1) = i 
           cell_faces_counters(face_nb1) = cell_faces_counters(face_nb1) + 1
         end if
         if (face_nb2 /= 0) then
-          cell_faces(face_nb2, cell_faces_counters(face_nb2)) = i 
+          cell_faces(cell_faces_counters(face_nb2), face_nb2) = i 
           cell_faces_counters(face_nb2) = cell_faces_counters(face_nb2) + 1
         end if
       end do
@@ -157,7 +158,7 @@ contains
     do i = 1, local_num_cells
       global_index_p = mesh%topo%global_indices(i)
       do j = 1, max_faces
-        face = cell_faces(global_index_p, j)
+        face = cell_faces(j, global_index_p)
         if (face .ne. -1) then
 
           ! The neighbouring cell is the cell (connected via a face) that is not the same as me
