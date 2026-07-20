@@ -117,7 +117,7 @@ contains
     call get_max_faces(max_faces)
 
     ! Allocate temporary 2D integer work array and initialise to 0
-    allocate (tmp_int2d(max_faces + 1, mesh%topo%graph_conn%vtxdist(irank + 2) - mesh%topo%graph_conn%vtxdist(irank + 1)))
+    allocate (tmp_int2d(mesh%topo%graph_conn%vtxdist(irank + 2) - mesh%topo%graph_conn%vtxdist(irank + 1), max_faces + 1))
     tmp_int2d = 0
 
     ! Allocate array to hold number of neighbours for local cells
@@ -130,7 +130,7 @@ contains
     ! Construct a cell->faces lookup table 
     call get_global_num_cells(global_num_cells)
     ! Allocate as (faces, cells)
-    call create_shared_array(shared_env, [max_faces, global_num_cells], cell_faces, cell_faces_window)
+    call create_shared_array(shared_env, [global_num_cells, max_faces], cell_faces, cell_faces_window)
     if (is_root(shared_env)) then
       allocate (cell_faces_counters(global_num_cells))
       cell_faces(:,:) = -1
@@ -142,11 +142,11 @@ contains
 
         ! Only add non-boundary cells to the table
         if (face_nb1 /= 0) then
-          cell_faces(cell_faces_counters(face_nb1), face_nb1) = i 
+          cell_faces(face_nb1, cell_faces_counters(face_nb1)) = i 
           cell_faces_counters(face_nb1) = cell_faces_counters(face_nb1) + 1
         end if
         if (face_nb2 /= 0) then
-          cell_faces(cell_faces_counters(face_nb2), face_nb2) = i 
+          cell_faces(face_nb2, cell_faces_counters(face_nb2)) = i 
           cell_faces_counters(face_nb2) = cell_faces_counters(face_nb2) + 1
         end if
       end do
@@ -158,7 +158,7 @@ contains
     do i = 1, local_num_cells
       global_index_p = mesh%topo%global_indices(i)
       do j = 1, max_faces
-        face = cell_faces(j, global_index_p)
+        face = cell_faces(global_index_p, j)
         if (face .ne. -1) then
 
           ! The neighbouring cell is the cell (connected via a face) that is not the same as me
@@ -179,7 +179,7 @@ contains
     end do
 
     ! New number of local connections
-    num_connections = sum(tmp_int2d(max_faces + 1,:))
+    num_connections = sum(tmp_int2d(:, max_faces + 1))
     call dprint("Number of connections after partitioning: " // str(num_connections))
 
     ! Allocate new adjncy array based on the new number of computed connections
@@ -321,9 +321,9 @@ contains
     integer(ccs_int) :: max_faces
 
     call get_max_faces(max_faces)
-    fctr = tmp_int2d(max_faces + 1, face_nb1_local_index) + 1 ! Increment number of faces for this cell
-    tmp_int2d(fctr, face_nb1_local_index) = face_nb2          ! Store global index of neighbour cell
-    tmp_int2d(max_faces + 1, face_nb1_local_index) = fctr     ! Store number of faces for this cell
+    fctr = tmp_int2d(face_nb1_local_index, max_faces + 1) + 1 ! Increment number of faces for this cell
+    tmp_int2d(face_nb1_local_index, fctr) = face_nb2          ! Store global index of neighbour cell
+    tmp_int2d(face_nb1_local_index, max_faces + 1) = fctr     ! Store number of faces for this cell
     mesh%topo%num_nb(face_nb1_local_index) = fctr
 
     mesh%topo%global_face_indices(fctr, face_nb1) = face_index ! Update face indices to make its order consistent with nb_indices
@@ -385,8 +385,8 @@ contains
       mesh%topo%graph_conn%xadj(i) = ctr
 
       ! Loop over connections of cell i
-      do j = 1, tmp_int2d(max_faces + 1, i)
-        associate (nbidx => tmp_int2d(j, i))
+      do j = 1, tmp_int2d(i, max_faces + 1)
+        associate (nbidx => tmp_int2d(i, j))
 
           if (nbidx .lt. 0) then
             ! boundary 'cell'
@@ -570,12 +570,12 @@ contains
     allocate (graph_conn%xadj(graph_conn%vtxdist(irank + 2) - graph_conn%vtxdist(irank + 1) + 1))
 
     ! Allocate temporary 2D integer work array and initialise to 0
-    allocate (tmp_int2d(max_faces + 1, graph_conn%vtxdist(irank + 2) - graph_conn%vtxdist(irank + 1)))
+    allocate (tmp_int2d(graph_conn%vtxdist(irank + 2) - graph_conn%vtxdist(irank + 1), max_faces + 1))
     tmp_int2d = 0
 
     call build_connectivity_graph([ start_index, end_index ], face_cell1, face_cell2, tmp_int2d)
     
-    num_connections = sum(tmp_int2d(max_faces + 1, :))
+    num_connections = sum(tmp_int2d( : , max_faces + 1))
     call dprint("Initial number of connections: " // str(num_connections))
 
     ! Allocate adjncy array based on the number of computed connections
@@ -589,11 +589,11 @@ contains
 
       graph_conn%xadj(i) = local_index                          ! Pointer to start of current
 
-      do j = 1, tmp_int2d(max_faces + 1, i)               ! Loop over number of faces
-        graph_conn%adjncy(local_index + j - 1) = tmp_int2d(j, i) ! Store global IDs of neighbour cells
+      do j = 1, tmp_int2d(i, max_faces + 1)               ! Loop over number of faces
+        graph_conn%adjncy(local_index + j - 1) = tmp_int2d(i, j) ! Store global IDs of neighbour cells
       end do
 
-      local_index = local_index + tmp_int2d(max_faces + 1, i)
+      local_index = local_index + tmp_int2d(i, max_faces + 1)
       graph_conn%xadj(i + 1) = local_index
 
     end do
@@ -612,7 +612,7 @@ contains
     integer(ccs_int), dimension(2), intent(in) :: local_range ! Local start/end indices
     integer(ccs_int), dimension(:), intent(in) :: edge_starts ! Starting vertices of each edge
     integer(ccs_int), dimension(:), intent(in) :: edge_ends   ! Ending vertices of each edge
-    integer(ccs_int), dimension(:, :), intent(inout) :: connectivity_graph
+    integer(ccs_int), dimension(:, :), intent(out) :: connectivity_graph
 
     ! Local variables
     integer(ccs_int) :: max_degree ! Maximum number of edges connected to a vertex
@@ -626,7 +626,7 @@ contains
     integer(ccs_int) :: i
     integer(ccs_int) :: k
     
-    max_degree = size(connectivity_graph, 1) - 1
+    max_degree = size(connectivity_graph, 2) - 1
 
     nedges = size(edge_starts)
     if (size(edge_ends) /= nedges) then
@@ -648,11 +648,11 @@ contains
           if (vtx1 >= start_index) then
             if (vtx1 <= end_index) then
               local_index = vtx1 - start_index + 1                    ! Local vertex index
-              k = connectivity_graph(max_degree + 1, local_index) + 1 ! Increment number of edges
+              k = connectivity_graph(local_index, max_degree + 1) + 1 ! Increment number of edges
                                                                       ! for this vertex
-              connectivity_graph(k, local_index) = vtx2               ! Store global index of neighbour
+              connectivity_graph(local_index, k) = vtx2               ! Store global index of neighbour
                                                                       ! vertex
-              connectivity_graph(max_degree + 1, local_index) = k     ! Store number of edges for this
+              connectivity_graph(local_index, max_degree + 1) = k     ! Store number of edges for this
                                                                       ! vertex
             end if
           end if
@@ -661,11 +661,11 @@ contains
           if (vtx2 >= start_index) then
             if (vtx2 <= end_index) then
               local_index = vtx2 - start_index + 1                    ! Local vertex index
-              k = connectivity_graph(max_degree + 1, local_index) + 1 ! Increment number of edges
+              k = connectivity_graph(local_index, max_degree + 1) + 1 ! Increment number of edges
                                                                       ! for this vertex
-              connectivity_graph(k, local_index) = vtx1               ! Store global index of neighbour
+              connectivity_graph(local_index, k) = vtx1               ! Store global index of neighbour
                                                                       ! vertex
-              connectivity_graph(max_degree + 1, local_index) = k     ! Store number of edges for this
+              connectivity_graph(local_index, max_degree + 1) = k     ! Store number of edges for this
                                                                       ! vertex
             end if
           end if
