@@ -351,7 +351,7 @@ contains
     end if
 
     if (dim == 0.0_ccs_real) then
-      error stop "No velocity fields are being solved" ! Abort to avoid division by zero
+      call error_abort("No velocity fields are being solved") ! Abort to avoid division by zero
     end if
 
     ! Compute the inverse diagonal coefficient
@@ -1233,7 +1233,7 @@ contains
     call get_local_num_cells(local_num_cells)
 
     if (alpha == 0.0_ccs_real) then
-      error stop "Underrelaxation factor alpha is zero" ! Abort to avoid division by zero
+      call error_abort("Underrelaxation factor alpha is zero") ! Abort to avoid division by zero
     end if
 
     do i = 1, local_num_cells

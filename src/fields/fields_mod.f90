@@ -11,7 +11,7 @@ module fields
                    vector_spec, face_field, central_field, upwind_field, gamma_field, linear_upwind_field
   use kinds, only: ccs_int
 
-  use utils, only: update, get_scheme_name, debug_print
+  use utils, only: update, get_scheme_name, debug_print, exit_print
   use parallel, only: is_root
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
   use vec, only: create_vector, get_vector_data_readonly
@@ -171,7 +171,7 @@ contains
       call dprint("Create central field")
       allocate (central_field :: phi_ptr%ptr)
     else
-      error stop "Trying to allocate an unknown field type"
+      call error_abort("Trying to allocate an unknown field type")
     end if
 
     call dprint("Create field values vector")
@@ -366,7 +366,7 @@ contains
     end if
 
     if (field_index <= 0) then
-      error stop "Field index less than or equal to zero"
+      call error_abort("Field index less than or equal to zero")
     end if
 
     flow_field => flow%fields(field_index)%ptr

@@ -84,7 +84,7 @@ contains
             ! Vector doesn't have ghost points, store this information
             v%ghosted = .false.
           case default
-            error stop "Invalid storage location for vector"
+            call error_abort("Invalid storage location for vector")
           end select
         end associate
 

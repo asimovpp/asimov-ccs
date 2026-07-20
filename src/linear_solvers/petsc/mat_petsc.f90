@@ -112,7 +112,7 @@ contains
         call MatAssemblyBegin(M%M, MAT_FINAL_ASSEMBLY, ierr)
         call MatAssemblyEnd(M%M, MAT_FINAL_ASSEMBLY, ierr)
       class default
-        error stop "Unsupported matrix type"
+        call error_abort("Unsupported matrix type")
     end select
 
   end subroutine finalise_matrix
@@ -138,7 +138,7 @@ contains
         write(log_unit_out,*) "nnz used: ", info%nz_used
         write(log_unit_out,*) "nnz unneeded: ", info%nz_unneeded
       class default
-        error stop "Unsupported matrix type"
+        call error_abort("Unsupported matrix type")
     end select
 
 #else
@@ -158,7 +158,7 @@ contains
         write(log_unit_out,*) "nnz used: ", info(MAT_INFO_NZ_USED)
         write(log_unit_out,*) "nnz unneeded: ", info(MAT_INFO_NZ_UNNEEDED)
       class default
-        error stop "Unsupported matrix type"
+        call error_abort("Unsupported matrix type")
     end select
     
 #endif
@@ -177,7 +177,7 @@ contains
         call end_update_matrix(M)
 
       class default
-        error stop "Unsupported matrix type"
+        call error_abort("Unsupported matrix type")
     end select
 
   end subroutine
@@ -197,7 +197,7 @@ contains
       call MatAssemblyBegin(M%M, MAT_FLUSH_ASSEMBLY, ierr)
 
     class default
-      error stop "Unsupported matrix type"
+      call error_abort("Unsupported matrix type")
 
     end select
 
@@ -219,7 +219,7 @@ contains
 
       M%modeset = .false. ! It's safe to change modes now
     class default
-      error stop "Unsupported matrix type"
+      call error_abort("Unsupported matrix type")
 
     end select
 

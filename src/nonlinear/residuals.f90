@@ -83,9 +83,6 @@ contains
     do index_p = 1, local_num_cells
       call create_cell_locator(index_p, loc_p)
       call get_volume(loc_p, V)
-      if(V == 0.0_ccs_real) then
-        error stop "Cell volume is zero" ! Abort to avoid division by zero
-      end if
       normalised_res = res_data(index_p) / (V**(2.0_ccs_real / 3.0_ccs_real))
       L2sq = L2sq + normalised_res**2
       Linfty = max(abs(normalised_res), Linfty)
@@ -114,7 +111,7 @@ contains
       converged = residuals%Linfty(ifield) <= res_target
     case default ! default - should never be executed
       converged = .false.
-      error stop "Invalid norm"
+      call error_abort("Invalid norm")
     end select
 
   end function
@@ -130,8 +127,8 @@ contains
     case (Linfty)
       max_value = maxval(residuals%Linfty)
     case default ! default - should never be executed
-      max_value = huge(ccs_real)
-      error stop "Invalid norm"
+      max_value = huge(0.0_ccs_real)
+      call error_abort("Invalid norm")
     end select
 
   end function
