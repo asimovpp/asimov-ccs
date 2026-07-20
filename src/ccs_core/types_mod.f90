@@ -228,8 +228,8 @@ module types
     character(len=ccs_string_len) :: precon_name = ""        !< Preconditioner name passed to the linear solver directly
     logical :: solve = .false.                               !< Whether or not to solve said field
     integer :: res_norm = -1                                 !< Norm to use for checking residuals levels
-    real(ccs_real) :: res_target = huge(0.0_ccs_real)        !< The target residuals under which the iterative solve is considered converged
-    real(ccs_real) :: relaxation_factor = huge(0.0_ccs_real) !< Relaxation factor
+    real(ccs_real) :: res_target = huge(ccs_real)            !< The target residuals under which the iterative solve is considered converged
+    real(ccs_real) :: relaxation_factor = huge(ccs_real)     !< Relaxation factor
   end type
 
   type, public, extends(field) :: upwind_field
