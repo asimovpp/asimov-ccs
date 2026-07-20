@@ -2,7 +2,7 @@ module transient_kernels
 
   use types
   use kinds, only: ccs_real, ccs_int
-  use utils, only: exit_print
+
   implicit none
 
   type, abstract :: transient_kernel
@@ -85,6 +85,9 @@ module transient_kernels
   end subroutine
 
   subroutine set_dt(self, dt)
+
+    use utils, only: exit_print
+
     !! Setter for  time step size
     class(transient_kernel), intent(inout) :: self
     real(ccs_real), intent(in) :: dt
