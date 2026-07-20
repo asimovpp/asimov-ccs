@@ -1,4 +1,5 @@
 module transient_kernels
+#include "ccs_macros.inc"
 
   use types
   use kinds, only: ccs_real, ccs_int
