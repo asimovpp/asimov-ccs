@@ -1,9 +1,7 @@
 module transient_kernels
-#include "ccs_macros.inc"
 
   use types
   use kinds, only: ccs_real, ccs_int
-  use utils, only: exit_print
 
   implicit none
 
@@ -93,7 +91,7 @@ module transient_kernels
     real(ccs_real), intent(in) :: dt
 
     if (dt == 0.0_ccs_real) then
-      call error_abort("Time step size is zero") ! Abort to avoid division by zero
+      error stop "Time step size is zero" ! Abort to avoid division by zero
     end if
     
     self%dt = dt
