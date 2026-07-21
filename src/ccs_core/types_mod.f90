@@ -90,7 +90,7 @@ module types
     integer(ccs_long), dimension(:), allocatable :: adjwgt          !< Weights on edges - name from ParMETIS
     integer(ccs_long), dimension(:), allocatable :: local_partition !< Local partition array
     integer(ccs_long), dimension(:), pointer :: global_partition => null() !< Global partition array
-    integer :: global_partition_window = huge(0_ccs_int)                   !< Associated shared window
+    integer :: global_partition_window = huge(0)                   !< Associated shared window
   end type graph_connectivity
   
   !v Topology type
@@ -122,12 +122,12 @@ module types
     integer(ccs_int), dimension(:, :), pointer :: global_face_indices => null() !< Global list of faces indices
                                                                                 !<   global_iface = global_face_indices(cell_iface, global_icell)
                                                                                 !<   (no special treatment for halo or boundary faces)
-    integer :: global_face_indices_window  = huge(0_ccs_int)                    !< Associated shared window
+    integer :: global_face_indices_window  = huge(0)                    !< Associated shared window
     integer(ccs_int), dimension(:, :), allocatable :: loc_global_vertex_indices !< local version of the global list of vertex indices
                                                                                 !<   global_ivert = loc_global_vertex_indices(ivert, local_icell)
     integer(ccs_int), dimension(:, :), pointer :: global_vertex_indices => null() !< Global list of vertex indices
                                                                                   !<   global_ivert = global_vertex_indices(ivert, global_icell)
-    integer :: global_vertex_indices_window   = huge(0_ccs_int)             !< Associated shared window
+    integer :: global_vertex_indices_window   = huge(0)             !< Associated shared window
     integer(ccs_int), dimension(:, :), allocatable :: face_indices          !< Cell face index in local face vector (face, cell)
                                                                             !<   iface = global_face_indices(cell_iface, icell)
                                                                             !<   (no special treatment for halo or boundary faces)
@@ -137,14 +137,14 @@ module types
                                                                             !<   num_nb = num_nb(icell), equiv to number of faces, boundary 'neighbours' are counted
     integer(ccs_int), dimension(:), pointer :: face_cell1  => null()        !< Array of 1st face cells
                                                                             !<   global_icell1 = face_cell1(global_iface).
-    integer :: face_cell1_window  = huge(0_ccs_int)                         !< Associated shared window
+    integer :: face_cell1_window  = huge(0)                         !< Associated shared window
     integer(ccs_int), dimension(:), pointer :: face_cell2 => null()         !< Array of 2nd face cells
                                                                             !<   global_icell2 = face_cell2(global_iface) -> returns 0 on boundaries
-    integer :: face_cell2_window  = huge(0_ccs_int)                         !< Associated shared window
+    integer :: face_cell2_window  = huge(0)                         !< Associated shared window
     integer(ccs_int), dimension(:), pointer :: bnd_rid => null()            !< global face boundary index.
                                                                             !< 0 on internal faces
                                                                             !< -X on a bondary face according to the boundary index
-    integer :: bnd_rid_window = huge(0_ccs_int)                             !< Associated shared window
+    integer :: bnd_rid_window = huge(0)                             !< Associated shared window
   end type topology
 
   !> Geometry type
@@ -152,17 +152,17 @@ module types
     real(ccs_real) :: h  = huge(0.0_ccs_real)            !< The (constant) grid spacing XXX: remove!
     real(ccs_real) :: scalefactor  = huge(0.0_ccs_real)  !< Scalefactor
     real(ccs_real), dimension(:, :), pointer :: face_areas => null()      !< Face areas (face, cell)
-    integer :: face_areas_window = huge(0_ccs_int)             !< Associated shared window
+    integer :: face_areas_window = huge(0)             !< Associated shared window
     real(ccs_real), dimension(:), pointer :: volumes => null() !< Cell volumes
-    integer :: volumes_window = huge(0_ccs_int)                !< Associated shared window
+    integer :: volumes_window = huge(0)                !< Associated shared window
     real(ccs_real), dimension(:, :), pointer :: x_p => null()  !< Cell centres (dimension, cell)
-    integer :: x_p_window = huge(0_ccs_int)                      !< Associated shared window
+    integer :: x_p_window = huge(0)                      !< Associated shared window
     real(ccs_real), dimension(:, :, :), pointer :: x_f => null() !< Face centres (dimension, face, cell)
-    integer :: x_f_window = huge(0_ccs_int)                      !< Associated shared window
+    integer :: x_f_window = huge(0)                      !< Associated shared window
     real(ccs_real), dimension(:, :, :), pointer :: face_normals => null() !< Face normals (dimension, face, cell)
-    integer :: face_normals_window = huge(0_ccs_int)                      !< Associated shared window
+    integer :: face_normals_window = huge(0)                      !< Associated shared window
     real(ccs_real), dimension(:, :, :), pointer :: vert_coords => null()  !< Vertex coordinates (dimension, vertex, cell)
-    integer :: vert_coords_window = huge(0_ccs_int)                       !< Associated shared window
+    integer :: vert_coords_window = huge(0)                       !< Associated shared window
     real(ccs_real), dimension(:), allocatable :: face_interpol            !< Face interpolation factor, factor = face_interpol(iface)
   end type geometry
 
@@ -228,8 +228,8 @@ module types
     character(len=ccs_string_len) :: precon_name = ""        !< Preconditioner name passed to the linear solver directly
     logical :: solve = .false.                               !< Whether or not to solve said field
     integer :: res_norm = -1                                 !< Norm to use for checking residuals levels
-    real(ccs_real) :: res_target = huge(ccs_real)            !< The target residuals under which the iterative solve is considered converged
-    real(ccs_real) :: relaxation_factor = huge(ccs_real)     !< Relaxation factor
+    real(ccs_real) :: res_target = huge(0.0_ccs_real)            !< The target residuals under which the iterative solve is considered converged
+    real(ccs_real) :: relaxation_factor = huge(0.0_ccs_real)     !< Relaxation factor
   end type
 
   type, public, extends(field) :: upwind_field
@@ -249,7 +249,7 @@ module types
     character(len=:), allocatable :: field_name      !< The name of the field
     logical :: store_residuals = .false.             !< Whether or not residuals should be stored for this field
     logical :: enable_cell_corrections = .true.      !< Whether or not deffered corrections should be used (non-orthogonality, excentricity etc.)
-    integer :: field_type = huge(0_ccs_int)          !< Flag to identify which type of field to create
+    integer :: field_type = huge(0)          !< Flag to identify which type of field to create
     integer(ccs_int) :: n_boundaries = huge(0_ccs_int) !< The number of boundaries involved...
     type(vector_spec) :: vec_properties              !< Descriptor for the underlying vector
   end type field_spec

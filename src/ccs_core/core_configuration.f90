@@ -342,7 +342,7 @@ contains
     type(solver_params), intent(inout) :: solver_parameters !< Solver parameter
     real(ccs_real), intent(in) :: global_res_target !< Global residuals norm target to use if 'local'/per equation res_target isn't set
 
-    if (solver_parameters%res_target == huge(ccs_real)) then
+    if (solver_parameters%res_target == huge(0.0_ccs_real)) then
       solver_parameters%res_target = global_res_target
     end if
   end subroutine
@@ -394,7 +394,7 @@ contains
   subroutine check_relaxation_factor_set(solver_parameters)
       type(solver_params), intent(inout) :: solver_parameters !< Solver parameters to check
 
-      if (solver_parameters%solve .and. solver_parameters%relaxation_factor == huge(ccs_real)) then
+      if (solver_parameters%solve .and. solver_parameters%relaxation_factor == huge(0.0_ccs_real)) then
         call error_abort("No values assigned to relaxation factor for variable "//solver_parameters%name)
       end if
   end subroutine
