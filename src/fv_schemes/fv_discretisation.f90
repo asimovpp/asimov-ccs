@@ -9,7 +9,7 @@ submodule(fv) fv_discretisation
   use vec, only: get_vector_data, restore_vector_data
   use meshing, only: get_face_interpolation, get_local_index
   use types, only: neighbour_locator
-  use meshing, only: get_distance, get_centre
+  use meshing, only: get_distance
 
   implicit none
 

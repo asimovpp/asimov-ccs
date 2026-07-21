@@ -4,22 +4,15 @@ module fv_equations
   ! TODO: trim these
   use kinds, only: ccs_int, ccs_real
   use fv_kernels, only: diffusion_kernel, advection_kernel
-  use types, only: vector_spec, ccs_vector, matrix_spec, ccs_matrix, equation_system, &
-                   linear_solver, bc_config, vector_values, cell_locator, &
-                   face_locator, neighbour_locator, matrix_values, matrix_values_spec, upwind_field, field
-  use constants, only: insert_mode, add_mode, ndim, cell
-  use utils, only: update, initialise, finalise, set_size, set_values, &
-                   mult, zero, clear_entries, set_entry, set_row, set_col, set_mode, &
-                   str, exit_print, debug_print
+  use types, only: vector_values, cell_locator, &
+                   face_locator, neighbour_locator, matrix_values, field
+  use constants, only: ndim
+  use utils, only: set_entry, set_row, set_col, exit_print
   use bc_constants, only: bc_type_dirichlet
   use meshing, only: get_face_area, get_global_index, get_local_index, count_neighbours, &
                      get_boundary_status, get_face_normal, create_neighbour_locator, create_face_locator, &
                      create_cell_locator, get_volume, get_distance, &
-                     get_local_num_cells, get_face_interpolation, &
-                     get_global_num_cells, &
-                     get_max_faces, is_mesh_set, get_centre
-  use mat, only: create_matrix, set_nnz, get_matrix_diagonal, set_matrix_values_spec_nrows, &
-                 set_matrix_values_spec_ncols, create_matrix_values, mat_vec_product
+                     get_face_interpolation, get_global_num_cells, get_centre
 
   implicit none
 
@@ -81,11 +74,11 @@ module fv_equations
 
   !v Face-oriented payload backing the pressure Poisson equation assembly
   type poisson_payload
+    logical, allocatable :: is_boundary(:)
     integer(ccs_int) :: owner_local = 0
     integer(ccs_int) :: owner_global = 0
     integer(ccs_int) :: nfaces = 0
     integer(ccs_int), allocatable :: nb_global(:)
-    logical, allocatable :: is_boundary(:)
     real(ccs_real), allocatable :: coeff_face(:)
     real(ccs_real), allocatable :: coeff_nb(:)
     real(ccs_real), allocatable :: rhs_face(:)
@@ -95,13 +88,13 @@ module fv_equations
 
   !v Pressure Poisson equation constructed from diffusion kernels
   type, extends(equation) :: poisson_equation
-    type(diffusion_kernel) :: diff_kernel
-    real(ccs_real), pointer :: invA_data(:) => null()
-    type(poisson_payload) :: data
-    integer(ccs_int) :: capacity = 0
     logical :: fix_cached = .false.
     logical :: needs_fix = .false.
-    integer(ccs_int) :: fix_row = -1
+    integer(ccs_int) :: fix_row = huge(0_ccs_int)
+    integer(ccs_int) :: capacity = huge(0_ccs_int)
+    real(ccs_real), pointer :: invA_data(:) => null()
+    type(diffusion_kernel) :: diff_kernel
+    type(poisson_payload) :: data
   contains
     procedure :: init => poisson_init
     procedure :: gather => poisson_gather
@@ -115,11 +108,11 @@ module fv_equations
   !  data so that `momentum_equation%apply` can evaluate diffusion and advection
   !  contributions without re-querying the mesh.
   type momentum_payload
-    integer(ccs_int) :: owner_local = 0
-    integer(ccs_int) :: owner_global = 0
-    integer(ccs_int) :: nfaces = 0
-    integer(ccs_int), allocatable :: nb_global(:)
     logical, allocatable :: is_boundary(:)
+    integer(ccs_int) :: owner_local = huge(0_ccs_int)
+    integer(ccs_int) :: owner_global = huge(0_ccs_int)
+    integer(ccs_int) :: nfaces = huge(0_ccs_int)
+    integer(ccs_int), allocatable :: nb_global(:)
     real(ccs_real), allocatable :: flux(:)
     real(ccs_real), allocatable :: diff_coeff(:)
     real(ccs_real), allocatable :: lf(:)
@@ -137,14 +130,14 @@ module fv_equations
   !  data during `gather` and reusing it in `apply` to form the linearised
   !  momentum balance for a single velocity component.
   type, extends(equation) :: momentum_equation
-    type(diffusion_kernel) :: diff_kernel
-    class(advection_kernel), allocatable :: adv_kernel
+    integer(ccs_int) :: component = huge(0_ccs_int)
+    integer(ccs_int) :: capacity = huge(0_ccs_int)
     real(ccs_real), pointer :: mf(:) => null()
     real(ccs_real), pointer :: viscosity(:) => null()
     real(ccs_real), pointer :: density(:) => null()
-    integer(ccs_int) :: component = 0
     type(momentum_payload) :: data
-    integer(ccs_int) :: capacity = 0
+    type(diffusion_kernel) :: diff_kernel
+    class(advection_kernel), allocatable :: adv_kernel
   contains
     procedure :: init => momentum_init
     procedure :: gather => momentum_gather
@@ -176,6 +169,7 @@ contains
     self%fix_cached = .false.
     self%needs_fix = .false.
     self%fix_row = -1
+    self%capacity = 0
 
   end subroutine poisson_init
 
@@ -461,10 +455,21 @@ contains
       error stop "momentum_equation%init: missing required arguments"
     end if
 
-    self%mf => mf
-    self%viscosity => viscosity
-    self%density => density
-    self%component = component
+    if (present(mf)) then 
+      self%mf => mf
+    end if
+    if (present(viscosity)) then
+      self%viscosity => viscosity
+    end if
+    if (present(density)) then
+      self%density => density
+    end if
+    if (present(component)) then
+      self%component = component
+    else
+      self%component = 0
+    end if
+    self%capacity = 0
 
     call ensure_payload_capacity(self, max_faces)
     self%data%nfaces = 0

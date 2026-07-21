@@ -5,7 +5,7 @@ module timestepping
 
   use transient_kernels, only: transient_kernel
   use kinds, only: ccs_real, ccs_int
-  use types, only: field, ccs_mesh, ccs_vector, ccs_matrix, vector_spec
+  use types, only: field, ccs_vector, ccs_matrix, vector_spec
 
   implicit none
 

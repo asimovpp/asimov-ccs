@@ -5,13 +5,12 @@
 module boundary_conditions
 #include "ccs_macros.inc"
 
-  use utils, only: exit_print, debug_print, str
-  use types, only: bc_config, field, bc_profile, fluid
+  use utils, only: exit_print, debug_print
+  use types, only: bc_config, field, bc_profile
   use kinds, only: ccs_int, ccs_real
   use fortran_yaml_c_interface, only: parse
   use read_config, only: get_bc_field
   use bc_constants
-  use core, only: ccs_options
   use constants, only: ccs_string_len
   use error_codes
 
@@ -54,9 +53,7 @@ contains
 
   !v Translate potentially high level boundary contition set by the user into a set of base boundary conditions
   subroutine translate_bcs_phi(bnd_normals, phi)
-    use meshing, only: get_mesh_generated
     use constants, only: ccs_string_len
-    use ccs_base, only: left, right, bottom, top, back, front
 
     real(ccs_real), dimension(:, :), intent(in) :: bnd_normals !< List of boundary names
     class(field), intent(inout) :: phi       !< Field to process

@@ -12,23 +12,21 @@ module tgv2d_core
   use parallel, only: is_root
   use parallel_types, only: parallel_environment
   use meshing, only: get_global_num_cells, set_mesh_object, nullify_mesh_object
-  use mesh_utils, only: build_square_mesh
   use utils, only: exit_print, calc_kinetic_energy, calc_enstrophy, &
-                   add_field_to_outputlist, reset_outputlist_counter
-  use fields, only: get_field, add_field, dealloc_fluid_fields, set_is_field_solved
+                   reset_outputlist_counter
+  use fields, only: get_field, dealloc_fluid_fields
   use timestepping, only: reset_timestepping
   use io_visualisation, only: reset_io_visualisation
-  use profiler, only: profiler_init, profiler_shutdown, profiler_begin_region, profiler_end_region
+  use profiler, only: profiler_begin_region, profiler_end_region
   use logging, only: log_unit_out
 
   implicit none
 
   public :: run_tgv2d
 
-  integer(ccs_int), dimension(:), allocatable :: variable_types              ! cell centred upwind, central, etc.
-
   ! Global variables to pass error calculations to the postprocessing subroutine
-  real(ccs_real), dimension(3) :: tgv2d_error_L2_global, tgv2d_error_Linf_global
+  real(ccs_real), dimension(3) :: tgv2d_error_L2_global = huge(0.0_ccs_real)
+  real(ccs_real), dimension(3) :: tgv2d_error_Linf_global = huge(0.0_ccs_real)
   
 contains
 
@@ -158,7 +156,6 @@ contains
 
     use meshing, only: get_centre, create_cell_locator, get_local_num_cells
 
-    use parallel, only: allreduce
     use parallel_types_mpi, only: parallel_environment_mpi
     use timestepping, only: get_current_time, get_current_step
 

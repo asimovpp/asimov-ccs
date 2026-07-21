@@ -39,8 +39,8 @@ module core
   !v Options for the mesh configuration
   type :: mesh_options
     integer(ccs_int) :: init_mesh_type = mesh_null
-    integer(ccs_int) :: cps = huge(0)
-    real(ccs_real) :: domain_size = 0.0_ccs_real
+    integer(ccs_int) :: cps = huge(0_ccs_int)
+    real(ccs_real) :: domain_size = huge(0.0_ccs_real)
     logical :: compute_bwidth = .true.
     logical :: compute_partqual = .true.
     character(len=ccs_string_len), dimension(:), allocatable :: bnd_names
@@ -48,7 +48,7 @@ module core
   
   !v Options for IO configuration
   type :: io_options
-    integer(ccs_int) :: write_frequency = huge(0)
+    integer(ccs_int) :: write_frequency = huge(0_ccs_int)
     logical :: write_gradients = .false.
   end type io_options
 
@@ -63,10 +63,10 @@ module core
   !v Options for solver configuration
   type :: solver_options
     logical :: unsteady = .false.
-    integer(ccs_int) :: num_steps = huge(0)
-    integer(ccs_int) :: num_iters = huge(0)
-    integer(ccs_int) :: it_start
-    integer(ccs_int) :: it_end
+    integer(ccs_int) :: num_steps = huge(0_ccs_int)
+    integer(ccs_int) :: num_iters = huge(0_ccs_int)
+    integer(ccs_int) :: it_start = huge(0_ccs_int)
+    integer(ccs_int) :: it_end = huge(0_ccs_int)
     real(ccs_real) :: dt = huge(0.0_ccs_real)
     type(solver_params), dimension(:), allocatable :: solver_eq_parameters
     real(ccs_real) :: global_res_target = huge(0.0_ccs_real)
@@ -75,20 +75,20 @@ module core
 
   !v Options for parallelism
   type :: parallel_options
-    logical :: use_mpi_splitting
-    integer :: split_type
+    logical :: use_mpi_splitting = .false.
+    integer :: split_type = huge(0_ccs_int)
   end type parallel_options
   
   !v Reference values for the problem
   type :: ref_vals
-    real(ccs_real) :: p_ref    !< reference pressure
-    real(ccs_real) :: p_total  !< total pressure
-    real(ccs_real) :: temp_ref !< reference temperature
-    real(ccs_real) :: dens_ref !< reference density
-    real(ccs_real) :: visc_ref !< laminar viscosity
-    real(ccs_real) :: velo_ref !< reference velocity
-    real(ccs_real) :: len_ref  !< reference length, used to define the Reynolds number of the flow
-    integer :: pref_at_cell    !< cell at which the reference pressure is set
+    real(ccs_real) :: p_ref = huge(0.0_ccs_real)    !< reference pressure
+    real(ccs_real) :: p_total = huge(0.0_ccs_real)  !< total pressure
+    real(ccs_real) :: temp_ref = huge(0.0_ccs_real) !< reference temperature
+    real(ccs_real) :: dens_ref = huge(0.0_ccs_real) !< reference density
+    real(ccs_real) :: visc_ref = huge(0.0_ccs_real) !< laminar viscosity
+    real(ccs_real) :: velo_ref = huge(0.0_ccs_real) !< reference velocity
+    real(ccs_real) :: len_ref = huge(0.0_ccs_real)  !< reference length, used to define the Reynolds number of the flow
+    integer :: pref_at_cell = huge(0_ccs_int)       !< cell at which the reference pressure is set
   end type ref_vals
   
   !v Type to contain the configuration of the CCS run

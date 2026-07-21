@@ -2,15 +2,16 @@ module transient_kernels
 
   use types
   use kinds, only: ccs_real, ccs_int
+
   implicit none
 
   type, abstract :: transient_kernel
-    real(ccs_real), private :: dt                 !< time step size
-    real(ccs_real), private :: invdt                 !< time step size
-    integer(ccs_int) :: order            !< Theoretical order of the scheme
-    integer(ccs_int), private :: width            !< size of the stencil required (=number of old values)
+    integer(ccs_int) :: order = huge(0_ccs_int)          !< Theoretical order of the scheme
+    integer(ccs_int), private :: width = huge(0_ccs_int) !< size of the stencil required (=number of old values)
+    real(ccs_real), private :: dt = huge(0.0_ccs_real)    !< time step size
+    real(ccs_real), private :: invdt = huge(0.0_ccs_real) !< time step size
+    real(ccs_real), private :: implicit_coeff = huge(0.0_ccs_real)        !< lhs/diagonal coefficient
     real(ccs_real), allocatable, dimension(:), private :: explicit_coeffs !< rhs coefficients associated to old values
-    real(ccs_real), private :: implicit_coeff     !< lhs/diagonal coefficient
 
     ! *_trans variable are set once by the `init` function and define the scheme variables depending on the timestep
     ! This is to revert to a lower width scheme for the first few timesteps when timestep < width
@@ -84,10 +85,15 @@ module transient_kernels
   end subroutine
 
   subroutine set_dt(self, dt)
+
     !! Setter for  time step size
     class(transient_kernel), intent(inout) :: self
     real(ccs_real), intent(in) :: dt
 
+    if (dt == 0.0_ccs_real) then
+      error stop "Time step size is zero" ! Abort to avoid division by zero
+    end if
+    
     self%dt = dt
     self%invdt = 1.0_ccs_real/dt
 

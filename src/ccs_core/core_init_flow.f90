@@ -5,23 +5,17 @@ submodule(core) core_init_flow
   use kinds, only: ccs_int, ccs_real
 
   use kinds, only: ccs_real, ccs_int
-  use types, only: fluid, field, cell_locator, face_locator, neighbour_locator, vector_values
-
-  use utils, only: update, set_mode, set_row, set_entry, set_values
+  use types, only: fluid, field, cell_locator, face_locator, neighbour_locator
+  use utils, only: update
   use fields, only: get_field, get_field_is_face_based
-
-  use meshing, only: create_cell_locator, get_global_index, count_neighbours, create_neighbour_locator, &
-                       get_local_index, create_face_locator, get_face_normal, get_centre, get_face_area, &
+  use meshing, only: create_cell_locator, count_neighbours, create_neighbour_locator, &
+                       get_local_index, create_face_locator, get_face_normal, get_centre, &
                        get_face_interpolation, get_local_num_cells, get_boundary_status
-
-  use vec, only: get_vector_data, restore_vector_data, create_vector_values
+  use vec, only: get_vector_data, restore_vector_data
   use fv, only: calc_mass_flux_bc
-
   use profiler, only: profiler_begin_region, profiler_end_region
-
   use io_visualisation, only: read_solution
-
-  use constants, only: insert_mode, ndim
+  use constants, only: ndim
 
   implicit none
 

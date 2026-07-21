@@ -9,20 +9,15 @@ program scalar_transport
   use petscsys
 
   use core
-  use kinds, only: ccs_real, ccs_int
-  use types, only: field, ccs_mesh, fluid
+  use kinds, only: ccs_real
+  use types, only: field, fluid
   use parallel, only: initialise_parallel_environment, &
-                      cleanup_parallel_environment, timer, &
+                      cleanup_parallel_environment, &
                       is_root
   use parallel_types, only: parallel_environment
-  use mesh_utils, only: build_mesh
-  use meshing, only: get_global_num_cells, get_centre, count_neighbours, &
-                     create_cell_locator, create_face_locator, create_neighbour_locator, &
-                     get_local_index, get_boundary_status, get_face_normal, nullify_mesh_object, &
-                     get_local_num_cells
-  use scalars, only: update_scalars
-  use utils, only: exit_print, add_field_to_outputlist
-  use fields, only: get_field, dealloc_fluid_fields
+  use meshing, only: get_centre, &
+                     get_boundary_status, get_face_normal, nullify_mesh_object
+  use fields, only: dealloc_fluid_fields
   use profiler, only: profiler_init, profiler_shutdown, profiler_begin_region, profiler_end_region
   use logging, only: log_unit_out
 

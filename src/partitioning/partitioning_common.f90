@@ -14,10 +14,9 @@ submodule(partitioning) partitioning_common
                      get_max_faces, &
                      create_cell_locator, create_neighbour_locator, &
                      get_global_index, &
-                     get_local_index, set_local_index, &
-                     nullify_mesh_object, &
+                     set_local_index, &
                      set_topo_object, nullify_topo_object
-  use parallel, only: is_root, is_valid, create_shared_array, destroy_shared_array, sync
+  use parallel, only: is_root, create_shared_array, destroy_shared_array, sync
   use logging, only: log_unit_out
 
   implicit none
@@ -130,6 +129,7 @@ contains
 
     ! Construct a cell->faces lookup table 
     call get_global_num_cells(global_num_cells)
+    ! Allocate as (faces, cells)
     call create_shared_array(shared_env, [global_num_cells, max_faces], cell_faces, cell_faces_window)
     if (is_root(shared_env)) then
       allocate (cell_faces_counters(global_num_cells))
@@ -575,7 +575,7 @@ contains
 
     call build_connectivity_graph([ start_index, end_index ], face_cell1, face_cell2, tmp_int2d)
     
-    num_connections = sum(tmp_int2d(:, max_faces + 1))
+    num_connections = sum(tmp_int2d( : , max_faces + 1))
     call dprint("Initial number of connections: " // str(num_connections))
 
     ! Allocate adjncy array based on the number of computed connections
@@ -847,6 +847,11 @@ contains
     n = size(a)
     first = 1
     last = n
+
+    if (n == 0) then
+      error stop "findloc_in_sorted: array is empty"     
+    end if 
+    
     do while (first /= last)
       mid = ceiling((first + last)/2.0_ccs_real, ccs_int)
       if (a(mid) > value) then

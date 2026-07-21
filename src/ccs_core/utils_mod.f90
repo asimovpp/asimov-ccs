@@ -12,7 +12,7 @@ module utils
                  initialise_vector, set_vector_size, &
                  set_vector_values_mode, set_vector_values_row, set_vector_values_entry, &
                  clear_vector_values_entries, &
-                 mult_vec_vec, scale_vec, zero_vector, &
+                 mult_vec_vec, zero_vector, &
                  get_natural_data_vec, reorder_data_vec
   use mat, only: set_matrix_values, update_matrix, begin_update_matrix, end_update_matrix, &
                  initialise_matrix, finalise_matrix, set_matrix_size, &
@@ -20,7 +20,7 @@ module utils
                  clear_matrix_values_entries, zero_matrix
   use solver, only: initialise_equation_system
   use kinds, only: ccs_int, ccs_real
-  use types, only: field, fluid, field_ptr
+  use types, only: field
   use constants, only: cell_centred_central, cell_centred_upwind, face_centred, cell_centred_gamma, &
                        cell_centred_linear_upwind
   use error_codes
@@ -261,10 +261,10 @@ contains
 
     use mpi
 
-    use constants, only: ndim, ccs_string_len
-    use types, only: field, ccs_mesh, cell_locator
+    use constants, only: ccs_string_len
+    use types, only: field, cell_locator
     use vec, only: get_vector_data, restore_vector_data
-    use parallel, only: allreduce, error_handling, is_root
+    use parallel, only: error_handling, is_root
     use parallel_types_mpi, only: parallel_environment_mpi
     use parallel_types, only: parallel_environment
     use meshing, only: get_local_num_cells, create_cell_locator, get_volume
@@ -349,10 +349,10 @@ contains
 
     use mpi
 
-    use constants, only: ndim, ccs_string_len
-    use types, only: field, ccs_mesh
+    use constants, only: ccs_string_len
+    use types, only: field
     use vec, only: get_vector_data, restore_vector_data
-    use parallel, only: allreduce, error_handling, is_root
+    use parallel, only: error_handling, is_root
     use parallel_types_mpi, only: parallel_environment_mpi
     use parallel_types, only: parallel_environment
     use meshing, only: get_local_num_cells
@@ -429,7 +429,7 @@ contains
   ! @note does not check for duplicates
   subroutine add_field_to_outputlist(var)
 
-    use types, only: field, field_ptr
+    use types, only: field
 
     ! Arguments
     class(field), intent(inout) :: var !< The field to be added

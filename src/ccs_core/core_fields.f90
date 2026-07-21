@@ -4,7 +4,7 @@ submodule(core) core_fields
   use types, only: vector_spec, field_spec, field
   use constants, only: face, cell, face_centred, cell_centred_central
   use bc_constants
-  use boundary_conditions, only: set_bc_type, translate_bcs_phi
+  use boundary_conditions, only: translate_bcs_phi
   use ccs_base, only: mesh
   use parallel, only: is_root
   use utils, only: set_size, initialise, add_field_to_outputlist, exit_print
@@ -12,7 +12,7 @@ submodule(core) core_fields
   use vec, only: set_vector_location
   use fields, only: set_field_config_file, set_field_n_boundaries, set_field_store_residuals, &
                     set_field_enable_cell_corrections, set_field_vector_properties, create_field, &
-                    set_field_name, set_field_type, set_is_field_solved, get_field, print_field_config
+                    set_field_name, set_field_type, get_field, print_field_config
   use fortran_yaml_c_interface, only: parse
   use profiler, only: profiler_begin_region, profiler_end_region
   use logging, only: log_unit_out

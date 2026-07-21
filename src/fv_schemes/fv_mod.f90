@@ -5,8 +5,8 @@
 module fv
 
   use kinds, only: ccs_real, ccs_int
-  use types, only: ccs_matrix, ccs_vector, ccs_mesh, field, field_ptr, upwind_field, central_field, &
-                   gamma_field, linear_upwind_field, bc_config, face_locator, cell_locator, &
+  use types, only: ccs_matrix, ccs_vector, field, field_ptr, upwind_field, central_field, &
+                   gamma_field, linear_upwind_field, face_locator, cell_locator, &
                    neighbour_locator, bc_profile, fluid
   use constants, only: ndim
 

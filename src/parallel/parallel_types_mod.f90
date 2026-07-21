@@ -16,9 +16,9 @@ module parallel_types
 
   !v parallel environment type with common parameters
   type, public :: parallel_environment
-    integer(ccs_int) :: proc_id !< process id
-    integer(ccs_int) :: num_procs !< number of processes
-    integer(ccs_int) :: root !< root process
+    integer(ccs_int) :: proc_id = huge(0_ccs_int)   !< process id
+    integer(ccs_int) :: num_procs = huge(0_ccs_int) !< number of processes
+    integer(ccs_int) :: root = huge(0_ccs_int)      !< root process
   end type parallel_environment
 
 end module parallel_types

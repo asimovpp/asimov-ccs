@@ -1,7 +1,6 @@
 submodule(profiler) profiler_caliper
 
   use caliper_mod
-  use iso_c_binding, only : C_INT64_T
 
   implicit none
 
