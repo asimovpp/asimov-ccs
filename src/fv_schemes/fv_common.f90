@@ -748,9 +748,6 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
     end do
 
     call get_volume(loc_p, V)
-    if(V == 0.0_ccs_real) then
-      error stop "Cell volume is zero" ! Abort to avoid division by zero
-    end if
     gradients(:) = gradients(:) / V
 
   end subroutine compute_gradient_at_point
