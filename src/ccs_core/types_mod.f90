@@ -113,11 +113,6 @@ module types
     integer(ccs_int) :: global_num_faces = huge(0_ccs_int)                  !< Global number of faces
     integer(ccs_int) :: num_faces = huge(0_ccs_int)                         !< Local number of faces
     integer(ccs_int) :: max_faces = huge(0_ccs_int)                         !< Maximum number of faces per cell
-    integer :: global_face_indices_window  = huge(0_ccs_int)                    !< Associated shared window
-    integer :: global_vertex_indices_window   = huge(0_ccs_int)             !< Associated shared window
-    integer :: face_cell1_window  = huge(0_ccs_int)                         !< Associated shared window
-    integer :: face_cell2_window  = huge(0_ccs_int)                         !< Associated shared window
-    integer :: bnd_rid_window = huge(0_ccs_int)                             !< Associated shared window
     integer(ccs_int) :: shared_array_local_offset = huge(0_ccs_int)         !< Offset within shared arrays for quantities that are locally indexed (i.e. each rank is responsible for local_num_cells of these)
     integer(ccs_int) :: shared_array_total_offset = huge(0_ccs_int)         !< Offset within shared arrays for quantities that are totally indexed (i.e. each rank is responsible for total_num_cells of these)
     integer(ccs_int), dimension(:), allocatable :: natural_indices          !< The global index of cells in the original ordering (local + halo)
@@ -127,10 +122,12 @@ module types
     integer(ccs_int), dimension(:, :), pointer :: global_face_indices => null() !< Global list of faces indices
                                                                                 !<   global_iface = global_face_indices(cell_iface, global_icell)
                                                                                 !<   (no special treatment for halo or boundary faces)
+    integer :: global_face_indices_window  = huge(0_ccs_int)                    !< Associated shared window
     integer(ccs_int), dimension(:, :), allocatable :: loc_global_vertex_indices !< local version of the global list of vertex indices
                                                                                 !<   global_ivert = loc_global_vertex_indices(ivert, local_icell)
     integer(ccs_int), dimension(:, :), pointer :: global_vertex_indices => null() !< Global list of vertex indices
                                                                                   !<   global_ivert = global_vertex_indices(ivert, global_icell)
+    integer :: global_vertex_indices_window   = huge(0_ccs_int)             !< Associated shared window
     integer(ccs_int), dimension(:, :), allocatable :: face_indices          !< Cell face index in local face vector (face, cell)
                                                                             !<   iface = global_face_indices(cell_iface, icell)
                                                                             !<   (no special treatment for halo or boundary faces)
@@ -140,29 +137,32 @@ module types
                                                                             !<   num_nb = num_nb(icell), equiv to number of faces, boundary 'neighbours' are counted
     integer(ccs_int), dimension(:), pointer :: face_cell1  => null()        !< Array of 1st face cells
                                                                             !<   global_icell1 = face_cell1(global_iface).
+    integer :: face_cell1_window  = huge(0_ccs_int)                         !< Associated shared window
     integer(ccs_int), dimension(:), pointer :: face_cell2 => null()         !< Array of 2nd face cells
                                                                             !<   global_icell2 = face_cell2(global_iface) -> returns 0 on boundaries
+    integer :: face_cell2_window  = huge(0_ccs_int)                         !< Associated shared window
     integer(ccs_int), dimension(:), pointer :: bnd_rid => null()            !< global face boundary index.
                                                                             !< 0 on internal faces
                                                                             !< -X on a bondary face according to the boundary index
+    integer :: bnd_rid_window = huge(0_ccs_int)                             !< Associated shared window
   end type topology
 
   !> Geometry type
   type, public :: geometry
-    integer :: face_areas_window = huge(0_ccs_int)       !< Associated shared window
-    integer :: volumes_window = huge(0_ccs_int)          !< Associated shared window
-    integer :: x_p_window = huge(0_ccs_int)              !< Associated shared window
-    integer :: x_f_window = huge(0_ccs_int)              !< Associated shared window
-    integer :: face_normals_window = huge(0_ccs_int)     !< Associated shared window
-    integer :: vert_coords_window = huge(0_ccs_int)      !< Associated shared window
     real(ccs_real) :: h  = huge(0.0_ccs_real)            !< The (constant) grid spacing XXX: remove!
     real(ccs_real) :: scalefactor  = huge(0.0_ccs_real)  !< Scalefactor
     real(ccs_real), dimension(:, :), pointer :: face_areas => null()      !< Face areas (face, cell)
-    real(ccs_real), dimension(:), pointer :: volumes => null()            !< Cell volumes
-    real(ccs_real), dimension(:, :), pointer :: x_p => null()             !< Cell centres (dimension, cell)
-    real(ccs_real), dimension(:, :, :), pointer :: x_f => null()          !< Face centres (dimension, face, cell)
+    integer :: face_areas_window = huge(0_ccs_int)             !< Associated shared window
+    real(ccs_real), dimension(:), pointer :: volumes => null() !< Cell volumes
+    integer :: volumes_window = huge(0_ccs_int)                !< Associated shared window
+    real(ccs_real), dimension(:, :), pointer :: x_p => null()  !< Cell centres (dimension, cell)
+    integer :: x_p_window = huge(0_ccs_int)                      !< Associated shared window
+    real(ccs_real), dimension(:, :, :), pointer :: x_f => null() !< Face centres (dimension, face, cell)
+    integer :: x_f_window = huge(0_ccs_int)                      !< Associated shared window
     real(ccs_real), dimension(:, :, :), pointer :: face_normals => null() !< Face normals (dimension, face, cell)
+    integer :: face_normals_window = huge(0_ccs_int)                      !< Associated shared window
     real(ccs_real), dimension(:, :, :), pointer :: vert_coords => null()  !< Vertex coordinates (dimension, vertex, cell)
+    integer :: vert_coords_window = huge(0_ccs_int)                       !< Associated shared window
     real(ccs_real), dimension(:), allocatable :: face_interpol            !< Face interpolation factor, factor = face_interpol(iface)
   end type geometry
 
@@ -208,15 +208,15 @@ module types
     logical :: output = .false.                                   !< Should field be written in output?
     integer(ccs_int) :: idx = huge(0_ccs_int)
     real(ccs_real) :: Schmidt = 1.0                               !< Schmidt Number
-    real(ccs_real), dimension(:), pointer :: values_ro => null()           !< Read only pointer to array containing values
-    real(ccs_real), dimension(:), pointer :: x_gradients_ro => null()       !< Read only pointer to array containing x_gradients
-    real(ccs_real), dimension(:), pointer :: y_gradients_ro => null()       !< Read only pointer to array containing y_gradients
-    real(ccs_real), dimension(:), pointer :: z_gradients_ro => null()       !< Read only pointer to array containing z_gradients
     class(ccs_vector), allocatable :: values                      !< Vector representing the field
+    real(ccs_real), dimension(:), pointer :: values_ro => null()  !< Read only pointer to array containing values
     class(ccs_vector), allocatable :: residuals                   !< Vector representing the field's residuals
-    class(ccs_vector), allocatable :: x_gradients                 !< Vector representing the x gradient
-    class(ccs_vector), allocatable :: y_gradients                 !< Vector representing the y gradient
-    class(ccs_vector), allocatable :: z_gradients                 !< Vector representing the z gradient
+    class(ccs_vector), allocatable :: x_gradients                     !< Vector representing the x gradient
+    real(ccs_real), dimension(:), pointer :: x_gradients_ro => null() !< Read only pointer to array containing x_gradients
+    class(ccs_vector), allocatable :: y_gradients                     !< Vector representing the y gradient
+    real(ccs_real), dimension(:), pointer :: y_gradients_ro => null() !< Read only pointer to array containing y_gradients
+    class(ccs_vector), allocatable :: z_gradients                     !< Vector representing the z gradient
+    real(ccs_real), dimension(:), pointer :: z_gradients_ro => null() !< Read only pointer to array containing z_gradients
     type(ccs_vector_ptr), dimension(:), allocatable :: old_values !< Vector representing the old fields
     type(bc_config) :: bcs                                        !< The bcs data structure for the cell
     type(solver_params), allocatable :: solver_parameters         !< Parameters to use when transporting the field
