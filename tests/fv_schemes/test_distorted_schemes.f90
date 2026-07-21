@@ -1,10 +1,13 @@
 program test_distorted_schemes
+  ! Exercise FV assembly on generated two-cell meshes with non-orthogonal faces
+  ! and unequal cell volumes. The checks cover geometric corrections, assembled
+  ! equation residuals, and payload ownership by mutating inputs after gather.
   use testing_lib
 
   use bc_constants, only: bc_type_dirichlet
   use constants, only: add_mode, ndim
   use fv, only: calc_diffusion_coeff, calc_mass_flux
-  use fv_equations, only: momentum_equation, poisson_equation
+  use fv_equations, only: momentum_equation, poisson_equation, scalar_transport_equation
   use fv_kernels, only: cd_advection_kernel
   use kinds, only: ccs_int, ccs_real
   use mat, only: create_matrix_values, set_matrix_values_spec_ncols, set_matrix_values_spec_nrows
@@ -37,9 +40,11 @@ program test_distorted_schemes
   do icase = 1, n_cases
     call load_mesh_ref(icase, mesh_obj)
     call check_diffusion(icase)
+    call check_momentum_pressure_source(icase)
     do ifield = 1, n_fields
       call load_field_ref(icase, ifield, phi, phi_values, phi_x_gradients, phi_y_gradients, phi_z_gradients)
       call check_mass_flux(icase, ifield)
+      call check_scalar_transport(icase, ifield)
       call check_momentum(icase, ifield)
       call check_poisson(icase, ifield)
     end do
@@ -94,6 +99,74 @@ contains
 
   end subroutine check_mass_flux
 
+  subroutine check_scalar_transport(icase, ifield)
+    integer, intent(in) :: icase
+    integer, intent(in) :: ifield
+
+    character(len=48) :: msg
+
+    write (msg, '(a, i0, a, i0)') "scalar c", icase, " f", ifield
+    call check_scalar_transport_residual(icase, [mflux(icase)], mu(:, icase), &
+                                         mom_res(ifield, icase), .false., trim(msg))
+
+    write (msg, '(a, i0, a, i0)') "scalar payload c", icase, " f", ifield
+    call check_scalar_transport_residual(icase, [mflux(icase)], mu(:, icase), &
+                                         mom_res(ifield, icase), .true., trim(msg))
+    call load_field_ref(icase, ifield, phi, phi_values, phi_x_gradients, phi_y_gradients, phi_z_gradients)
+
+  end subroutine check_scalar_transport
+
+  subroutine check_scalar_transport_residual(icase, mass_flux_values, viscosity_values, expected, &
+                                             mutate_after_gather, msg)
+    integer, intent(in) :: icase
+    real(ccs_real), intent(in) :: mass_flux_values(:)
+    real(ccs_real), intent(in) :: viscosity_values(:)
+    real(ccs_real), intent(in) :: expected
+    logical, intent(in) :: mutate_after_gather
+    character(len=*), intent(in) :: msg
+
+    type(scalar_transport_equation) :: equation
+    type(cd_advection_kernel) :: advection_kernel
+    type(matrix_values) :: mat_values
+    type(vector_values) :: rhs_values
+    type(cell_locator) :: loc_p
+    real(ccs_real), target :: mass_flux(1)
+    real(ccs_real), target :: viscosity(2)
+    real(ccs_real), target :: density(2)
+    real(ccs_real) :: phi_snapshot(2)
+    real(ccs_real) :: residual
+
+    mass_flux(:) = mass_flux_values(:)
+    viscosity(:) = viscosity_values(:)
+    density(:) = rho(:, icase)
+    phi_snapshot(:) = phi_values(:)
+
+    call make_work_values(mat_values, rhs_values)
+    call equation%init(1_ccs_int)
+    call equation%set_advection(advection_kernel)
+    call create_cell_locator(1_ccs_int, loc_p)
+    call equation%gather(phi, loc_p, mass_flux, viscosity, density)
+
+    ! A gathered payload owns copies: changing callers' arrays must not change
+    ! the row assembled by apply.
+    if (mutate_after_gather) then
+      mass_flux(:) = -100.0_ccs_real * mass_flux(:)
+      viscosity(:) = viscosity(:) + 100.0_ccs_real
+      density(:) = density(:) + 100.0_ccs_real
+      phi_values(:) = phi_values(:) + 100.0_ccs_real
+      phi_x_gradients(:) = phi_x_gradients(:) + 100.0_ccs_real
+      phi_y_gradients(:) = phi_y_gradients(:) + 100.0_ccs_real
+      phi_z_gradients(:) = phi_z_gradients(:) + 100.0_ccs_real
+    end if
+
+    call equation%apply()
+    call equation%flush_row(mat_values, rhs_values)
+
+    residual = row_residual_with(mat_values, rhs_values, phi_snapshot)
+    call assert_close(residual, expected, rtol, atol, msg)
+
+  end subroutine check_scalar_transport_residual
+
   subroutine check_momentum(icase, ifield)
     integer, intent(in) :: icase
     integer, intent(in) :: ifield
@@ -109,21 +182,27 @@ contains
     ! unit tests, while this test verifies equation-object assembly.
     write (msg, '(a, i0, a, i0)') "mom adv c", icase, " f", ifield
     call check_momentum_res(icase, [mflux(icase)], zero_viscosity, &
-                            mom_adv_res(ifield, icase), trim(msg))
+                            mom_adv_res(ifield, icase), .false., trim(msg))
     write (msg, '(a, i0, a, i0)') "mom diff c", icase, " f", ifield
     call check_momentum_res(icase, zero_flux, mu(:, icase), &
-                            mom_diff_res(ifield, icase), trim(msg))
+                            mom_diff_res(ifield, icase), .false., trim(msg))
     write (msg, '(a, i0, a, i0)') "mom c", icase, " f", ifield
     call check_momentum_res(icase, [mflux(icase)], mu(:, icase), &
-                            mom_res(ifield, icase), trim(msg))
+                            mom_res(ifield, icase), .false., trim(msg))
+
+    write (msg, '(a, i0, a, i0)') "mom payload c", icase, " f", ifield
+    call check_momentum_res(icase, [mflux(icase)], mu(:, icase), &
+                            mom_res(ifield, icase), .true., trim(msg))
+    call load_field_ref(icase, ifield, phi, phi_values, phi_x_gradients, phi_y_gradients, phi_z_gradients)
 
   end subroutine check_momentum
 
-  subroutine check_momentum_res(icase, mass_ref, viscosity_ref, expected, msg)
+  subroutine check_momentum_res(icase, mass_flux_values, viscosity_values, expected, mutate_after_gather, msg)
     integer, intent(in) :: icase
-    real(ccs_real), intent(in) :: mass_ref(:)
-    real(ccs_real), intent(in) :: viscosity_ref(:)
+    real(ccs_real), intent(in) :: mass_flux_values(:)
+    real(ccs_real), intent(in) :: viscosity_values(:)
     real(ccs_real), intent(in) :: expected
+    logical, intent(in) :: mutate_after_gather
     character(len=*), intent(in) :: msg
 
     type(momentum_equation) :: equation
@@ -131,27 +210,75 @@ contains
     type(matrix_values) :: mat_values
     type(vector_values) :: rhs_values
     type(cell_locator) :: loc_p
-    ! momentum_equation stores pointers to these arrays between init and apply.
+    ! Gather copies these arrays into the row payload before apply.
     real(ccs_real), target :: mass_flux(1)
     real(ccs_real), target :: viscosity(2)
     real(ccs_real), target :: density(2)
+    real(ccs_real) :: phi_snapshot(2)
     real(ccs_real) :: residual
 
-    mass_flux(:) = mass_ref(:)
-    viscosity(:) = viscosity_ref(:)
+    mass_flux(:) = mass_flux_values(:)
+    viscosity(:) = viscosity_values(:)
     density(:) = rho(:, icase)
+    phi_snapshot(:) = phi_values(:)
 
     call make_work_values(mat_values, rhs_values)
-    call equation%init(1_ccs_int, mass_flux, viscosity, density, 1_ccs_int)
+    call equation%init(1_ccs_int, 1_ccs_int)
     call equation%set_advection(advection_kernel)
     call create_cell_locator(1_ccs_int, loc_p)
-    call equation%gather(phi, loc_p)
-    call equation%apply(mat_values, rhs_values)
+    call equation%gather(phi, loc_p, mass_flux, viscosity, density)
 
-    residual = row_residual(mat_values, rhs_values)
+    ! A gathered payload owns copies: changing callers' arrays must not change
+    ! the row assembled by apply.
+    if (mutate_after_gather) then
+      mass_flux(:) = -100.0_ccs_real * mass_flux(:)
+      viscosity(:) = viscosity(:) + 100.0_ccs_real
+      density(:) = density(:) + 100.0_ccs_real
+      phi_values(:) = phi_values(:) + 100.0_ccs_real
+      phi_x_gradients(:) = phi_x_gradients(:) + 100.0_ccs_real
+      phi_y_gradients(:) = phi_y_gradients(:) + 100.0_ccs_real
+      phi_z_gradients(:) = phi_z_gradients(:) + 100.0_ccs_real
+    end if
+
+    call equation%apply()
+    call equation%flush_row(mat_values, rhs_values)
+
+    residual = row_residual_with(mat_values, rhs_values, phi_snapshot)
     call assert_close(residual, expected, rtol, atol, msg)
 
   end subroutine check_momentum_res
+
+  subroutine check_momentum_pressure_source(icase)
+    integer, intent(in) :: icase
+
+    type(momentum_equation) :: equation
+    type(vector_values) :: rhs_values
+    type(cell_locator) :: loc_p
+    real(ccs_real) :: pressure_gradient(2)
+    real(ccs_real) :: pressure_gradient_ref
+    real(ccs_real) :: expected
+    character(len=32) :: msg
+
+    pressure_gradient_ref = 2.75_ccs_real
+    pressure_gradient = [pressure_gradient_ref, -4.5_ccs_real]
+
+    call create_vector_values(1_ccs_int, rhs_values)
+    call set_mode(add_mode, rhs_values)
+    call create_cell_locator(1_ccs_int, loc_p)
+
+    call equation%gather_pressure_source(pressure_gradient, loc_p)
+    ! The pressure source payload must retain its gathered value, not a pointer
+    ! to the caller's array.
+    pressure_gradient(:) = pressure_gradient(:) + 100.0_ccs_real
+    call equation%apply_pressure_source()
+    call equation%flush_rhs(rhs_values)
+
+    expected = -pressure_gradient_ref * volume(1, icase)
+    write (msg, '(a, i0)') "mom src c", icase
+    call assert_eq(rhs_values%global_indices(1), 0_ccs_int, "mom src row")
+    call assert_close(rhs_values%values(1), expected, rtol, atol, trim(msg))
+
+  end subroutine check_momentum_pressure_source
 
   subroutine check_poisson(icase, ifield)
     integer, intent(in) :: icase
@@ -168,10 +295,12 @@ contains
 
     call make_work_values(mat_values, rhs_values)
     call equation%init(1_ccs_int)
-    call equation%bind_inverse(inv_a_work)
     call create_cell_locator(1_ccs_int, loc_p)
-    call equation%gather(phi, loc_p)
-    call equation%apply(mat_values, rhs_values)
+    call equation%gather(phi, loc_p, inv_a_work)
+    ! Poisson assembly must also be independent of the caller after gather.
+    inv_a_work(:) = inv_a_work(:) + 100.0_ccs_real
+    call equation%apply()
+    call equation%flush_row(mat_values, rhs_values)
 
     ! The pressure-correction equation is diffusion-like; check the assembled
     ! residual rather than repeating the diffusion-kernel coefficient checks.
@@ -304,11 +433,20 @@ contains
     type(matrix_values), intent(in) :: mat_values
     type(vector_values), intent(in) :: rhs_values
 
-    residual = rhs_values%values(1)
-    residual = residual - matrix_entry(mat_values, 1_ccs_int) * phi_values(1)
-    residual = residual - matrix_entry(mat_values, 2_ccs_int) * phi_values(2)
+    residual = row_residual_with(mat_values, rhs_values, phi_values)
 
   end function row_residual
+
+  real(ccs_real) function row_residual_with(mat_values, rhs_values, values) result(residual)
+    type(matrix_values), intent(in) :: mat_values
+    type(vector_values), intent(in) :: rhs_values
+    real(ccs_real), intent(in) :: values(:)
+
+    residual = rhs_values%values(1)
+    residual = residual - matrix_entry(mat_values, 1_ccs_int) * values(1)
+    residual = residual - matrix_entry(mat_values, 2_ccs_int) * values(2)
+
+  end function row_residual_with
 
   real(ccs_real) function matrix_entry(mat_values, global_col) result(entry)
     type(matrix_values), intent(in) :: mat_values
