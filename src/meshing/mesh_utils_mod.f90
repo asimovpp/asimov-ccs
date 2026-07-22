@@ -15,15 +15,14 @@ module mesh_utils
   use constants, only: ndim, geoext, adiosconfig
   use utils, only: exit_print, str, debug_print
   use kinds, only: ccs_int, ccs_long, ccs_real, ccs_err
-  use types, only: ccs_mesh, topology, geometry, &
+  use types, only: ccs_mesh, topology, &
                    io_environment, io_process, &
                    face_locator, cell_locator, neighbour_locator, vert_locator, &
                    graph_connectivity
   use io, only: read_scalar, read_array, &
-                write_scalar, write_array, &
                 configure_io, open_file, close_file, &
                 initialise_io, cleanup_io
-  use parallel, only: read_command_line_arguments, create_shared_array, is_root, is_valid, create_shared_roots_comm, &
+  use parallel, only: create_shared_array, is_root, is_valid, create_shared_roots_comm, &
                       destroy_shared_array, sync
   use parallel_types, only: parallel_environment
   use parallel_types_mpi, only: parallel_environment_mpi
@@ -44,7 +43,7 @@ module mesh_utils
                      set_face_interpolation, &
                      set_local_index, &
                      set_global_index, &
-                     get_mesh_generated, set_mesh_generated, set_mesh_object, nullify_mesh_object, &
+                     set_mesh_generated, set_mesh_object, nullify_mesh_object, &
                      set_topo_object, nullify_topo_object
   use bc_constants
   use reordering, only: reorder_cells, print_bandwidth
@@ -115,8 +114,7 @@ contains
   !v Read mesh from file
   subroutine read_mesh(par_env, shared_env, run_options, mesh)
 
-    use partitioning, only: compute_connectivity_get_local_cells, &
-                            compute_partitioner_input
+    use partitioning, only: compute_partitioner_input
 
     use profiler  
 
@@ -256,7 +254,7 @@ contains
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: reader_env !< The reader parallel environment
-    class(io_process) :: geo_reader                                         !< The IO process for reading the file
+    class(io_process), intent(in) :: geo_reader                                         !< The IO process for reading the file
     type(ccs_mesh), intent(inout) :: mesh                                   !< The mesh that will be read
 
     call set_mesh_object(mesh)
@@ -291,7 +289,7 @@ contains
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: reader_env !< The reader parallel environment
-    class(io_process) :: geo_reader                                         !< The IO process for reading the file
+    class(io_process), intent(in) :: geo_reader                                         !< The IO process for reading the file
     type(topology), intent(inout) :: topo                                   !< The mesh topology that will be read
 
     integer(ccs_int) :: i
@@ -427,7 +425,7 @@ contains
 
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: reader_env !< The reader parallel environment
-    class(io_process) :: geo_reader                                            !< The IO process for reading the file
+    class(io_process), intent(in) :: geo_reader                                            !< The IO process for reading the file
     integer(ccs_int), intent(out) :: global_num_faces
     integer(ccs_int), intent(out) :: max_faces
     integer(ccs_int), dimension(:), pointer, intent(out) :: face_cell1
@@ -481,7 +479,7 @@ contains
 
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: reader_env !< The reader parallel environment
-    class(io_process) :: geo_reader                                         !< The IO process for reading the file
+    class(io_process), intent(in) :: geo_reader                                         !< The IO process for reading the file
     type(ccs_mesh), intent(inout) :: mesh                                   !< The mesh%geometry that will be read
 
     integer(ccs_int) :: i, j, n, global_icell, local_icell

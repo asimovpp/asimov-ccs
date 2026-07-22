@@ -7,32 +7,31 @@ submodule(pv_coupling) pv_coupling_simple
   use core, only: ccs_options
   use kinds, only: ccs_int, ccs_real
   use types, only: vector_spec, ccs_vector, matrix_spec, ccs_matrix, equation_system, &
-                   linear_solver, bc_config, vector_values, cell_locator, ccs_residuals, &
-                   face_locator, neighbour_locator, matrix_values, matrix_values_spec, upwind_field, field_ptr
+                   linear_solver, vector_values, cell_locator, ccs_residuals, &
+                   face_locator, neighbour_locator, matrix_values, matrix_values_spec, field_ptr
   use fv, only: compute_fluxes, calc_mass_flux, calc_mass_flux_bc, update_gradient
   use vec, only: create_vector, vec_reciprocal, scale_vec, &
                  get_vector_data, get_vector_data_readonly, restore_vector_data, restore_vector_data_readonly, &
-                 create_vector_values, set_vector_location, zero_vector, vec_aypx, &
-                 mult_vec_vec
+                 create_vector_values, zero_vector, vec_aypx, &
+                 vec_sum, vec_shift
   use mat, only: create_matrix, set_nnz, get_matrix_diagonal, set_matrix_values_spec_nrows, &
-                 set_matrix_values_spec_ncols, create_matrix_values, mat_vec_product, &
+                 set_matrix_values_spec_ncols, create_matrix_values, &
                  check_operator_symmetry
   use utils, only: update, initialise, finalise, set_size, set_values, &
-                   mult, zero, clear_entries, set_entry, set_row, set_col, set_mode, &
+                   mult, zero, clear_entries, set_entry, set_row, set_mode, &
                    str, exit_print, debug_print
   use fields, only:  count_fields, get_field_idx, get_field, get_is_field_solved
 
-  use solver, only: create_solver, solve, set_equation_system, axpy, norm, set_solver_method, set_solver_precon
-  use constants, only: add_mode, insert_mode, ndim, cell
+  use solver, only: create_solver, solve, set_equation_system, axpy, set_solver_method, set_solver_precon
+  use constants, only: add_mode, insert_mode, ndim
   use meshing, only: get_face_area, get_global_index, get_local_index, count_neighbours, &
                      get_boundary_status, get_face_normal, create_neighbour_locator, create_face_locator, &
-                     create_cell_locator, get_volume, get_distance, &
+                     create_cell_locator, get_volume, &
                      get_local_num_cells, get_face_interpolation, &
                      get_global_num_cells, &
                      get_max_faces, is_mesh_set
   use scalars, only: update_scalars
-  use timestepping, only: update_old_values, get_current_step, get_current_time
-  use bc_constants, only: bc_type_dirichlet
+  use timestepping, only: update_old_values
   use residuals, only: compute_residuals, compute_global_residuals, init_residuals, normalise_residuals, &
                        get_max_residuals, print_residuals, is_converged
   use parallel, only: is_root
@@ -45,7 +44,7 @@ submodule(pv_coupling) pv_coupling_simple
   class(ccs_vector), allocatable :: invAu
   class(ccs_vector), allocatable :: invAv
   class(ccs_vector), allocatable :: invAw
-  
+
 contains
 
   !> Solve Navier-Stokes equations using the SIMPLE algorithm
@@ -75,7 +74,7 @@ contains
     class(ccs_vector), allocatable :: source
     class(ccs_matrix), allocatable :: M
     class(ccs_vector), allocatable :: invA    ! Inverse diagonal coefficient
-    class(ccs_vector), allocatable :: workvec ! Temporary workspace vector 
+    class(ccs_vector), allocatable :: workvec ! Temporary workspace vector
     class(ccs_vector), allocatable :: sourcevec
     class(ccs_vector), allocatable :: res
     type(ccs_residuals) :: residuals
@@ -308,12 +307,12 @@ contains
 
     dim = 0.0_ccs_real
     call zero_vector(invA)
-    
+
     call get_field(flow, "u", u)
     call get_field(flow, "v", v)
     call get_field(flow, "w", w)
     call get_field(flow, "p", p)
-    
+
     call get_is_field_solved(u, u_sol)
     call get_is_field_solved(v, v_sol)
     call get_is_field_solved(w, w_sol)
@@ -349,6 +348,10 @@ contains
       call axpy(1.0_ccs_real, invAw, invA)
       call vec_reciprocal(invAw)
       dim = dim + 1.0_ccs_real
+    end if
+
+    if (dim == 0.0_ccs_real) then
+      call error_abort("No velocity fields are being solved") ! Abort to avoid division by zero
     end if
 
     ! Compute the inverse diagonal coefficient
@@ -401,7 +404,7 @@ contains
     ! First zero matrix/RHS
     call zero(vec)
     call zero(M)
-    
+
     ! Select either field residuals or reuse 'input_res'
     if (allocated(u%residuals)) then
       res => u%residuals
@@ -426,7 +429,7 @@ contains
     call get_field(flow, "mf", mf)
     call get_field(flow, "viscosity", viscosity)
     call get_field(flow, "density", density)
-    
+
     call profiler_begin_region("Compute fluxes")
     call compute_fluxes(u, mf, viscosity, density, component, M, vec)
     call profiler_end_region("Compute fluxes")
@@ -445,7 +448,7 @@ contains
 
     call update(vec)
 
-    !calculate viscous source term and populate RHS vector 
+    !calculate viscous source term and populate RHS vector
     call dprint("compute viscous souce term")
     ! call calculate_momentum_viscous_source(flow, component, vec)
 
@@ -494,6 +497,8 @@ contains
   !v Adds the momentum source due to pressure gradient
   subroutine calculate_momentum_pressure_source(p_gradients, vec)
 
+    use fv_equations, only: momentum_equation
+
     ! Arguments
     class(ccs_vector), intent(inout) :: p_gradients !< the pressure gradient
     class(ccs_vector), intent(inout) :: vec         !< the momentum equation RHS vector
@@ -501,11 +506,10 @@ contains
     ! Local variables
     type(vector_values) :: vec_values
     type(cell_locator) :: loc_p
-    integer(ccs_int) :: global_index_p, index_p
-    real(ccs_real) :: r
+    type(momentum_equation) :: mom_eq
     real(ccs_real), dimension(:), pointer :: p_gradient_data
+    integer(ccs_int) :: index_p
     integer(ccs_int) :: local_num_cells
-    real(ccs_real) :: V
 
     call create_vector_values(1_ccs_int, vec_values)
     call set_mode(add_mode, vec_values)
@@ -519,13 +523,9 @@ contains
       call clear_entries(vec_values)
 
       call create_cell_locator(index_p, loc_p)
-      call get_global_index(loc_p, global_index_p)
-
-      call get_volume(loc_p, V)
-
-      r = -p_gradient_data(index_p) * V
-      call set_row(global_index_p, vec_values)
-      call set_entry(r, vec_values)
+      call mom_eq%gather_pressure_source(p_gradient_data, loc_p)
+      call mom_eq%apply_pressure_source()
+      call mom_eq%flush_rhs(vec_values)
       call set_values(vec_values, vec)
     end do
 
@@ -540,7 +540,7 @@ contains
   subroutine get_momentum_sources(flow, u, eval_sources, R, S, M, rhs)
 
     use fv, only: add_fixed_source, add_linear_source
-    
+
     type(fluid), intent(in) :: flow !< The flow field.
     class(field), intent(in) :: u   !< The velocity field for this equation
     interface
@@ -566,7 +566,7 @@ contains
     !       sources.
     call add_fixed_source(S, rhs)
     call add_linear_source(R, M)
-    
+
   end subroutine get_momentum_sources
 
   !v Adds the momentum source due to variation in viscosity
@@ -574,11 +574,11 @@ contains
     type(fluid), intent(inout) :: flow                   !< Container for flow fields
     integer(ccs_int), intent(in) :: component   !< integer indicating direction of velocity field component
     class(ccs_vector), allocatable, intent(inout) :: vec !< the momentum equation RHS vector
-    class(field), pointer :: u  ! x-component of velocity 
+    class(field), pointer :: u  ! x-component of velocity
     class(field), pointer :: v  ! y-component of velocity
     class(field), pointer :: w  ! z-component of velocity
     class(field), pointer :: viscosity
- 
+
     ! Local variables
     type(vector_values) :: vec_values
     type(cell_locator) :: loc_p
@@ -597,7 +597,7 @@ contains
     logical :: is_boundary
     type(face_locator) :: loc_f
     real(ccs_real), dimension(ndim) :: face_normal
-    real(ccs_real) :: interpolation_factor   
+    real(ccs_real) :: interpolation_factor
     real(ccs_real) :: viscosity_face
     real(ccs_real) :: face_area
     real(ccs_real), dimension(:), pointer :: viscosity_data
@@ -610,7 +610,7 @@ contains
     call create_vector_values(1_ccs_int, vec_values)
     call set_mode(add_mode, vec_values)
 
-    ! Extracting the necessary data    
+    ! Extracting the necessary data
     call get_vector_data_readonly(viscosity%values, viscosity_data)
     ! x-component velocity gradient values
     call get_vector_data_readonly(u%x_gradients, dux_data)
@@ -674,7 +674,7 @@ contains
           duvwp(1)=duy_data(index_p)
           duvwp(2)=dvy_data(index_p)
           duvwp(3)=dwy_data(index_p)
-          
+
           if(.not.is_boundary) then ! no boundary face
             ! neighbouring cell gradients
             duvwf(1)=duy_data(index_nb)
@@ -695,7 +695,7 @@ contains
           duvwp(1)=duz_data(index_p)
           duvwp(2)=dvz_data(index_p)
           duvwp(3)=dwz_data(index_p)
-          
+
           if(.not.is_boundary) then ! no boundary face
             ! neighbouring cell gradients
             duvwf(1)=duz_data(index_nb)
@@ -711,7 +711,7 @@ contains
             r1=face_area*viscosity_data(index_p)*dot_product(duvwp,face_normal)
           end if
           r2=r1+r2
-        end if 
+        end if
       end do
 
       call set_row(global_index_p, vec_values)
@@ -722,7 +722,7 @@ contains
     deallocate (vec_values%global_indices)
     deallocate (vec_values%values)
 
-    ! Restoring the necessary data    
+    ! Restoring the necessary data
     call restore_vector_data_readonly(viscosity%values, viscosity_data)
     ! x-component velocity gradient values
     call restore_vector_data_readonly(u%x_gradients, dux_data)
@@ -736,7 +736,7 @@ contains
     call restore_vector_data_readonly(u%z_gradients, duz_data)
     call restore_vector_data_readonly(v%z_gradients, dvz_data)
     call restore_vector_data_readonly(w%z_gradients, dwz_data)
-    
+
   end subroutine calculate_momentum_viscous_source
 
   !v Solves the pressure correction equation
@@ -744,9 +744,9 @@ contains
   !  Solves the pressure correction equation formed by the mass-imbalance.
   subroutine calculate_pressure_correction(par_env, run_options, invA, M, vec, lin_sys, p_prime, lin_solver)
 
-    use fv, only: compute_boundary_coeffs
     use profiler
     use fv_equations, only: poisson_equation
+    use bc_constants, only: bc_type_neumann
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< the parallel environment
@@ -764,18 +764,29 @@ contains
     type(cell_locator) :: loc_p
     type(matrix_values_spec) :: mat_val_spec
 
-    integer(ccs_int) :: local_num_cells
+    integer(ccs_int) :: local_num_cells, global_num_cells
     integer(ccs_int) :: index_p
     integer(ccs_int) :: max_faces
     integer(ccs_int) :: max_stencil_width
 
     real(ccs_real), dimension(:), pointer :: invA_data
 
+    real(ccs_real) :: vec_mean
+
     type(poisson_equation) :: pois_eqn
 
     call profiler_begin_region("Building coefficients")
     ! First zero matrix
     call zero(M)
+
+    ! To ensure compatibility of the Poisson equation with Neumann conditions subtract the mean of the RHS from the RHS
+    if (all(p_prime%bcs%bc_types == bc_type_neumann)) then
+      ! Enforce zero forcing integral
+      call vec_sum(vec, vec_mean)
+      call get_global_num_cells(global_num_cells)
+      vec_mean = vec_mean / global_num_cells
+      call vec_shift(-vec_mean, vec)
+    end if
 
     ! The computed mass imbalance is +ve, to have a +ve diagonal coefficient we need to negate this.
     call dprint("P': negate RHS")
@@ -800,7 +811,6 @@ contains
     call create_matrix_values(mat_val_spec, mat_coeffs)
     call set_mode(insert_mode, mat_coeffs)
 
-    call pois_eqn%bind_inverse(invA_data)
     call pois_eqn%init(max_faces)
 
     ! Loop over cells
@@ -812,8 +822,9 @@ contains
 
       call create_cell_locator(index_p, loc_p)
 
-      call pois_eqn%gather(p_prime, loc_p)
-      call pois_eqn%apply(mat_coeffs, vec_values)
+      call pois_eqn%gather(p_prime, loc_p, invA_data)
+      call pois_eqn%apply()
+      call pois_eqn%flush_row(mat_coeffs, vec_values)
 
       call set_values(mat_coeffs, M)
       call set_values(vec_values, vec)
@@ -848,7 +859,7 @@ contains
     if (run_options%solve%debug) then
       call check_operator_symmetry(M)
     end if
-    
+
     call create_solver(lin_sys, lin_solver)
 
     ! Customise linear solver
@@ -863,7 +874,6 @@ contains
 
   !> Computes the per-cell mass imbalance, updating the face velocity flux as it does so.
   subroutine compute_mass_imbalance(invA, flow, input_b, residuals)
-    use fv, only: compute_boundary_coeffs
 
     class(ccs_vector), intent(inout) :: invA !< The inverse momentum equation diagonal coefficient
     type(fluid), intent(inout) :: flow                   !< Container for flow fields
@@ -922,7 +932,6 @@ contains
     ! First zero RHS
     call zero(b)
 
- 
     call get_vector_data_readonly(p%x_gradients, dpdx_data)
     call get_vector_data_readonly(p%y_gradients, dpdy_data)
     call get_vector_data_readonly(p%z_gradients, dpdz_data)
@@ -978,7 +987,6 @@ contains
     call restore_vector_data_readonly(invA, invA_data)
 
     call restore_vector_data(mf%values, mf_data)
-
 
     call update(b)
     call update(mf%values)
@@ -1156,7 +1164,7 @@ contains
   subroutine check_convergence(par_env, flow, itr, residuals, &
                                converged, diverged)
     use constants, only: Linfty
-    
+
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< The parallel environment
     type(fluid), intent(inout) :: flow                              !< Container for flow fields
@@ -1182,7 +1190,7 @@ contains
     end do
 
     if (present(diverged)) then
-      diverged = (get_max_residuals(residuals, Linfty) > huge(1.0_ccs_real)) 
+      diverged = (get_max_residuals(residuals, Linfty) > huge(1.0_ccs_real))
     end if
 
   end subroutine check_convergence
@@ -1218,7 +1226,11 @@ contains
 
     call dprint("UR: apply UR")
     call get_local_num_cells(local_num_cells)
-      
+
+    if (alpha == 0.0_ccs_real) then
+      call error_abort("Underrelaxation factor alpha is zero") ! Abort to avoid division by zero
+    end if
+
     !$omp parallel do default(none) schedule(static) &
     !$omp shared(local_num_cells, diag_data, b_data, alpha, phi) &
     !$omp private(i)

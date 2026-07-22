@@ -114,6 +114,9 @@ contains
       converged = residuals%L2(ifield) <= res_target
     case (Linfty)
       converged = residuals%Linfty(ifield) <= res_target
+    case default ! default - should never be executed
+      converged = .false.
+      call error_abort("Invalid norm")
     end select
 
   end function
@@ -128,6 +131,9 @@ contains
       max_value = maxval(residuals%L2)
     case (Linfty)
       max_value = maxval(residuals%Linfty)
+    case default ! default - should never be executed
+      max_value = huge(0.0_ccs_real)
+      call error_abort("Invalid norm")
     end select
 
   end function

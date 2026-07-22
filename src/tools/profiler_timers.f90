@@ -21,9 +21,11 @@ contains
     class(parallel_environment), intent(in) :: par_env
     
     select type(par_env)
-    type is (parallel_environment_mpi)
-      call timer_export_csv(par_env)
-      call timer_print_all(par_env)
+      type is (parallel_environment_mpi)
+        call timer_export_csv(par_env)
+        call timer_print_all(par_env)
+      class default
+        error stop "Unknown parallel environment"
     end select
 
     call timer_reset()

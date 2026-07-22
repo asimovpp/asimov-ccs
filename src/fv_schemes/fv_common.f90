@@ -3,19 +3,17 @@
 !  An implementation of the finite volume method
 submodule(fv) fv_common
 #include "ccs_macros.inc"
-  use constants, only: insert_mode, add_mode
+  use constants, only: add_mode
   use types, only: vector_values, matrix_values_spec, matrix_values, neighbour_locator, bc_profile, field, field_ptr
   use vec, only: get_vector_data, restore_vector_data, &
-                 get_vector_data_readonly, restore_vector_data_readonly, &
                  create_vector_values, begin_ghost_update_vector, end_ghost_update_vector
 
   use mat, only: create_matrix_values, set_matrix_values_spec_nrows, set_matrix_values_spec_ncols
-  use utils, only: clear_entries, set_entry, set_row, set_col, set_values, set_mode, update
-  use utils, only: debug_print, exit_print, str
-  use fv_equations, only: momentum_equation
+  use utils, only: clear_entries, set_values, set_mode, update, debug_print
+  use fv_equations, only: momentum_equation, scalar_transport_equation
   use fv_kernels, only: advection_kernel, create_advection_kernel
   use meshing, only: count_neighbours, get_boundary_status, create_neighbour_locator, &
-                     get_local_index, get_global_index, get_volume, get_distance, &
+                     get_local_index, get_volume, get_distance, &
                      create_face_locator, get_face_area, get_face_normal, create_cell_locator, &
                      get_local_num_cells, get_face_interpolation, &
                      get_max_faces, get_centre
@@ -79,7 +77,7 @@ contains
     type(matrix_values) :: mat_coeffs
     type(vector_values) :: b_coeffs
     type(cell_locator) :: loc_p
-    type(momentum_equation) :: mom_eq
+    class(scalar_transport_equation), allocatable :: transport_eq
     integer(ccs_int) :: local_num_cells
     integer(ccs_int) :: index_p
     integer(ccs_int) :: max_nb_faces
@@ -89,8 +87,14 @@ contains
 
     max_nb_faces = max(0_ccs_int, n_stencil_cells - 1_ccs_int)
 
+    if (component == 0_ccs_int) then
+      allocate (scalar_transport_equation :: transport_eq)
+    else
+      allocate (momentum_equation :: transport_eq)
+    end if
+
     kernel = create_advection_kernel(phi)
-    max_kernel_width = max(mom_eq%diff_kernel%get_width(), kernel%get_width())
+    max_kernel_width = max(transport_eq%diff_kernel%get_width(), kernel%get_width())
     n_cells_eff = 1_ccs_int + max_nb_faces * max_kernel_width
 
     call set_matrix_values_spec_nrows(1_ccs_int, mat_val_spec)
@@ -101,8 +105,8 @@ contains
     call create_vector_values(n_cells_eff, b_coeffs)
     call set_mode(add_mode, b_coeffs)
 
-    call mom_eq%set_advection(kernel)
-    call mom_eq%init(max_nb_faces, mf, visc, dens, component)
+    call transport_eq%set_advection(kernel)
+    call transport_eq%init(max_nb_faces, component)
 
     call get_local_num_cells(local_num_cells)
     do index_p = 1, local_num_cells
@@ -110,8 +114,9 @@ contains
       call clear_entries(b_coeffs)
       call create_cell_locator(index_p, loc_p)
 
-      call mom_eq%gather(phi, loc_p)
-      call mom_eq%apply(mat_coeffs, b_coeffs)
+      call transport_eq%gather(phi, loc_p, mf, visc, dens)
+      call transport_eq%apply()
+      call transport_eq%flush_row(mat_coeffs, b_coeffs)
 
       call set_values(b_coeffs, b)
       call set_values(mat_coeffs, M)
@@ -123,6 +128,7 @@ contains
     deallocate(mat_coeffs%global_row_indices)
     deallocate(mat_coeffs%global_col_indices)
     deallocate(mat_coeffs%values)
+    deallocate(transport_eq)
   end subroutine compute_coeffs
 
   !> Computes the value of the scalar field on the boundary
@@ -304,7 +310,7 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
     else
       diffusion_factor = visc_p / (dens_p * SchmidtNo)
     end if
-    
+
     coeff = face_area * diffusion_factor / dxmag
   end subroutine calc_diffusion_coeff
 
@@ -454,7 +460,7 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
     case default
       flux = 0.0_ccs_real
       error stop unknown_bc_type ! Unknown BC type
-    end select 
+    end select
 
   end function
 

@@ -1,7 +1,7 @@
 submodule(vec) vec_common
 #include "ccs_macros.inc"
 
-  use utils, only: exit_print, str
+  use utils, only: exit_print
   use constants, only: cell
   use error_codes
   use meshing, only: get_global_num_cells, get_global_index, get_natural_index, create_cell_locator

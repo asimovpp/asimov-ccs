@@ -5,16 +5,13 @@ program tgv
   use core
   use constants, only: ndim
   use meshing, only: nullify_mesh_object
-  use kinds, only: ccs_real, ccs_int, ccs_long
+  use kinds, only: ccs_real
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, is_root
   use parallel_types, only: parallel_environment
   use types, only: fluid, field
-  use utils, only: exit_print, &
-                   calc_kinetic_energy, calc_enstrophy, &
-                   add_field_to_outputlist, &
-                   str, debug_print
-  use fields, only: get_field, add_field, dealloc_fluid_fields, set_is_field_solved
+  use utils, only: calc_kinetic_energy, calc_enstrophy
+  use fields, only: get_field, dealloc_fluid_fields
   use profiler, only: profiler_init, profiler_shutdown, profiler_begin_region, profiler_end_region
   use logging, only: log_unit_out
 

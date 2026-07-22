@@ -1,14 +1,11 @@
 submodule(core) core_init_mesh
 #include "ccs_macros.inc"
 
-  use utils, only: exit_print, str
+  use utils, only: exit_print
   use ccs_base, only: mesh
-  use parallel_types_mpi, only: parallel_environment_mpi
   use parallel, only: is_root
   use mesh_utils, only: build_mesh, build_square_mesh, read_mesh
   use meshing, only: set_mesh_object
-  use profiler, only: profiler_begin_region, profiler_end_region
-  use kinds, only: ccs_int
   use profiler, only: profiler_begin_region, profiler_end_region
   use logging, only: log_unit_out
 

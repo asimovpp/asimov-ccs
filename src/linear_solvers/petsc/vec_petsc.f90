@@ -13,7 +13,7 @@ submodule(vec) vec_petsc
   use parallel_types_mpi, only: parallel_environment_mpi
   use constants, only: cell, face
   use petsc, only: ADD_VALUES, INSERT_VALUES, SCATTER_FORWARD
-  use utils, only: debug_print, exit_print, str
+  use utils, only: exit_print, str
   use error_codes
   use logging, only: log_unit_out
 
@@ -83,6 +83,8 @@ contains
 
             ! Vector doesn't have ghost points, store this information
             v%ghosted = .false.
+          case default
+            call error_abort("Invalid storage location for vector")
           end select
         end associate
 
@@ -288,6 +290,31 @@ contains
 
   end subroutine end_ghost_update_vector
 
+  !v Perform the 'shift' vector operation using PETSc (aka APY)
+  !
+  !          y[i] = alpha + y[i]
+  module subroutine vec_shift(alpha, y)
+
+    use petscvec, only: VecSHIFT
+
+    real(ccs_real), intent(in) :: alpha     !< a scalar value
+    class(ccs_vector), intent(inout) :: y   !< PETSc vector serving as input, overwritten with result
+
+    integer(ccs_err) :: ierr ! Error code
+
+    select type (y)
+    type is (vector_petsc)
+
+      ! PETSc performs alpha+Y with result stored in Y.
+      call VecSHIFT(y%v, alpha, ierr)
+
+    class default
+      call error_abort("Unknown vector type.")
+
+    end select
+
+  end subroutine
+
   !v Perform the AXPY vector operation using PETSc
   !
   !          y[i] = alpha * x[i] + y[i]
@@ -351,6 +378,22 @@ contains
     class default
       call error_abort("Unknown vector type.")
 
+    end select
+
+  end subroutine
+
+  !> Compute the element-wise sum of a PETSc vector
+  module subroutine vec_sum(v, sum)
+    class(ccs_vector), intent(in) :: v
+    real(ccs_real), intent(out) :: sum
+
+    integer(ccs_err) :: ierr
+
+    select type(v)
+    type is (vector_petsc)
+      call VecSum(v%v, sum, ierr)
+    class default
+      call error_abort("Should be unreachable.")
     end select
 
   end subroutine

@@ -1,13 +1,13 @@
 submodule(meshing) meshing_accessors
 #include "ccs_macros.inc"
 
-  use utils, only: exit_print, str
+  use utils, only: exit_print
   use error_codes
 
   implicit none
 
-  type(ccs_mesh), pointer :: mesh
-  type(topology), pointer :: topo
+  type(ccs_mesh), pointer :: mesh => null()
+  type(topology), pointer :: topo => null()
 
 contains
 
@@ -319,7 +319,7 @@ contains
 
     ! XXX: Potentially expensive...
     call get_total_num_cells(total_num_cells)
-    if (index_p > total_num_cells) then
+    if (index_p > total_num_cells .or. index_p <= 0) then
       error stop no_access_to_cell ! Trying to access cell I don't have access to
     end if
   end subroutine create_cell_locator

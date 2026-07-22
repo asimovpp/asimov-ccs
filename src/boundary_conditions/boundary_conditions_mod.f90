@@ -5,13 +5,12 @@
 module boundary_conditions
 #include "ccs_macros.inc"
 
-  use utils, only: exit_print, debug_print, str
-  use types, only: bc_config, field, bc_profile, fluid
+  use utils, only: exit_print, debug_print
+  use types, only: bc_config, field, bc_profile
   use kinds, only: ccs_int, ccs_real
   use fortran_yaml_c_interface, only: parse
   use read_config, only: get_bc_field
   use bc_constants
-  use core, only: ccs_options
   use constants, only: ccs_string_len
   use error_codes
 
@@ -25,7 +24,7 @@ module boundary_conditions
   public :: set_bc_type
   public :: set_bc_id
   public :: set_bc_profile
-  public :: translate_bcs
+  public :: translate_bcs_phi
 
 contains
 
@@ -53,21 +52,18 @@ contains
 
 
   !v Translate potentially high level boundary contition set by the user into a set of base boundary conditions
-  subroutine translate_bcs(bnd_names, phi)
-    use meshing, only: get_mesh_generated
+  subroutine translate_bcs_phi(bnd_normals, phi)
     use constants, only: ccs_string_len
-    use ccs_base, only: left, right, bottom, top, back, front
 
-    character(len=*), dimension(:), intent(in) :: bnd_names !< List of boundary names
+    real(ccs_real), dimension(:, :), intent(in) :: bnd_normals !< List of boundary names
     class(field), intent(inout) :: phi       !< Field to process
 
-    character(len=ccs_string_len) :: field_name, bnd_name
-    integer(ccs_int) :: i
+    character(len=ccs_string_len) :: field_name
+    integer(ccs_int) :: i, vel_normal_id
+    real(ccs_real), parameter :: eps = 0.01
     logical :: is_momentum, is_pressure, is_pressure_corr, is_extra, is_mf
-    logical :: is_generated
     logical :: is_mom_normal     !< Flag telling if the bc to be processed is normal to the velocity component
      
-    call get_mesh_generated(is_generated)
     is_mom_normal = .false.
     is_momentum = .false.
     is_pressure = .false.
@@ -88,19 +84,26 @@ contains
       is_extra = .true.
     end if
 
+    if (field_name == "u") then
+      vel_normal_id = 1
+    else if (field_name == "v") then
+      vel_normal_id = 2
+    else if (field_name == "w") then
+      vel_normal_id = 3
+    else
+      vel_normal_id = 1
+    end if
+
     do i=1, size(phi%bcs%bc_types)
-      bnd_name = bnd_names(i)
       
       ! Flag telling if the bc to be processed is normal to the velocity component, 
-      !  not used for non generated meshes and fields other than the velocity ones
-      is_mom_normal = (field_name == 'u' .and. ((bnd_name == left) .or. (bnd_name == right))) .or. &
-                      (field_name == 'v' .and. ((bnd_name == bottom) .or. (bnd_name == top))) .or. &
-                      (field_name == 'w' .and. ((bnd_name == front) .or. (bnd_name == back)))
-
+      !  not used for fields other than the velocity ones
+      is_mom_normal = (abs(abs(bnd_normals(vel_normal_id, i)) -1.0_ccs_real) <= eps)
+      
       select case(phi%bcs%bc_types(i))
       case(bc_type_wall)
         if (is_momentum) then
-          if (is_mom_normal .and. is_generated) then
+          if (is_mom_normal) then
             phi%bcs%bc_types(i) = bc_type_neumann
             phi%bcs%values(i) = 0.0_ccs_real
           else

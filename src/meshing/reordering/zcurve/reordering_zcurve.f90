@@ -2,9 +2,7 @@ submodule(reordering) reordering_zcurve
 #include "ccs_macros.inc"
 
   use utils, only: debug_print
-  use types, only: cell_locator, neighbour_locator
   use kinds, only: ccs_long
-  use parallel, only: is_root
 
   implicit none
 
@@ -14,8 +12,7 @@ contains
   module subroutine get_reordering(new_indices)
 
     use mortif, only: demorton2D  
-    use meshing, only: get_local_num_cells, create_cell_locator, count_neighbours, &
-                       get_local_index, create_neighbour_locator, get_local_status
+    use meshing, only: get_local_num_cells
     use mesh_utils, only: build_adjacency_matrix
 
     integer(ccs_int), dimension(:), allocatable, intent(out) :: new_indices !< new indices in "to(from)" format

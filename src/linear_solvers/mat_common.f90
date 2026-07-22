@@ -1,7 +1,7 @@
 submodule(mat) mat_common
 #include "ccs_macros.inc"
 
-  use utils, only: exit_print, str
+  use utils, only: str
   use error_codes
 
   implicit none
@@ -34,8 +34,10 @@ contains
     ! Arguments
     type(matrix_spec), intent(inout) :: mat_properties !< The initialised matrix values
 
+    mat_properties%mesh => null()
     mat_properties%par_env => null()
-    mat_properties%par_env => null()
+    mat_properties%nnz = -1
+
   end subroutine initialise_matrix
 
   !> Setter for global matrix size

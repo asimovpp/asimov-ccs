@@ -60,7 +60,7 @@ recursive=no
 
 # When enabled, pylint would attempt to guess common misconfiguration and emit
 # user-friendly hints instead of false-positive error messages.
-suggestion-mode=yes
+# suggestion-mode=yes
 
 # Allow loading of arbitrary C extensions. Extensions are imported into the
 # active Python interpreter and may run arbitrary code.
@@ -274,7 +274,20 @@ min-similarity-lines=4
 
 # List of additional names supposed to be defined in builtins. Remember that
 # you should avoid defining new builtins when possible.
-additional-builtins=
+additional-builtins=bind,
+                    deferrable,
+                    env_vars,
+                    fixture,
+                    loggable_as,
+                    loggable,
+                    parameter,
+                    performance_function,
+                    reference,
+                    require_deps,
+                    run_after,
+                    run_before,
+                    sanity_function,
+                    variable
 
 # Tells whether unused global variables should be treated as a violation.
 allow-global-unused-variables=yes

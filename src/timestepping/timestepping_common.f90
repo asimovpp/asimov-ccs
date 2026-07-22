@@ -12,7 +12,7 @@ module timestepping_common_types
   ! widths. Additionally this allows for data hiding.
   type ptr_handle
      private
-     real(ccs_real), dimension(:), pointer :: data
+     real(ccs_real), dimension(:), pointer :: data => null()
    contains
      procedure :: read => read_ptr_handle
      procedure :: get_pointer
@@ -59,7 +59,7 @@ submodule(timestepping) timestepping_common
 
   logical :: timestepping_active = .false. !< flag to signify whether timestepping should occur
   logical :: timestep_is_set = .false. !< flag to signify whether dt has already been set
-  real(ccs_real) :: dt !< timestep size
+  real(ccs_real) :: dt = huge(0.0_ccs_real) !< timestep size
   integer(ccs_int) :: current_step = 0
 
 contains
@@ -186,9 +186,9 @@ contains
     call get_vector_data_readonly(newv, new_data)
     call get_vector_data(oldv, old_data)
 
-    old_data = new_data
+    old_data(:) = new_data(:)
 
-    call restore_vector_data_readonly(newv, old_data)
+    call restore_vector_data_readonly(newv, new_data)
     call restore_vector_data(oldv, old_data)
     
   end subroutine copy_old_data

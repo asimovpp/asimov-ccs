@@ -5,7 +5,7 @@
 submodule(scalars) scalars_common
 #include "ccs_macros.inc"
 
-  use kinds, only: ccs_int, ccs_real !< added here
+  use kinds, only: ccs_int
   use types, only: ccs_matrix, ccs_vector, &
        vector_spec, matrix_spec, &
        linear_solver, equation_system, ccs_residuals
@@ -13,7 +13,7 @@ submodule(scalars) scalars_common
   use fv, only: compute_fluxes, update_gradient
   use timestepping, only: update_old_values, get_current_step, apply_timestep
 
-  use vec, only: create_vector, get_vector_data, restore_vector_data
+  use vec, only: create_vector
   use mat, only: create_matrix, set_nnz
   use solver, only: create_solver, solve, set_equation_system, set_solver_method, set_solver_precon
 

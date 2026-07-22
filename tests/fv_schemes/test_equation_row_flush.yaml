@@ -1,0 +1,6 @@
+# RUN: %build_test %s %t1 test_equation_row_flush.f90
+# RUN: %mpirun -n 1 %t1
+
+main: test_equation_row_flush
+base: mpi_petsc
+extra: parhip

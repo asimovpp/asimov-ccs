@@ -11,11 +11,10 @@ module fields
                    vector_spec, face_field, central_field, upwind_field, gamma_field, linear_upwind_field
   use kinds, only: ccs_int
 
-  use utils, only: update, get_scheme_name
+  use utils, only: update, get_scheme_name, debug_print, exit_print
   use parallel, only: is_root
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
   use vec, only: create_vector, get_vector_data_readonly
-  use fv, only: update_gradient
   use timestepping, only: initialise_old_values
   use error_codes
   use logging, only: log_unit_out
@@ -52,16 +51,14 @@ module fields
 contains
 
   !> Build a field variable with data and gradient vectors + transient data and boundary arrays.
-  subroutine create_field(par_env, field_properties, bnd_names, flow)
+  subroutine create_field(par_env, field_properties, flow)
 
     use utils, only: debug_print
-    use boundary_conditions, only: translate_bcs
 
     implicit none
 
     class(parallel_environment), intent(in) :: par_env
     type(field_spec), intent(in) :: field_properties !< Field descriptor
-    character(len=*), dimension(:), intent(in) :: bnd_names !< List of boundary names used by the mesh
     type(fluid), intent(inout) :: flow !< The flow field container where new field is to be constructed
 
     integer :: nfields
@@ -85,9 +82,6 @@ contains
         phi%enable_cell_corrections = enable_cell_corrections
         phi%name = field_name
 
-        ! translate high level bcs into base ones
-        call translate_bcs(bnd_names, phi)
-
         !! --- Ensure data is updated/parallel-constructed ---
         ! XXX: Potential abstraction --- see update(vec), etc.
         call update(phi%values)
@@ -101,8 +95,6 @@ contains
           call update(phi%x_gradients)
           call update(phi%y_gradients)
           call update(phi%z_gradients)
-
-          call update_gradient(phi)
         end if
 
         !! --- End update ---
@@ -178,6 +170,8 @@ contains
     else if (field_type == cell_centred_central) then
       call dprint("Create central field")
       allocate (central_field :: phi_ptr%ptr)
+    else
+      call error_abort("Trying to allocate an unknown field type")
     end if
 
     call dprint("Create field values vector")
@@ -304,7 +298,7 @@ contains
 
     integer(ccs_int) :: i
 
-    logical :: found
+    logical :: found = .false.
 
     do i = 1, size(flow%fields)
       call get_field_byidx(flow, i, flow_field)
@@ -369,6 +363,10 @@ contains
 
     if (field_index > size(flow%fields)) then
       error stop field_index_exceeded ! Field index exceeds number of flow fields
+    end if
+
+    if (field_index <= 0) then
+      call error_abort("Field index less than or equal to zero")
     end if
 
     flow_field => flow%fields(field_index)%ptr

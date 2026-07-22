@@ -4,17 +4,13 @@ program sandia
 
   use core
   use constants, only: ndim
-  use meshing, only: nullify_mesh_object, get_local_num_cells
-  use kinds, only: ccs_real, ccs_int, ccs_long
+  use meshing, only: nullify_mesh_object
+  use kinds, only: ccs_real
   use types, only: fluid
   use parallel, only: initialise_parallel_environment, &
-                      cleanup_parallel_environment, timer, &
+                      cleanup_parallel_environment, &
                       is_root
   use parallel_types, only: parallel_environment
-  use scalars, only: update_scalars
-  use read_config, only: get_enable_cell_corrections, get_store_residuals
-  use boundary_conditions, only: set_bc_profile
-  use utils, only: str
   use fields, only: dealloc_fluid_fields
   use profiler, only: profiler_init, profiler_shutdown, profiler_begin_region, profiler_end_region
   use logging, only: log_unit_out

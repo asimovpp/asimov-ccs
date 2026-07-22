@@ -8,10 +8,10 @@ module poiseuille_core
   use core
   use ccs_base, only: mesh
   use constants, only: ccs_string_len, ndim
-  use kinds, only: ccs_real, ccs_int, ccs_long
+  use kinds, only: ccs_real, ccs_int
   use kinds, only: CCS_MPI_PRECISION
   use types, only: field, fluid, ccs_mesh, bc_profile
-  use parallel, only: timer, is_root
+  use parallel, only: is_root
   use parallel_types, only: parallel_environment
   use utils, only:  calc_kinetic_energy, calc_enstrophy
   use fields, only: get_field, dealloc_fluid_fields
@@ -20,17 +20,16 @@ module poiseuille_core
   use meshing, only: get_total_num_cells, set_mesh_object, get_global_num_cells, nullify_mesh_object, get_local_num_cells
   use io_visualisation, only: reset_io_visualisation
   use utils, only: str, exit_print, reset_outputlist_counter
-  use profiler, only: profiler_init, profiler_shutdown, profiler_begin_region, profiler_end_region
+  use profiler, only: profiler_begin_region, profiler_end_region
   use logging, only: log_unit_out
 
   implicit none
 
   public :: run_poiseuille
 
-  integer(ccs_int), dimension(:), allocatable :: variable_types              ! cell centred upwind, central, etc.
-
   ! Global variables to pass errors to/from postprocessing
-  real(ccs_real), dimension(3) :: pois_error_L2_global, pois_error_Linf_global
+  real(ccs_real), dimension(3) :: pois_error_L2_global = huge(0.0_ccs_real)
+  real(ccs_real), dimension(3) :: pois_error_Linf_global = huge(0.0_ccs_real)
   
   contains
 
@@ -94,7 +93,6 @@ module poiseuille_core
     
     ! Clean-up
     call profiler_end_region('Total elapsed time')
-    call profiler_shutdown(par_env)
 
     call reset_timestepping()
     call reset_outputlist_counter()
