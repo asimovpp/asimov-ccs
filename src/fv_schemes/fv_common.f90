@@ -631,8 +631,6 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
     type(cell_locator) :: loc_p
     real(ccs_real), dimension(ndim) :: grad_p
 
-    call profiler_begin_region("[OMP] compute gradient loop")
-
     local_num_cells = size(gradients, 1)
 
     !$omp parallel do default(none) schedule(static) &
@@ -644,8 +642,6 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
       gradients(i, :) = grad_p(:)
     end do
     !$omp end parallel do
-
-    call profiler_end_region("[OMP] compute gradient loop")
 
   end subroutine compute_gradients
 
@@ -665,8 +661,6 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
     call get_vector_data(phi%y_gradients, y_gradient_data)
     call get_vector_data(phi%z_gradients, z_gradient_data)
 
-    call profiler_begin_region("[OMP] set gradients loop")
-
     !$omp parallel do default(none) schedule(static)         &
     !$omp shared(local_num_cells, gradients,                 &
     !$omp x_gradient_data, y_gradient_data, z_gradient_data) &
@@ -677,8 +671,6 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
       z_gradient_data(i) = gradients(i, 3)
     end do
     !$omp end parallel do
-
-    call profiler_end_region("[OMP] set gradients loop")
 
     call restore_vector_data(phi%x_gradients, x_gradient_data)
     call restore_vector_data(phi%y_gradients, y_gradient_data)
@@ -801,8 +793,6 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
     call get_vector_data(R, R_data)
     call get_vector_data(S, S_data)
 
-    call profiler_begin_region("[OMP] zero sources loop")
-
     call get_local_num_cells(local_num_cells)
     !$omp parallel do default(none) schedule(static) &
     !$omp shared(local_num_cells, R_data, S_data)    &
@@ -814,8 +804,6 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
       R_data(index_p) = 0 * V_p
       S_data(index_p) = 0 * V_p
     end do
-
-    call profiler_end_region("[OMP] zero sources loop")
 
     call restore_vector_data(R, R_data)
     call restore_vector_data(S, S_data)

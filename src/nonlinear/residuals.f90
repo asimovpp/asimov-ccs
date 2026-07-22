@@ -63,7 +63,6 @@ contains
     use types, only: ccs_vector, cell_locator
     use vec, only: get_vector_data_readonly, restore_vector_data_readonly
     use meshing, only: get_local_num_cells, create_cell_locator, get_volume
-    use profiler, only: profiler_begin_region, profiler_end_region
 
     class(ccs_vector), intent(inout) :: res !< residuals vector
     type(ccs_residuals), intent(inout) :: residuals
@@ -81,8 +80,6 @@ contains
     Linfty = 0.0_ccs_real
     call get_vector_data_readonly(res, res_data)
 
-    call profiler_begin_region("[OMP] normalise residuals loop")
-
     !$omp parallel do default(none) schedule(static) &
     !$omp shared(local_num_cells, res_data)          &
     !$omp private(index_p, loc_p, V, normalised_res) &
@@ -95,8 +92,6 @@ contains
       Linfty = max(abs(normalised_res), Linfty)
     end do
     !$omp end parallel do
-
-    call profiler_end_region("[OMP] normalise residuals loop")
 
     residuals%L2(ifield) = L2sq
     residuals%Linfty(ifield) = Linfty
