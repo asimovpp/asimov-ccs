@@ -73,7 +73,7 @@ contains
     integer(ccs_int), dimension(nproc) :: proc_ctr
     
     proc_ctr(:) = 0
-    global_indices(:) = 0
+    global_indices(:) = global_idx_start - 1
     do i = 1, nlocal
        irank = partition(i) + 1 ! Ranks are C-indexed
        global_indices(vtxdist(irank) + proc_ctr(irank)) = global_idx_start + (i - 1)
@@ -82,6 +82,10 @@ contains
 
     if (sum(proc_ctr) /= nlocal) then
       error stop "Didn't distribute our cells correctly!"
+    end if
+
+    if (minval(global_indices) < global_idx_start) then
+      error stop "Didn't set indices correctly!"
     end if
 
   end function compute_global_indices_partition_
@@ -204,12 +208,14 @@ contains
     end if
 
     ! Allocate new adjacency index array xadj based on new vtxdist
-    allocate (mesh%topo%graph_conn%xadj(mesh%topo%graph_conn%vtxdist(irank + 2) - mesh%topo%graph_conn%vtxdist(irank + 1) + 1))
+    !allocate (mesh%topo%graph_conn%xadj(mesh%topo%graph_conn%vtxdist(irank + 2) - mesh%topo%graph_conn%vtxdist(irank + 1) + 1))
+    allocate (mesh%topo%graph_conn%xadj(local_num_cells + 1))
 
     call get_max_faces(max_faces)
 
     ! Allocate temporary 2D integer work array and initialise to 0
-    allocate (tmp_int2d(mesh%topo%graph_conn%vtxdist(irank + 2) - mesh%topo%graph_conn%vtxdist(irank + 1), max_faces + 1))
+    !allocate (tmp_int2d(mesh%topo%graph_conn%vtxdist(irank + 2) - mesh%topo%graph_conn%vtxdist(irank + 1), max_faces + 1))
+    allocate (tmp_int2d(local_num_cells, max_faces + 1))
     tmp_int2d = 0
 
     ! Allocate array to hold number of neighbours for local cells
@@ -380,7 +386,7 @@ contains
     integer(ccs_int), dimension(:), allocatable :: global_indices
     integer(ccs_long), dimension(:), allocatable :: global_indices_recv
 
-    integer(ccs_int) :: local_num_cells
+    integer(ccs_int) :: local_num_cells_recv
     integer(ccs_long), dimension(:), allocatable :: vtxdist_send, vtxdist_recv
     integer(ccs_long), dimension(:), allocatable :: global_indices_partition
     integer(ccs_int), dimension(:), allocatable :: proc_ctr_send, proc_ctr_recv
@@ -392,19 +398,21 @@ contains
 
     integer :: global_ctr
 
-    local_num_cells = compute_local_num_cells(irank, topo%graph_conn)
-    ! Abort the execution if any rank has 0 local cells
-    ! caused by partitioner error
-    call dprint("Number of local cells after partitioning: " // str(local_num_cells))
-    if (local_num_cells <= 0) then
-      call error_abort("ERROR: Zero local cells found.")
+    irank = par_env%proc_id
+
+    if (global_idx_start < 1) then
+      error stop "Initial global index < 1"
+    else if (global_idx_start > topo%global_num_cells) then
+      error stop "Initial global index exceeds limit"
     end if
-    call set_local_num_cells(local_num_cells)
-    call get_local_num_cells(local_num_cells) ! Ensure using value set within mesh
 
     ! 1) get our local vtxdist - which processes do we have global indices for, and how many?
     proc_ctr_send = partition_count(par_env%num_procs, topo%graph_conn%local_partition)
+    if (sum(proc_ctr_send) + (global_idx_start - 1) > topo%global_num_cells) then
+      error stop "Global indices exceed count"
+    end if
     vtxdist_send = proccnt_to_vtxdist(proc_ctr_send)
+
     global_indices_partition = compute_global_indices_partition(topo%graph_conn%local_partition, &
                                                                 proc_ctr_send, vtxdist_send, &
                                                                 global_idx_start)
@@ -424,23 +432,34 @@ contains
        error stop
     end select
 
+    local_num_cells_recv = sum(proc_ctr_recv)
+    if (local_num_cells_recv <= 0) then
+      error stop "Process is receiving no cells in partition"
+    end if
+    call set_local_num_cells(local_num_cells_recv)
+    call get_local_num_cells(local_num_cells_recv) ! Ensure using value set within mesh
+
     ! Intermediate validation: did we lose any cells?
-    if (sum(proc_ctr_recv) /= local_num_cells) then
-      error stop "Our recv'd counts don't match expected number of cells"
+    select type(par_env)
+    type is(parallel_environment_mpi)
+      call MPI_Allreduce(local_num_cells_recv, global_ctr, 1, MPI_INTEGER, MPI_SUM, par_env%comm, ierr)
+    end select
+    if (global_ctr /= topo%global_num_cells) then
+      error stop "Our expected local cell counts don't add up to expected global cell count"
     end if
 
     ! Determine where in our global index buffer data goes
     vtxdist_recv = proccnt_to_vtxdist(proc_ctr_recv)
 
     ! Scatter/gather global indices to all processors
-    allocate(global_indices_recv(local_num_cells))
+    allocate(global_indices_recv(local_num_cells_recv))
     global_indices_recv(:) = -1 ! For checking
     select type(par_env)
     type is(parallel_environment_mpi)
        call MPI_Alltoallv(global_indices_partition, proc_ctr_send, &
-                          vtxdist_send - 1, MPI_INTEGER8, &
+                          int(vtxdist_send - 1), MPI_INTEGER8, &
                           global_indices_recv, proc_ctr_recv, &
-                          vtxdist_recv - 1, MPI_INTEGER8, &
+                          int(vtxdist_recv - 1), MPI_INTEGER8, &
                           par_env%comm, ierr)
     class default
        error stop
@@ -479,6 +498,9 @@ contains
 
     call get_max_faces(max_faces)
     fctr = tmp_int2d(face_nb1_local_index, max_faces + 1) + 1 ! Increment number of faces for this cell
+    if (fctr > max_faces) then
+      error stop "Face counter exceeds mesh face maximum"
+    end if
     tmp_int2d(face_nb1_local_index, fctr) = face_nb2          ! Store global index of neighbour cell
     tmp_int2d(face_nb1_local_index, max_faces + 1) = fctr     ! Store number of faces for this cell
     mesh%topo%num_nb(face_nb1_local_index) = fctr
