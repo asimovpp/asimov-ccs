@@ -653,6 +653,7 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
     real(ccs_real), dimension(:), pointer :: y_gradient_data
     real(ccs_real), dimension(:), pointer :: z_gradient_data
     integer(ccs_int) :: local_num_cells
+    integer(ccs_int) :: i
 
     local_num_cells = size(gradients, 1)
 
@@ -660,9 +661,11 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
     call get_vector_data(phi%y_gradients, y_gradient_data)
     call get_vector_data(phi%z_gradients, z_gradient_data)
 
-    x_gradient_data(1:local_num_cells) = gradients(:, 1)
-    y_gradient_data(1:local_num_cells) = gradients(:, 2)
-    z_gradient_data(1:local_num_cells) = gradients(:, 3)
+    do i = 1, local_num_cells
+      x_gradient_data(i) = gradients(i, 1)
+      y_gradient_data(i) = gradients(i, 2)
+      z_gradient_data(i) = gradients(i, 3)
+    end do
 
     call restore_vector_data(phi%x_gradients, x_gradient_data)
     call restore_vector_data(phi%y_gradients, y_gradient_data)
