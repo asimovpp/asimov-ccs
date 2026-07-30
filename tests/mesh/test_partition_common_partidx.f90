@@ -22,7 +22,7 @@ program test_partition_common_partidx
   integer(ccs_int), dimension(nproc), parameter :: proc_ctr = [ &
        2, 1, 2, 0, 1 &
        ]
-  integer(ccs_int), dimension(nproc + 1), parameter :: vtxdist = [ &
+  integer(ccs_long), dimension(nproc + 1), parameter :: vtxdist = [ &
        1, 3, 4, 6, 6, 7 &
        ]
   integer(ccs_long), parameter :: global_idx_start = 42
