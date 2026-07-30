@@ -78,7 +78,7 @@ contains
         call adios2_attribute_data(attr, adios2_attr, ierr)
 
       else
-        call error_abort("IO Error: unsuported integer type")
+        call error_abort("IO Error: unsupported integer type")
       end if
 
     class default
@@ -114,7 +114,7 @@ contains
         call adios2_attribute_data(attr, adios2_attr, ierr)
 
       else
-        call error_abort("IO Error: unsuported real type")
+        call error_abort("IO Error: unsupported real type")
       end if
 
     class default
@@ -149,7 +149,7 @@ contains
         call adios2_attribute_data(attr, adios2_attr, ierr)
 
       else
-        call error_abort("IO Error: unsuported real type")
+        call error_abort("IO Error: unsupported real type")
       end if
 
     class default
@@ -200,7 +200,7 @@ contains
           call adios2_get(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
 
         else
-          call error_abort("IO Error: unsuported integer type")
+          call error_abort("IO Error: unsupported integer type")
         end if
 
       else
@@ -254,7 +254,7 @@ contains
           call adios2_get(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
 
         else
-          call error_abort("IO Error: unsuported integer type")
+          call error_abort("IO Error: unsupported integer type")
         end if
 
       else
@@ -310,7 +310,7 @@ contains
           call adios2_get(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
 
         else
-          call error_abort("IO Error: unsuported integer type")
+          call error_abort("IO Error: unsupported integer type")
         end if
 
       else
@@ -365,7 +365,7 @@ contains
           call adios2_get(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
 
         else
-          call error_abort("IO Error: unsuported integer type")
+          call error_abort("IO Error: unsupported integer type")
         end if
 
       else
@@ -421,7 +421,7 @@ contains
           call adios2_get(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
 
         else
-          call error_abort("IO Error: unsuported real type")
+          call error_abort("IO Error: unsupported real type")
         end if
 
       else
@@ -476,7 +476,7 @@ contains
           call adios2_get(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
 
         else
-          call error_abort("IO Error: unsuported real type")
+          call error_abort("IO Error: unsupported real type")
         end if
 
       else
@@ -532,7 +532,7 @@ contains
           call adios2_get(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
 
         else
-          call error_abort("IO Error: unsuported real type")
+          call error_abort("IO Error: unsupported real type")
         end if
 
       else
@@ -587,7 +587,7 @@ contains
           call adios2_get(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
 
         else
-          call error_abort("IO Error: unsuported real type")
+          call error_abort("IO Error: unsupported real type")
         end if
 
       else

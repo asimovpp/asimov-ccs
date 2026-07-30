@@ -150,7 +150,7 @@ contains
         call KSPSetType(ksp, trim(method_name), ierr)
 
         if (ierr /= 0) then
-          call error_abort("ERROR: setting solver method failed, " // trim(method_name) // " solver likely unsuported.")
+          call error_abort("ERROR: setting solver method failed, " // trim(method_name) // " solver likely unsupported.")
         end if
 
 #if PETSC_VERSION_GE(3,23,0)
@@ -205,7 +205,7 @@ contains
         call PCSetType(pc, trim(precon_name), ierr)
 
         if (ierr /= 0) then
-          call error_abort("ERROR: setting preconditioner method failed, " // trim(precon_name) // " preconditioner likely unsuported.")
+          call error_abort("ERROR: setting preconditioner method failed, " // trim(precon_name) // " preconditioner likely unsupported.")
         end if
 
 #if PETSC_VERSION_GE(3,23,0)
