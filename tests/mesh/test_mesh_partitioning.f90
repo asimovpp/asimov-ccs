@@ -86,7 +86,7 @@ contains
     do i = 1, size(graph_conn%local_partition)
       nnew(graph_conn%local_partition(i) + 1) = nnew(graph_conn%local_partition(i) + 1) + 1
     end do
-    call MPI_Allreduce(MPI_IN_PLACE, nnew, par_env%num_proces, MPI_INT, MPI_SUM, MPI_COMM_WORLD, ierr)
+    call MPI_Allreduce(MPI_IN_PLACE, nnew, par_env%num_procs, MPI_INT, MPI_SUM, MPI_COMM_WORLD, ierr)
     ntotal = nnew(par_env%proc_id + 1)
     if (ntotal /= global_num_cells) then
       write (message, *) "ERROR: Total cell count after partitioning = ", ntotal, " expected ", global_num_cells
