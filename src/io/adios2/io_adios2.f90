@@ -42,7 +42,7 @@ contains
         call adios2_attribute_data(attr, adios2_attr, ierr)
 
       else
-        call error_abort("IO Error: unsuported integer type")
+        call error_abort("IO Error: unsupported integer type "//trim(attr_name))
       end if
 
     class default
