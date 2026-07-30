@@ -74,15 +74,16 @@ contains
     integer, dimension(:), allocatable :: nnew
     integer :: ntotal
 
-    integer(ccs_long) :: local_num_cells
+    integer(ccs_long) :: global_num_cells
     integer(ccs_long) :: i
 
     integer :: ierr
 
+    !call get_global_num_cells(graph_conn, global_num_cells)
+    global_num_cells = 15
     allocate(nnew(par_env%num_procs))
     nnew = 0
-    call get_local_num_cells(graph_conn, local_num_cells)
-    do i = 1, local_num_cells
+    do i = 1, size(graph_conn%local_partition)
       nnew(graph_conn%local_partition(i) + 1) = nnew(graph_conn%local_partition(i) + 1) + 1
     end do
     call MPI_Allreduce(MPI_IN_PLACE, nnew, par_env%num_proces, MPI_INT, MPI_SUM, MPI_COMM_WORLD, ierr)
@@ -157,7 +158,7 @@ program test_mesh_partitioning
   ! Partition
   call get_global_num_cells(graph_conn, global_num_cells)
   call create_shared_array(shared_env, int(global_num_cells, ccs_int), graph_conn%global_partition, graph_conn%global_partition_window)
-  call partition_kway(par_env, shared_env, roots_env, graph_conn)
+  call partition_kway(par_env, shared_env, graph_conn)
 
   if (par_env%proc_id == 0) then
     print *, graph_conn%global_partition
