@@ -51,15 +51,15 @@ program test_partition_tri_mesh
   ! Run test to check we agree
   call check_topology("mid")
 
-  call partition_kway(par_env, shared_env, roots_env, mesh)
+  call partition_kway(par_env, shared_env, mesh)
 
-  if (is_root(par_env)) then
-    print *, "Global partition after partitioning:"
-    call get_global_num_cells(global_num_cells)
-    do i = 1, global_num_cells
-      print *, mesh%topo%graph_conn%global_partition(i)
-    end do
-  end if
+  !if (is_root(par_env)) then
+  !  print *, "Global partition after partitioning:"
+  !  call get_global_num_cells(global_num_cells)
+  !  do i = 1, global_num_cells
+  !    print *, mesh%topo%graph_conn%global_partition(i)
+  !  end do
+  !end if
 
   ! Compute new connectivity after partitioning
   call compute_connectivity(par_env, shared_env, mesh)
