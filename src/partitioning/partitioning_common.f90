@@ -107,7 +107,7 @@ contains
 
   end function partition_count
 
-  module subroutine compute_vtxdist(par_env, graph_conn)
+  subroutine compute_vtxdist(par_env, graph_conn)
     class(parallel_environment), intent(in) :: par_env
     type(graph_connectivity), intent(inout) :: graph_conn
 
