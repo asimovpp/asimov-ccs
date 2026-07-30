@@ -157,7 +157,6 @@ program test_mesh_partitioning
 
   ! Partition
   call get_global_num_cells(graph_conn, global_num_cells)
-  call create_shared_array(shared_env, int(global_num_cells, ccs_int), graph_conn%global_partition, graph_conn%global_partition_window)
   call partition_kway(par_env, shared_env, graph_conn)
 
   if (par_env%proc_id == 0) then
