@@ -153,6 +153,9 @@ contains
       else if(mode == "read" .or. mode == "append") then
 
         call adios2_open(io_proc%engine, io_proc%io_task, filename, get_mode(mode), ierr)
+        if (ierr /= 0) then
+          call error_abort("Failed to open file for read/append: " // trim(filename))
+        end if
 
       end if
 
