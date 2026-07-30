@@ -71,22 +71,22 @@ contains
     class(parallel_environment), intent(in) :: par_env
     type(graph_connectivity), intent(in) :: graph_conn
 
-    integer :: nnew
+    integer, dimension(:), allocatable :: nnew
     integer :: ntotal
 
-    integer(ccs_long) :: global_num_cells
+    integer(ccs_long) :: local_num_cells
     integer(ccs_long) :: i
 
     integer :: ierr
 
+    allocate(nnew(par_env%num_procs))
     nnew = 0
-    call get_global_num_cells(graph_conn, global_num_cells)
-    do i = 1, global_num_cells
-      if (graph_conn%global_partition(i) == par_env%proc_id) then
-        nnew = nnew + 1
-      end if
+    call get_local_num_cells(graph_conn, local_num_cells)
+    do i = 1, local_num_cells
+      nnew(graph_conn%local_partition(i) + 1) = nnew(graph_conn%local_partition(i) + 1) + 1
     end do
-    call MPI_Allreduce(nnew, ntotal, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD, ierr)
+    call MPI_Allreduce(MPI_IN_PLACE, nnew, par_env%num_proces, MPI_INT, MPI_SUM, MPI_COMM_WORLD, ierr)
+    ntotal = nnew(par_env%proc_id + 1)
     if (ntotal /= global_num_cells) then
       write (message, *) "ERROR: Total cell count after partitioning = ", ntotal, " expected ", global_num_cells
       call stop_test(message)
