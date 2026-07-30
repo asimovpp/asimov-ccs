@@ -391,8 +391,6 @@ contains
     integer(ccs_long), dimension(:), allocatable :: global_indices_partition
     integer(ccs_int), dimension(:), allocatable :: proc_ctr_send, proc_ctr_recv
 
-    integer :: i
-
     integer :: irank
     integer :: ierr
 
