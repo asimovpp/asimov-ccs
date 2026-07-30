@@ -23,10 +23,9 @@ program test_partition_square_mesh
 
   implicit none
 
-  integer :: i, j, n
+  integer :: n
 
   integer, parameter :: topo_idx_type = kind(mesh%topo%graph_conn%adjncy(1))
-  integer(ccs_int) :: global_num_cells
 
   call init()
 
@@ -166,7 +165,7 @@ contains
     character(len=*), intent(in) :: stage
 
     integer(ccs_int) :: local_num_cells
-    integer(ccs_int) :: i
+    integer(ccs_int) :: i, j
 
     type(cell_locator) :: loc_p
     integer(ccs_int) :: global_index_p

@@ -27,15 +27,12 @@ program test_partition_tri_mesh
   implicit none
 
   ! type(topology) :: topo
-  integer :: i
 
   integer, parameter :: topo_idx_type = kind(mesh%topo%graph_conn%adjncy(1))
 
   ! Topology grid size
   integer, parameter :: nrows = 3
   integer, parameter :: ncols = 5
-
-  integer(ccs_int) :: global_num_cells
 
   call init()
   call initialise_test()
