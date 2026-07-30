@@ -65,9 +65,9 @@ module partitioning
       type(ccs_mesh), target, intent(inout) :: mesh                              !< The mesh for which to compute the partition
     end subroutine compute_connectivity
 
-    module subroutine compute_connectivity_get_local_cells(par_env, mesh)
+    module subroutine compute_connectivity_get_local_cells(par_env, topo)
       class(parallel_environment), allocatable, target, intent(in) :: par_env !< The global parallel environment
-      type(ccs_mesh), target, intent(inout) :: mesh                           !< The mesh for which to compute the partition
+      type(topology), target, intent(inout) :: topo                           !< The mesh topology for which to compute the partition
     end subroutine compute_connectivity_get_local_cells
 
     !v Internal routine for computingd the input arrays for the partitioner
@@ -101,7 +101,7 @@ module partitioning
     module function compute_global_indices_partition(partition, proc_ctr, vtxdist, global_idx_start) result(global_indices)
       integer(ccs_long), dimension(:), intent(in) :: partition
       integer(ccs_int), dimension(:), intent(in) :: proc_ctr
-      integer(ccs_int), dimension(:), intent(in) :: vtxdist
+      integer(ccs_long), dimension(:), intent(in) :: vtxdist
       integer(ccs_long), intent(in) :: global_idx_start
       integer(ccs_long), dimension(:), allocatable :: global_indices
     end function compute_global_indices_partition
