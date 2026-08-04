@@ -158,7 +158,7 @@ $(EXE_DEPS): config.yaml $(ALL_DEPS)
 	@if [ $(MAKEDEPF90_SMODS) = 0 ]; then $(GEN_LINK_LINE_W_SMODS) ; else $(GEN_LINK_LINE) ; fi
 
 .PHONY: tests
-tests: FFLAGS+=-DVERBOSE
+# tests: FFLAGS+=-DVERBOSE
 tests: export CCS_DIR := $(CCS_DIR)
 tests: export CMP := $(CMP)
 tests: export OBJ_DIR := $(OBJ_DIR)
