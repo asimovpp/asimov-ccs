@@ -157,7 +157,8 @@ program test_mesh_partitioning
 
   ! Partition
   call get_global_num_cells(graph_conn, global_num_cells)
-  call partition_kway(par_env, shared_env, graph_conn)
+  call partition_kway(par_env, graph_conn)
+  call sync(shared_env)
 
   if (par_env%proc_id == 0) then
     print *, graph_conn%global_partition

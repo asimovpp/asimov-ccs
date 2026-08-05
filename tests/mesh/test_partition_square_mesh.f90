@@ -44,7 +44,8 @@ program test_partition_square_mesh
   print *, "Adjacency index array: ", mesh%topo%graph_conn%xadj
 
   !call partition_stride(par_env, mesh)
-  call partition_kway(par_env, shared_env, mesh)
+  call partition_kway(par_env, mesh)
+  call sync(shared_env)
   call check_topology("mid")
 
   !! global_partition no longer exists - would a similar print of

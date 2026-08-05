@@ -2496,14 +2496,9 @@ contains
   end subroutine
 
   ! Populate mesh%topo%graph_conn%global_partition with a split of cells in stride using global_start and local_count
-  subroutine partition_stride(par_env, shared_env, mesh)
+  subroutine partition_stride(par_env, mesh)
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
-    class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The parallel environment
     type(ccs_mesh), intent(inout) :: mesh                             !< The resulting mesh.
-
-    ! roots_env kept as argument for consistency with partition_kway
-    associate (bar => shared_env)
-    end associate
 
     mesh%topo%graph_conn%local_partition(:) = par_env%proc_id
 
@@ -2804,13 +2799,15 @@ contains
 
     if (par_env%num_procs > 1) then
       call profiler_begin_region("Kway partitioning")
-      call partition_kway(par_env, shared_env, mesh)
+      call partition_kway(par_env, mesh)
       call profiler_end_region("Kway partitioning")
     else
       call profiler_begin_region("Strided partitioning")
-      call partition_stride(par_env, shared_env, mesh)
+      call partition_stride(par_env, mesh)
       call profiler_end_region("Strided partitioning")
     end if
+
+    call sync(shared_env)
 
     call print_partition_quality(par_env, run_options)
 

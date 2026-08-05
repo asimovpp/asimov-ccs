@@ -48,7 +48,8 @@ program test_partition_tri_mesh
   ! Run test to check we agree
   call check_topology("mid")
 
-  call partition_kway(par_env, shared_env, mesh)
+  call partition_kway(par_env, mesh)
+  call sync(shared_env)
 
   !if (is_root(par_env)) then
   !  print *, "Global partition after partitioning:"

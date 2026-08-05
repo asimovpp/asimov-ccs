@@ -44,13 +44,12 @@ contains
   ! The graph can be weighted or unweighted.
   !
   ! High-level interface operating on the mesh object.
-  module subroutine partition_kway_mesh(par_env, shared_env, mesh)
+  module subroutine partition_kway_mesh(par_env, mesh)
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
-    class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The parallel environment
     type(ccs_mesh), target, intent(inout) :: mesh                           !< The mesh for which to compute the parition
 
-    call partition_kway_topo(par_env, shared_env, mesh%topo)
+    call partition_kway_topo(par_env, mesh%topo)
     
   end subroutine partition_kway_mesh
 
@@ -60,13 +59,12 @@ contains
   ! The graph can be weighted or unweighted.
   !
   ! High-level interface operating on the topology object.
-  module subroutine partition_kway_topo(par_env, shared_env, topo)
+  module subroutine partition_kway_topo(par_env, topo)
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
-    class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The parallel environment
     type(topology), target, intent(inout) :: topo                           !< The mesh topology for which to compute the parition
 
-    call partition_kway_graph_conn(par_env, shared_env, topo%graph_conn)
+    call partition_kway_graph_conn(par_env, topo%graph_conn)
 
   end subroutine partition_kway_topo
 
@@ -76,14 +74,13 @@ contains
   ! The graph can be weighted or unweighted.
   !
   ! Performs the partitioning on the graph connectivity object.
-  module subroutine partition_kway_graph_conn(par_env, shared_env, graph_conn)
+  module subroutine partition_kway_graph_conn(par_env, graph_conn)
 
     use mpi
     use iso_c_binding
     use iso_fortran_env
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env    !< The parallel environment
-    class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The parallel environment
     type(graph_connectivity), target, intent(inout) :: graph_conn              !< The graph connectivity for which to compute the parition
 
     ! Local variables
@@ -171,8 +168,6 @@ contains
     end select
 
     call dprint("Number of edgecuts: " // str(int(edgecuts)))
-
-    call sync(shared_env)
 
   end subroutine partition_kway_graph_conn
 
