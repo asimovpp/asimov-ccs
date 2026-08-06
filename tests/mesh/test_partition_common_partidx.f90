@@ -28,7 +28,7 @@ program test_partition_common_partidx
   integer(ccs_long), parameter :: global_idx_start = 42
   integer(ccs_long), dimension(nlocal), parameter :: global_indices_exp = [ &
        3, 4, 5, 1, 6, 2 &
-       ] + global_idx_start
+       ] + global_idx_start - 1
 
   integer(ccs_long), dimension(:), allocatable :: global_indices 
 

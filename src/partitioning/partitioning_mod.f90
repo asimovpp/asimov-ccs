@@ -18,7 +18,7 @@ module partitioning
   public :: compute_connectivity
   public :: compute_connectivity_get_local_cells
   public :: print_partition_quality
-  public :: compute_vtxdist_local
+  public :: proccnt_to_vtxdist
   public :: partition_count
   public :: compute_global_indices_partition
   
@@ -91,10 +91,10 @@ module partitioning
       integer(ccs_long), dimension(:), intent(in) :: partition
       integer(ccs_int), dimension(nproc) :: proc_count
     end function partition_count
-    module function compute_vtxdist_local(proc_ctr) result(vtxdist)
-      integer(ccs_int), dimension(:), intent(in) :: proc_ctr
-      integer(ccs_int), dimension(:), allocatable :: vtxdist
-    end function compute_vtxdist_local
+    module function proccnt_to_vtxdist(proccnt) result(vtxdist)
+      integer(ccs_int), dimension(:), intent(in) :: proccnt
+      integer(ccs_long), dimension(:), allocatable :: vtxdist
+    end function proccnt_to_vtxdist
     module function compute_global_indices_partition(partition, proc_ctr, vtxdist, global_idx_start) result(global_indices)
       integer(ccs_long), dimension(:), intent(in) :: partition
       integer(ccs_int), dimension(:), intent(in) :: proc_ctr

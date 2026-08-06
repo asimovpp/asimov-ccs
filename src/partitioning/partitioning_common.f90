@@ -108,16 +108,25 @@ contains
   end function partition_count
 
   subroutine compute_vtxdist(par_env, graph_conn)
+    use mpi
+
     class(parallel_environment), intent(in) :: par_env
     type(graph_connectivity), intent(inout) :: graph_conn
 
     integer :: i
+    integer(ccs_err) :: ierr
+    integer(ccs_int), dimension(:), allocatable :: proc_count
 
-    ! Recompute vtxdist array based on the new partition
-    associate(local_partition => graph_conn%local_partition, &
-              vtxdist => graph_conn%vtxdist)
-      vtxdist = proccnt_to_vtxdist(partition_count(par_env%num_procs, local_partition))
-    end associate
+    ! Compute the global number of cells assigned to each process from the local partitions.
+    proc_count = partition_count(par_env%num_procs, graph_conn%local_partition)
+    select type (par_env)
+    type is (parallel_environment_mpi)
+      call MPI_Allreduce(MPI_IN_PLACE, proc_count, size(proc_count), MPI_INTEGER, MPI_SUM, par_env%comm, ierr)
+    class default
+      error stop "Unsupported parallel environment"
+    end select
+
+    graph_conn%vtxdist = proccnt_to_vtxdist(proc_count)
     
     if (is_root(par_env)) then
       do i = 1, size(graph_conn%vtxdist) - 1
@@ -128,7 +137,7 @@ contains
   end subroutine compute_vtxdist
 
   ! Convert the processor counts to the vtx distribution
-  function proccnt_to_vtxdist(proccnt) result(vtxdist)
+  module function proccnt_to_vtxdist(proccnt) result(vtxdist)
     integer(ccs_int), dimension(:), intent(in) :: proccnt
     integer(ccs_long), dimension(:), allocatable :: vtxdist
 

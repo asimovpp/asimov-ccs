@@ -5,7 +5,7 @@ program test_partition_common_vtxdist
 
   use kinds, only: ccs_int, ccs_long
 
-  use partitioning, only: compute_vtxdist_local
+  use partitioning, only: proccnt_to_vtxdist
 
   implicit none
 
@@ -15,9 +15,9 @@ program test_partition_common_vtxdist
        ]
   integer(ccs_long), dimension(nproc + 1), parameter :: vtxdist_expect = &
        [1, 3, 4, 6, 6, 7]
-  integer(ccs_int), dimension(:), allocatable :: vtxdist
+  integer(ccs_long), dimension(:), allocatable :: vtxdist
 
-  vtxdist = compute_vtxdist_local(proc_ctr)
+  vtxdist = proccnt_to_vtxdist(proc_ctr)
 
   if (size(vtxdist) /= (nproc + 1)) then
      call stop_test("vtxdist size is wrong!")
