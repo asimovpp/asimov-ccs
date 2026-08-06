@@ -87,7 +87,7 @@ contains
       nnew(graph_conn%local_partition(i) + 1) = nnew(graph_conn%local_partition(i) + 1) + 1
     end do
     call MPI_Allreduce(MPI_IN_PLACE, nnew, par_env%num_procs, MPI_INT, MPI_SUM, MPI_COMM_WORLD, ierr)
-    ntotal = nnew(par_env%proc_id + 1)
+    ntotal = sum(nnew)
     if (ntotal /= global_num_cells) then
       write (message, *) "ERROR: Total cell count after partitioning = ", ntotal, " expected ", global_num_cells
       call stop_test(message)
@@ -159,10 +159,6 @@ program test_mesh_partitioning
   call get_global_num_cells(graph_conn, global_num_cells)
   call partition_kway(par_env, graph_conn)
   call sync(shared_env)
-
-  if (par_env%proc_id == 0) then
-    print *, graph_conn%global_partition
-  end if
 
   ! Check mesh after partitioning
   call check_global_cell_count(par_env, graph_conn)
