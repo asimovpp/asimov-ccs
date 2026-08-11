@@ -1,5 +1,5 @@
 # RUN: %build_test %s %t1 test_square_mesh_neighbours.f90
-# RUN: %mpirun  -n 4 %t1
+# RUN: OMP_NUM_THREADS=2 %mpirun  -n 4 %t1
 
 main: test_square_mesh_neighbours
 base: mpi

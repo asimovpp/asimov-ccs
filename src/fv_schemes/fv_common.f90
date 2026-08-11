@@ -667,9 +667,7 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
     call get_vector_data(phi%y_gradients, y_gradient_data)
     call get_vector_data(phi%z_gradients, z_gradient_data)
 
-    !$omp parallel do default(none) schedule(static)         &
-    !$omp shared(local_num_cells, gradients,                 &
-    !$omp x_gradient_data, y_gradient_data, z_gradient_data) &
+    !$omp parallel do default(shared) schedule(static) &
     !$omp private(i)
     do i = 1, local_num_cells
       x_gradient_data(i) = gradients(i, 1)
