@@ -1231,6 +1231,9 @@ contains
       call error_abort("Underrelaxation factor alpha is zero") ! Abort to avoid division by zero
     end if
 
+    !$omp parallel do default(none) schedule(static) &
+    !$omp shared(local_num_cells, diag_data, b_data, alpha, phi) &
+    !$omp private(i)
     do i = 1, local_num_cells
       diag_data(i) = diag_data(i) / alpha
 

@@ -80,6 +80,10 @@ contains
     Linfty = 0.0_ccs_real
     call get_vector_data_readonly(res, res_data)
 
+    !$omp parallel do default(none) schedule(static) &
+    !$omp shared(local_num_cells, res_data)          &
+    !$omp private(index_p, loc_p, V, normalised_res) &
+    !$omp reduction(+:L2sq) reduction(max:Linfty)
     do index_p = 1, local_num_cells
       call create_cell_locator(index_p, loc_p)
       call get_volume(loc_p, V)
@@ -87,6 +91,7 @@ contains
       L2sq = L2sq + normalised_res**2
       Linfty = max(abs(normalised_res), Linfty)
     end do
+    !$omp end parallel do
 
     residuals%L2(ifield) = L2sq
     residuals%Linfty(ifield) = Linfty

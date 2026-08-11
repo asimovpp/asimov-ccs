@@ -638,11 +638,17 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
     real(ccs_real), dimension(ndim) :: grad_p
 
     local_num_cells = size(gradients, 1)
+
+    !$omp parallel do default(none) schedule(static) &
+    !$omp shared(local_num_cells, gradients, phi)    &
+    !$omp private(i, loc_p, grad_p)
     do i = 1, local_num_cells
       call create_cell_locator(i, loc_p)
       call compute_gradient_at_point(phi, loc_p, grad_p)
       gradients(i, :) = grad_p(:)
     end do
+    !$omp end parallel do
+
   end subroutine compute_gradients
 
   subroutine set_gradients(phi, gradients)
@@ -653,6 +659,7 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
     real(ccs_real), dimension(:), pointer :: y_gradient_data
     real(ccs_real), dimension(:), pointer :: z_gradient_data
     integer(ccs_int) :: local_num_cells
+    integer(ccs_int) :: i
 
     local_num_cells = size(gradients, 1)
 
@@ -660,9 +667,14 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
     call get_vector_data(phi%y_gradients, y_gradient_data)
     call get_vector_data(phi%z_gradients, z_gradient_data)
 
-    x_gradient_data(1:local_num_cells) = gradients(:, 1)
-    y_gradient_data(1:local_num_cells) = gradients(:, 2)
-    z_gradient_data(1:local_num_cells) = gradients(:, 3)
+    !$omp parallel do default(shared) schedule(static) &
+    !$omp private(i)
+    do i = 1, local_num_cells
+      x_gradient_data(i) = gradients(i, 1)
+      y_gradient_data(i) = gradients(i, 2)
+      z_gradient_data(i) = gradients(i, 3)
+    end do
+    !$omp end parallel do
 
     call restore_vector_data(phi%x_gradients, x_gradient_data)
     call restore_vector_data(phi%y_gradients, y_gradient_data)
@@ -786,6 +798,9 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
     call get_vector_data(S, S_data)
 
     call get_local_num_cells(local_num_cells)
+    !$omp parallel do default(none) schedule(static) &
+    !$omp shared(local_num_cells, R_data, S_data)    &
+    !$omp private(index_p, loc_p, V_p)
     do index_p = 1, local_num_cells
       ! XXX: Dummy implementation, use flow/phi to compute field-specific sources
       call create_cell_locator(index_p, loc_p)

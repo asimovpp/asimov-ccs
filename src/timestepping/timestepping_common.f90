@@ -243,6 +243,7 @@ contains
   end subroutine apply_timestep_kernel
 
   subroutine apply_kernel_driver(transient, old_pointer, diag_data, b_data)
+
     class(transient_kernel), intent(inout) :: transient
     type(ptr_handle), dimension(:), intent(in) :: old_pointer
     real(ccs_real), dimension(:), intent(inout) :: diag_data, b_data
@@ -260,6 +261,10 @@ contains
     allocate(old(transient%get_width()))
     
     call get_local_num_cells(local_num_cells)
+    !$omp parallel do default(none) schedule(static)   &
+    !$omp shared(local_num_cells, old_pointer, rho,    &
+    !$omp transient, diag_data, b_data)                &
+    !$omp private(i, j, old, loc_p, V_p, coeff, rhs)
     do i = 1, local_num_cells
       call create_cell_locator(i, loc_p)
       call get_volume(loc_p, V_p)
@@ -275,6 +280,7 @@ contains
       diag_data(i) = diag_data(i) + coeff
       b_data(i) = b_data(i) + rhs
     end do
+    !$omp end parallel do
 
   end subroutine apply_kernel_driver
 
