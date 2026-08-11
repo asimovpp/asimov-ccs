@@ -15,10 +15,10 @@ program test_advection_kernels
   real(ccs_real), parameter :: interpF = 0.5_ccs_real ! generic l_f
 
   ! kernel instances
-  type(gamma_advection_kernel)   :: gamma
-  type(upwind_advection_kernel)  :: upwind
-  type(luds_advection_kernel)    :: luds
-  type(cd_advection_kernel)      :: cd
+  type(gamma_advection_kernel) :: gamma
+  type(upwind_advection_kernel) :: upwind
+  type(luds_advection_kernel) :: luds
+  type(cd_advection_kernel) :: cd
 
   ! error containers
   real(ccs_real) :: h(nLevels),  &
@@ -106,7 +106,7 @@ contains
     real(ccs_real), intent(out) :: phi, dphidx
 
     phi = eval_phi(x)
-    !!!dphidx = pi * phi
+    !!! dphidx = pi * phi
     dphidx = (eval_phi(x + dx / 2) - eval_phi(x - dx / 2)) / dx
   end subroutine sample_field
 
@@ -119,7 +119,7 @@ contains
     real(ccs_real), dimension(2) :: coeffs
 
     coeffs = k%eval_coeffs(u0)
-    flux_disc = coeffs(2)*phiCell(2) + coeffs(1)*phiCell(1) + &
+    flux_disc = coeffs(2) * phiCell(2) + coeffs(1) * phiCell(1) + &
                  k%eval_explicit(phiCell, u0, interpF, rvecs, grads)
     flux_exact = u0 * phiFace
     err = abs(flux_exact - flux_disc)
@@ -155,9 +155,9 @@ contains
     phi_const = [phi0, phi0]
     grads_zero = 0.0_ccs_real
     rhs = k%eval_explicit(phi_const, u0, interpF, rvecs, grads_zero)
-    flux = coeffs(1)*phi0 + coeffs(2)*phi0 + rhs
+    flux = coeffs(1) * phi0 + coeffs(2) * phi0 + rhs
 
-    call assert_eq(flux, u0*phi0, hdr//trim(name)//': constant-phi flux', outval=ok)
+    call assert_eq(flux, u0 * phi0, hdr//trim(name)//': constant-phi flux', outval=ok)
     if (.not. ok) then
       print *, ' CONSERVATION failure - ', trim(name)
       test_pass = .false.
@@ -196,7 +196,7 @@ contains
     ! negative velocity
     coeffs = k%eval_coeffs(-u0)
     rhs = k%eval_explicit(phi, -u0, interpF, rvecs, grads)
-    flux_neg = coeffs(1)*phi(1) + coeffs(2)*phi(2) + rhs
+    flux_neg = coeffs(1) * phi(1) + coeffs(2) * phi(2) + rhs
 
     call assert_eq(flux_neg, -flux_pos, hdr//trim(name)//': antisymmetry', outval=ok)
     if (.not. ok) then
