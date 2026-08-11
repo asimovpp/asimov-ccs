@@ -132,7 +132,7 @@ regexp-rules:
 
   one-space-after-comment:
     message: At least one space after comment
-    regexp: \!([^><v^\s])
+    regexp: \!([^$><v^\s])
     replacement: '! \1'
     include-comments: true
 
