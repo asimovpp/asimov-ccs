@@ -689,7 +689,10 @@ contains
     call get_local_num_cells(local_num_cells) ! Ensure using true value
     call dprint("Initial number of local cells: " // str(local_num_cells))
 
-    ! Count halo cells
+    ! Count halo cells. The global indices of cells local to this rank fall in the range
+    !   `vtxdist(irank + 1):vtxdist(irank + 2) - 1`
+    ! therefore the number of halo cells is given by counting all the cells in the adjacency graph
+    ! outwith this range.
     ! XXX: This will count multiple connections to the same halo cell multiple times, so too would
     !      the original implementation!
     associate(graph_conn => topo%graph_conn)
