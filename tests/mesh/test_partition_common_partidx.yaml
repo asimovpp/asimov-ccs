@@ -1,0 +1,8 @@
+# RUN: %build_test %s %t1 test_partition_common_partidx.f90
+# RUN: %t1
+
+main: test_partition_common_partidx
+base: mpi
+options: 
+  partitioning: partitioning_parhip
+extra: parhip

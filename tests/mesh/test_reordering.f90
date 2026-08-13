@@ -43,7 +43,8 @@ program test_rcm
     call compute_partitioner_input(par_env, shared_env, mesh)
 
     call set_mesh_object(mesh)
-    call partition_stride(par_env, shared_env, roots_env, mesh)
+    call partition_stride(par_env, mesh)
+    call sync(shared_env)
     call compute_connectivity(par_env, shared_env, mesh)
 
     call get_local_num_cells(local_num_cells)
