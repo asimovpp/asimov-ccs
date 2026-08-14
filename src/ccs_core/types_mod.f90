@@ -89,8 +89,6 @@ module types
     integer(ccs_long), dimension(:), allocatable :: vwgt            !< Weights on vertices - name from ParMETIS
     integer(ccs_long), dimension(:), allocatable :: adjwgt          !< Weights on edges - name from ParMETIS
     integer(ccs_long), dimension(:), allocatable :: local_partition !< Local partition array
-    integer(ccs_long), dimension(:), pointer :: global_partition => null() !< Global partition array
-    integer :: global_partition_window = huge(0)                   !< Associated shared window
   end type graph_connectivity
   
   !v Topology type

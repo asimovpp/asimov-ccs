@@ -23,10 +23,9 @@ program test_partition_square_mesh
 
   implicit none
 
-  integer :: i, j, n
+  integer :: n
 
   integer, parameter :: topo_idx_type = kind(mesh%topo%graph_conn%adjncy(1))
-  integer(ccs_int) :: global_num_cells
 
   call init()
 
@@ -45,16 +44,19 @@ program test_partition_square_mesh
   print *, "Adjacency index array: ", mesh%topo%graph_conn%xadj
 
   !call partition_stride(par_env, mesh)
-  call partition_kway(par_env, shared_env, roots_env, mesh)
+  call partition_kway(par_env, mesh)
+  call sync(shared_env)
   call check_topology("mid")
 
-  if (is_root(par_env)) then
-    print *, "Global partition after partitioning:"
-    call get_global_num_cells(global_num_cells)
-    do i = 1, global_num_cells
-      print *, mesh%topo%graph_conn%global_partition(i)
-    end do
-  end if
+  !! global_partition no longer exists - would a similar print of
+  !  local_partition be sensible?
+  ! if (is_root(par_env)) then
+  !   print *, "Global partition after partitioning:"
+  !   call get_global_num_cells(global_num_cells)
+  !   do i = 1, global_num_cells
+  !     print *, mesh%topo%graph_conn%global_partition(i)
+  !   end do
+  ! end if
 
   ! Compute new connectivity after partitioning
   call compute_connectivity(par_env, shared_env, mesh)
@@ -164,7 +166,7 @@ contains
     character(len=*), intent(in) :: stage
 
     integer(ccs_int) :: local_num_cells
-    integer(ccs_int) :: i
+    integer(ccs_int) :: i, j
 
     type(cell_locator) :: loc_p
     integer(ccs_int) :: global_index_p
