@@ -2426,7 +2426,9 @@ contains
     type(cell_locator) :: loc_p
     type(neighbour_locator) :: loc_nb
     type(face_locator) :: loc_f
+
     real(ccs_real) :: interpol_factor
+    integer(ccs_int) :: index_p, index_nb
     integer(ccs_int) :: j
     integer(ccs_int) :: nnb
     integer(ccs_int) :: local_num_cells
@@ -2440,8 +2442,7 @@ contains
     real(ccs_real), dimension(ndim) :: v_p_nb ! vector going through local and neighbour cell centres
 
     ! MW START: add face interpolation diagnostics
-    integer(ccs_int) :: index_p, index_nb
-    integer(ccs_int) :: index_p, index_nb, index_f
+    integer(ccs_int) :: index_f
     integer(ccs_int) :: global_p, global_nb
     integer(ccs_int) :: natural_p, natural_nb
     integer(ccs_int) :: global_f
