@@ -2429,17 +2429,24 @@ contains
 
     real(ccs_real) :: interpol_factor
     integer(ccs_int) :: index_p, index_nb
+    integer(ccs_int) :: index_p, index_nb, index_f
+    integer(ccs_int) :: global_p, global_nb
+    integer(ccs_int) :: natural_p, natural_nb
+    integer(ccs_int) :: global_f
     integer(ccs_int) :: j
     integer(ccs_int) :: nnb
     integer(ccs_int) :: local_num_cells
     integer(ccs_int) :: num_faces
     logical :: is_boundary
+    integer :: rank, ierr
 
     real(ccs_real), dimension(ndim) :: x_p ! cell centre array
     real(ccs_real), dimension(ndim) :: x_nb ! neighbour cell centre array
     real(ccs_real), dimension(ndim) :: x_f ! face centre array
     real(ccs_real), dimension(ndim) :: v_p_nb ! vector going through local and neighbour cell centres
 
+    call MPI_Comm_rank(MPI_COMM_WORLD, rank, ierr)
+    
     if (allocated(mesh%geo%face_interpol)) then
       deallocate (mesh%geo%face_interpol)
     end if
@@ -2471,9 +2478,31 @@ contains
           ! v_p_nb.V2 / |v_p_nb|**2
           v_p_nb = x_nb - x_p
           interpol_factor = dot_product(v_p_nb, x_f - x_p) / dot_product(v_p_nb, v_p_nb)
-          if (interpol_factor > 1) then
-            call dprint("invalid interpol factor " // str(interpol_factor))
+
+          ! MW START: add face interpolation diagnostics
+          if (interpol_factor < 0.0_ccs_real .or. interpol_factor > 1.0_ccs_real) then
+            call get_local_index(loc_f, index_f)
+            call get_global_index(loc_p, global_p)
+            call get_global_index(loc_nb, global_nb)
+            call get_natural_index(loc_p, natural_p)
+            call get_natural_index(loc_nb, natural_nb)
+
+            global_f = -1_ccs_int
+            if (associated(mesh%topo%global_face_indices)) then
+              global_f = mesh%topo%global_face_indices(j, natural_p)
+            end if
+
+            write (log_unit_out, *) "FACE INTERPOLATION DIAGNOSTIC"
+            write (log_unit_out, *) "rank:", rank
+            write (log_unit_out, *) "face slot/local/global:", j, index_f, global_f
+            write (log_unit_out, *) "cell local/global/natural:", index_p, global_p, natural_p
+            write (log_unit_out, *) "neighbour local/global/natural:", index_nb, global_nb, natural_nb
+            write (log_unit_out, *) "x_cell:", x_p
+            write (log_unit_out, *) "x_neighbour:", x_nb
+            write (log_unit_out, *) "x_face:", x_f
+            write (log_unit_out, *) "interpolation factor:", interpol_factor
           end if
+          ! MW END: add face interpolation diagnostics
 
           ! inverse interpol factor as it is relative to x_p
           ! the closer x_f is to x_p, the higher the interpol_factor
@@ -2490,7 +2519,20 @@ contains
 
     if (minval(mesh%geo%face_interpol) < 0.0_ccs_real .or. &
         maxval(mesh%geo%face_interpol) > 1.0_ccs_real) then
-      call error_abort("Face interpolation out of bound.")
+
+       ! MW START: add face interpolation diagnostics
+       do index_f = 1, num_faces
+          if (mesh%geo%face_interpol(index_f) < 0.0_ccs_real .or. &
+               mesh%geo%face_interpol(index_f) > 1.0_ccs_real) then
+             write (log_unit_out, *) &
+                  "Invalid stored face: rank/local face/value:", &
+                  rank, index_f, mesh%geo%face_interpol(index_f)
+          end if
+       end do
+       flush (log_unit_out)
+       ! MW END: add face interpolation diagnostics
+
+       call error_abort("Face interpolation out of bound.")
     end if
 
   end subroutine
