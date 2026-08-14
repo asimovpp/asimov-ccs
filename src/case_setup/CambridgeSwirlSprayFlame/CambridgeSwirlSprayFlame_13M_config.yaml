@@ -70,17 +70,17 @@ variables:
   n_variables: 7
   variable_1:
     name: u
-    type: upwind
+    type: luds
     relaxation: 0.6
     solve: on
   variable_2:
     name: v
-    type: upwind
+    type: luds
     relaxation: 0.6
     solve: on
   variable_3:
     name: w
-    type: upwind
+    type: luds
     relaxation: 0.6
     solve: on
   variable_4:
@@ -112,7 +112,7 @@ boundaries:
       value: 0
   boundary_2:
     name: inlet_air
-    type: dirichlet
+    type: inflow
     value: 0
     variable_p:
       type: neumann
@@ -122,7 +122,7 @@ boundaries:
       value: 0
     variable_u:
       type: dirichlet
-      value: 10.0
+      value: 1.0
     variable_v:
       type: dirichlet
       value: 0.0
@@ -137,7 +137,7 @@ boundaries:
       value: 0.0377
   boundary_3:
     name: wall_tube
-    type: dirichlet
+    type: wall
     value: 0
     variable_p:
       type: neumann
@@ -150,7 +150,7 @@ boundaries:
       value: 0
   boundary_4:
     name: wall_annulus
-    type: dirichlet
+    type: wall
     value: 0
     variable_p:
       type: neumann
@@ -163,7 +163,7 @@ boundaries:
       value: 0
   boundary_5:
     name: wall_bluffbody
-    type: dirichlet
+    type: wall
     value: 0
     variable_p:
       type: neumann
@@ -173,7 +173,7 @@ boundaries:
       value: 0
   boundary_6:
     name: wall_swirler
-    type: dirichlet
+    type: wall
     value: 0
     variable_p:
       type: neumann
@@ -183,7 +183,7 @@ boundaries:
       value: 0
   boundary_7:
     name: wall_blade
-    type: dirichlet
+    type: wall
     value: 0
     variable_p:
       type: neumann
@@ -193,7 +193,7 @@ boundaries:
       value: 0
   boundary_8:
     name: wall_bluffbodytop
-    type: dirichlet
+    type: wall
     value: 0
     variable_p:
       type: neumann
@@ -203,7 +203,7 @@ boundaries:
       value: 0
   boundary_9:
     name: inlet_fuel
-    type: dirichlet
+    type: inflow
     value: 0
     variable_p:
       type: neumann
@@ -222,7 +222,7 @@ boundaries:
       value: 0
   boundary_10:
     name: wall_chamberbot
-    type: dirichlet
+    type: wall
     value: 0
     variable_p:
       type: neumann
@@ -232,7 +232,7 @@ boundaries:
       value: 0
   boundary_11:
     name: wall_chamberside
-    type: dirichlet
+    type: wall
     value: 0
     variable_p:
       type: neumann
@@ -242,7 +242,7 @@ boundaries:
       value: 0
   boundary_12:
     name: wall_bladesurf
-    type: dirichlet
+    type: wall
     value: 0
     variable_p:
       type: neumann
@@ -252,7 +252,7 @@ boundaries:
       value: 0
   boundary_13:
     name: wall_right
-    type: dirichlet
+    type: wall
     value: 0
     variable_p:
       type: neumann
@@ -262,7 +262,7 @@ boundaries:
       value: 0
   boundary_14:
     name: wall_left
-    type: dirichlet
+    type: wall
     value: 0
     variable_p:
       type: neumann
@@ -272,7 +272,7 @@ boundaries:
       value: 0
   boundary_15:
     name: outlet
-    type: neumann
+    type: outflow
     value: 0
     variable_p:
       type: dirichlet
