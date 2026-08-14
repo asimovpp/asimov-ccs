@@ -1,0 +1,282 @@
+---
+title: CambridgeSwirlSprayFlame
+
+# restart capability
+restart: false
+
+# unsteady state
+unsteady: true
+
+#  number of timesteps
+steps: 100
+
+#  number of iterations
+iterations: 50
+
+# time step size
+dt: 1.0e-7
+
+# Square/cubic mesh generation parameters
+# cells per side
+# cps: 8
+# domain size
+L: 3.1415926535
+
+mesh: read
+
+target_residual: 1.0e-10
+
+# Frequency (in terms of timesteps) of writing solution to file
+write_frequency: 20
+
+# Fluid properties
+viscocity : 1.789e-2
+
+# Report partition quality (true/false)
+compute_partqual : false
+
+# Compute matrix bandwidth (true/false)
+compute_bwidth : false
+
+#reference_numbers:
+#    pressure: 101325.0
+#    temperature: 289.0
+#    density: 1.0
+#    viscosity: 1.0e-03
+#    pref_at_cell: 4096
+
+#init:
+#  type: user
+
+#monitor_cell: 1990
+
+# 1 = central
+#convection_scheme:
+#  u: 1
+#  v: 1
+#  w: 1
+
+#blending_factor:
+#  u: 1.0
+#  v: 1.0
+#  w: 1.0
+
+post:
+  type: center
+  variables: [u, v, w, p]
+
+variables:
+  enable_cell_corrections: false
+  n_variables: 7
+  variable_1:
+    name: u
+    type: upwind
+    relaxation: 0.6
+    solve: on
+  variable_2:
+    name: v
+    type: upwind
+    relaxation: 0.6
+    solve: on
+  variable_3:
+    name: w
+    type: upwind
+    relaxation: 0.6
+    solve: on
+  variable_4:
+    name: p
+    type: central
+    relaxation: 0.05
+    solve: on
+  variable_5:
+    name: p_prime
+    type: central
+  variable_6:
+    name: k
+    type: upwind
+  variable_7:
+    name: epsilon
+    type: upwind
+
+boundaries:
+  n_boundaries: 15
+  boundary_1:
+    name: default
+    type: neumann
+    value: 0
+    variable_u:
+      type: dirichlet
+      value: 0
+    variable_v:
+      type: dirichlet
+      value: 0
+  boundary_2:
+    name: inlet_air
+    type: dirichlet
+    value: 0
+    variable_p:
+      type: neumann
+      value: 0
+    variable_p_prime:
+      type: neumann
+      value: 0
+    variable_u:
+      type: dirichlet
+      value: 10.0
+    variable_v:
+      type: dirichlet
+      value: 0.0
+    variable_w:
+      type: dirichlet
+      value: 0.0
+    variable_k:
+      type: dirichlet
+      value: 0.00375
+    variable_epsilon:
+      type: dirichlet
+      value: 0.0377
+  boundary_3:
+    name: wall_tube
+    type: dirichlet
+    value: 0
+    variable_p:
+      type: neumann
+      value: 0
+    variable_u:
+      type: neumann
+      value: 0
+    variable_p_prime:
+      type: neumann
+      value: 0
+  boundary_4:
+    name: wall_annulus
+    type: dirichlet
+    value: 0
+    variable_p:
+      type: neumann
+      value: 0
+    variable_u:
+      type: neumann
+      value: 0
+    variable_p_prime:
+      type: neumann
+      value: 0
+  boundary_5:
+    name: wall_bluffbody
+    type: dirichlet
+    value: 0
+    variable_p:
+      type: neumann
+      value: 0
+    variable_p_prime:
+      type: neumann
+      value: 0
+  boundary_6:
+    name: wall_swirler
+    type: dirichlet
+    value: 0
+    variable_p:
+      type: neumann
+      value: 0
+    variable_p_prime:
+      type: neumann
+      value: 0
+  boundary_7:
+    name: wall_blade
+    type: dirichlet
+    value: 0
+    variable_p:
+      type: neumann
+      value: 0
+    variable_p_prime:
+      type: neumann
+      value: 0
+  boundary_8:
+    name: wall_bluffbodytop
+    type: dirichlet
+    value: 0
+    variable_p:
+      type: neumann
+      value: 0
+    variable_p_prime:
+      type: neumann
+      value: 0
+  boundary_9:
+    name: inlet_fuel
+    type: dirichlet
+    value: 0
+    variable_p:
+      type: neumann
+      value: 0
+    variable_u:
+      type: dirichlet
+      value: 10.0
+    variable_k:
+      type: dirichlet
+      value: 0.00375
+    variable_epsilon:
+      type: dirichlet
+      value: 0.0377
+    variable_p_prime:
+      type: neumann
+      value: 0
+  boundary_10:
+    name: wall_chamberbot
+    type: dirichlet
+    value: 0
+    variable_p:
+      type: neumann
+      value: 0
+    variable_p_prime:
+      type: neumann
+      value: 0
+  boundary_11:
+    name: wall_chamberside
+    type: dirichlet
+    value: 0
+    variable_p:
+      type: neumann
+      value: 0
+    variable_p_prime:
+      type: neumann
+      value: 0
+  boundary_12:
+    name: wall_bladesurf
+    type: dirichlet
+    value: 0
+    variable_p:
+      type: neumann
+      value: 0
+    variable_p_prime:
+      type: neumann
+      value: 0
+  boundary_13:
+    name: wall_right
+    type: dirichlet
+    value: 0
+    variable_p:
+      type: neumann
+      value: 0
+    variable_p_prime:
+      type: neumann
+      value: 0
+  boundary_14:
+    name: wall_left
+    type: dirichlet
+    value: 0
+    variable_p:
+      type: neumann
+      value: 0
+    variable_p_prime:
+      type: neumann
+      value: 0
+  boundary_15:
+    name: outlet
+    type: neumann
+    value: 0
+    variable_p:
+      type: dirichlet
+      value: 0
+    variable_p_prime:
+      type: dirichlet
+      value: 0
