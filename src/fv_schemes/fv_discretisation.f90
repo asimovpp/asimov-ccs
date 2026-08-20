@@ -67,7 +67,7 @@ contains
   !> Calculates advection coefficient for neighbouring cell using gamma discretisation
   !
   ! The implementation of the Gamma scheme is based on the Dolfyn implementation
-  ! https: // bazaar.launchpad.net/~hwkrus/dolfyn-cfd/trunk/view/411/src/diffschemes.f90
+  ! https://bazaar.launchpad.net/~hwkrus/dolfyn-cfd/trunk/view/411/src/diffschemes.f90
   ! The original code is distributed under the APACHE-2.0 license reproduced below
   !
   ! Copyright 2003-2014 Henk Krus, Cyclone Fluid Dynamics BV
@@ -77,7 +77,7 @@ contains
   ! you may not use this file except in compliance with the License.
   ! You may obtain a copy of the License at
   !
-  ! http: // www.dolfyn.net/license.html
+  ! http://www.dolfyn.net/license.html
   !
   ! Unless required by applicable law or agreed to in writing, software
   ! distributed under the License is distributed on an
@@ -211,7 +211,7 @@ contains
   !> Calculates advection coefficient for neighbouring cell using Linear Upwind discretisation
   !
   ! The implementation of the linear upwind scheme is based on the Dolfyn implementation
-  ! https: // bazaar.launchpad.net/~hwkrus/dolfyn-cfd/trunk/view/411/src/diffschemes.f90
+  ! https://bazaar.launchpad.net/~hwkrus/dolfyn-cfd/trunk/view/411/src/diffschemes.f90
   ! The original code is distributed under the APACHE-2.0 license reproduced below
   !
   ! Copyright 2003-2014 Henk Krus, Cyclone Fluid Dynamics BV
@@ -221,7 +221,7 @@ contains
   ! you may not use this file except in compliance with the License.
   ! You may obtain a copy of the License at
   !
-  ! http: // www.dolfyn.net/license.html
+  ! http://www.dolfyn.net/license.html
   !
   ! Unless required by applicable law or agreed to in writing, software
   ! distributed under the License is distributed on an
