@@ -159,15 +159,15 @@ regexp-rules:
 
   missing-space-around-arithmetic:
     message: Missing space around arithmetic operator
-    regexp: ([^\s\*\/])(?<!len=)(?<!class\()([-\+\*\/])([^\s\*\/])
+    regexp: (?!(?:\(\s*\*\s*,|,\s*\*\s*\)))([^\s\*\/])(?<!len=)(?<!class\()([-\+\*\/])([^\s\*\/])
     replacement: \1 \2 \3
   missing-space-before-arithmetic:
     message: Missing space before arithmetic operator
-    regexp: ([^\s\*\/=])([-\+\*\/])\s+([^\s\*])
+    regexp: (?!(?:\(\s*\*\s*,|,\s*\*\s*\)))([^\s\*\/=])([-\+\*\/])\s+([^\s\*])
     replacement: \1 \2 \3
   missing-space-after-arithmetic:
     message: Missing space after arithmetic operator
-    regexp: ([^\s\*=\.])\s+([-\+\*\/])([^\s\*\/=,])
+    regexp: (?!(?:\(\s*\*\s*,|,\s*\*\s*\)))([^\s\*=\.])\s+([-\+\*\/])([^\s\*\/=,])
     replacement: \1 \2 \3
 
   space-around-exponential:
