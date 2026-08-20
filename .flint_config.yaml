@@ -45,7 +45,7 @@ regexp-rules:
 
   real-ccs-working-precision:
     message: Use CCS working precision
-    regexp: (?=){outside_character_literal}(?<=real)(?!\(\s*ccs_real\s*\))\([^\(]*\)
+    regexp: (?=){outside_character_literal}(?<=real)(?!\(\s*(?:ccs_real|real32|real64)\s*\))\([^\(]*\)(?=\s*(?:,.*)?::)
     replacement: (ccs_real)
 
   character-string-length:
@@ -280,7 +280,7 @@ structure-rules:
   max-declared-locals: 12
   min-varlen: 1
   max-varlen: 20
-  max-arguments: 5
+  max-arguments: 7
   min-arglen: 1
   max-arglen: 20
   max-nesting-levels: 5

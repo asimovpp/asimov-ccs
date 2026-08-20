@@ -205,35 +205,35 @@ module io
       integer(int64), optional, intent(in) :: step             !< The step to read
     end subroutine
 
-    !>  Write a scalar integer to file
+    !> Write a scalar integer to file
     module subroutine write_scalar_int32(io_proc, attr_name, attr)
       class(io_process), intent(in) :: io_proc    !< IO process used for reading
       character(len=*), intent(in) :: attr_name  !< Name of scalar integer to read
       integer(int32), intent(in) :: attr          !< Value of scalar integer
     end subroutine
 
-    !>  Write a scalar long integer to file
+    !> Write a scalar long integer to file
     module subroutine write_scalar_int64(io_proc, attr_name, attr)
       class(io_process), intent(in) :: io_proc   !< IO process used for reading
       character(len=*), intent(in) :: attr_name !< Name of scalar integer to read
       integer(int64), intent(in) :: attr         !< Value of scalar integer
     end subroutine
 
-    !>  Write a scalar real to file
+    !> Write a scalar real to file
     module subroutine write_scalar_real32(io_proc, attr_name, attr)
       class(io_process), intent(in) :: io_proc   !< IO process used for reading
       character(len=*), intent(in) :: attr_name !< Name of scalar real to read
       real(real32), intent(in) :: attr           !< Value of scalar real
     end subroutine
 
-    !>  Write a scalar double precision real to file
+    !> Write a scalar double precision real to file
     module subroutine write_scalar_real64(io_proc, attr_name, attr)
       class(io_process), intent(in) :: io_proc   !< IO process used for reading
       character(len=*), intent(in) :: attr_name !< Name of scalar double precision real to read
       real(real64), intent(in) :: attr           !< Value of scalar double precision real
     end subroutine
 
-    !>  Write a 1D 32-bit integer array to file
+    !> Write a 1D 32-bit integer array to file
     module subroutine write_array_int32_1D(io_proc, var_name, global_shape, global_start, count, var)
       class(io_process), intent(in) :: io_proc                 !< IO process used for reading
       character(len=*), intent(in) :: var_name                !< Name of integer array to read
@@ -243,7 +243,7 @@ module io
       integer(int32), dimension(:), intent(in) :: var          !< The 1D integer array
     end subroutine
 
-    !>  Write a 1D 64-bit integer array to file
+    !> Write a 1D 64-bit integer array to file
     module subroutine write_array_int64_1D(io_proc, var_name, global_shape, global_start, count, var)
       class(io_process), intent(in) :: io_proc                 !< IO process used for reading
       character(len=*), intent(in) :: var_name                !< Name of integer array to read
@@ -253,7 +253,7 @@ module io
       integer(int64), dimension(:), intent(in) :: var          !< The 1D integer array
     end subroutine
 
-    !>  Write a 2D 32-bit integer array to file
+    !> Write a 2D 32-bit integer array to file
     module subroutine write_array_int32_2D(io_proc, var_name, global_shape, global_start, count, var)
       class(io_process), intent(in) :: io_proc                 !< IO process used for reading
       character(len=*), intent(in) :: var_name                !< Name of integer array to read
@@ -263,7 +263,7 @@ module io
       integer(int32), dimension(:, :), intent(in) :: var        !< The 2D integer array
     end subroutine
 
-    !>  Write a 2D 64-bit integer array to file
+    !> Write a 2D 64-bit integer array to file
     module subroutine write_array_int64_2D(io_proc, var_name, global_shape, global_start, count, var)
       class(io_process), intent(in) :: io_proc                 !< IO process used for reading
       character(len=*), intent(in) :: var_name                !< Name of integer array to read
@@ -273,7 +273,7 @@ module io
       integer(int64), dimension(:, :), intent(in) :: var        !< The 2D integer array
     end subroutine
 
-    !>  Write a 1D 32-bit real array to file
+    !> Write a 1D 32-bit real array to file
     module subroutine write_array_real32_1D(io_proc, var_name, global_shape, global_start, count, var)
       class(io_process), intent(in) :: io_proc                 !< IO process used for reading
       character(len=*), intent(in) :: var_name                !< Name of real array to read
@@ -283,7 +283,7 @@ module io
       real(real32), dimension(:), intent(in) :: var            !< The 1D real array
     end subroutine
 
-    !>  Write a 1D 64-bit real array to file
+    !> Write a 1D 64-bit real array to file
     module subroutine write_array_real64_1D(io_proc, var_name, global_shape, global_start, count, var)
       class(io_process), intent(in) :: io_proc                 !< IO process used for reading
       character(len=*), intent(in) :: var_name                !< Name of real array to read
@@ -293,7 +293,7 @@ module io
       real(real64), dimension(:), intent(inout) :: var         !< The 1D real array
     end subroutine
 
-    !>  Write a 2D 32-bit real array to file
+    !> Write a 2D 32-bit real array to file
     module subroutine write_array_real32_2D(io_proc, var_name, global_shape, global_start, count, var)
       class(io_process), intent(in) :: io_proc                 !< IO process used for reading
       character(len=*), intent(in) :: var_name                !< Name of real array to read
@@ -303,7 +303,7 @@ module io
       real(real32), dimension(:, :), intent(in) :: var          !< The 2D real array
     end subroutine
 
-    !>  Write a 2D 64-bit real array to file
+    !> Write a 2D 64-bit real array to file
     module subroutine write_array_real64_2D(io_proc, var_name, global_shape, global_start, count, var)
       class(io_process), intent(in) :: io_proc                 !< IO process used for reading
       character(len=*), intent(in) :: var_name                !< Name of real array to read
