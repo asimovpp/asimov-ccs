@@ -189,7 +189,7 @@ regexp-rules:
     replacement: \1 = \2
   missing-space-before-=:
     message: Missing space before "="
-    regexp: ([^\s=\/])(?<!kind|.len)=(?=\s)
+    regexp: ([^\s=\/<>])(?<!kind|.len)=(?=\s)
     replacement: \1 =
   missing-space-after-=:
     message: Missing space after "="
