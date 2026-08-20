@@ -102,7 +102,7 @@ contains
 
   !v Check if a particular residual is below the res_target
   logical function is_converged(residuals, phi, ifield) result(converged)
-    type(ccs_residuals), intent(in) :: residuals !< residuals object 
+    type(ccs_residuals), intent(in) :: residuals !< residuals object
     class(field), intent(in) :: phi !< field to get the residual target from
     integer(ccs_int), intent(in) :: ifield !< index of the residual in 'residuals' object
     real(ccs_real) :: res_target
@@ -191,7 +191,6 @@ contains
 
     class(field), pointer :: phi
     logical :: phi_sol
-
 
     ! Print residuals
     if (is_root(par_env)) then

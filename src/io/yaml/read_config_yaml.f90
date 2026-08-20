@@ -6,7 +6,7 @@
 submodule(read_config) read_config_utils
 #include "ccs_macros.inc"
 
-  use utils, only: exit_print,get_scheme_id
+  use utils, only: exit_print, get_scheme_id
   use fortran_yaml_c_interface, only: parse
   use fortran_yaml_c, only: type_dictionary, &
                             type_error, &
@@ -40,7 +40,7 @@ contains
         if (present(value_present)) then
           value_present = .false.
         end if
-        if(present(required)) then
+        if (present(required)) then
           if (required) then
             call error_abort("Error reading keyword " // keyword // ". Possibly missing keyword in yaml file.")
           end if
@@ -54,7 +54,7 @@ contains
     class default
       call error_abort("Unknown type")
     end select
-   
+
   end subroutine
 
   !v Gets the real value specified by the keyword from the dictionary. Returns a flag indicating
@@ -78,7 +78,7 @@ contains
         if (present(value_present)) then
           value_present = .false.
         end if
-        if(present(required)) then
+        if (present(required)) then
           if (required) then
             call error_abort("Error reading keyword " // keyword // ". Possibly missing keyword in yaml file.")
           end if
@@ -115,7 +115,7 @@ contains
         if (present(value_present)) then
           value_present = .false.
         end if
-        if(present(required)) then
+        if (present(required)) then
           if (required) then
             call error_abort("Error reading keyword " // keyword // ". Possibly missing keyword in yaml file.")
           end if
@@ -126,7 +126,7 @@ contains
           value_present = .true.
         end if
       end if
-      
+
     class default
       call error_abort("Unknown type")
     end select
@@ -151,7 +151,7 @@ contains
         if (present(value_present)) then
           value_present = .false.
         end if
-        if(present(required)) then
+        if (present(required)) then
           if (required) then
             call error_abort("Error reading keyword " // keyword // ". Possibly missing keyword in yaml file.")
           end if
@@ -167,7 +167,7 @@ contains
     end select
 
   end subroutine get_logical_value
- 
+
   !v Get the name of the test case
   !
   !  Get the case name for the configuration file and store it in a string.
@@ -258,37 +258,37 @@ contains
 
         ! Pressure_total
         if (present(p_total)) then
-          call get_value(dict, "pressure_total", p_total, required = .false.)
+          call get_value(dict, "pressure_total", p_total, required=.false.)
         end if
 
         ! Temperature
         if (present(temp_ref)) then
-          call get_value(dict, "temperature", temp_ref, required = .false.)
+          call get_value(dict, "temperature", temp_ref, required=.false.)
         end if
 
         ! Density
         if (present(dens_ref)) then
-          call get_value(dict, "density", dens_ref, required = .false.)
+          call get_value(dict, "density", dens_ref, required=.false.)
         end if
 
         ! Viscosity
         if (present(visc_ref)) then
-          call get_value(dict, "viscosity", visc_ref, required = .false.)
+          call get_value(dict, "viscosity", visc_ref, required=.false.)
         end if
 
         ! Velocity
         if (present(velo_ref)) then
-          call get_value(dict, "velocity", velo_ref, required = .false.)
+          call get_value(dict, "velocity", velo_ref, required=.false.)
         end if
 
         ! Length
         if (present(len_ref)) then
-          call get_value(dict, "length", len_ref, required = .false.)
+          call get_value(dict, "length", len_ref, required=.false.)
         end if
 
         ! Pref_at_cell
         if (present(pref_at_cell)) then
-          call get_value(dict, "pref_at_cell", pref_at_cell, required = .false.)
+          call get_value(dict, "pref_at_cell", pref_at_cell, required=.false.)
         end if
       end if
 
@@ -333,10 +333,10 @@ contains
       dict => config_file%get_dictionary('variables', required=.true., error=io_err)
       call get_value(dict, "n_variables", n_var)
 
-      allocate(solver_parameters(n_var))
+      allocate (solver_parameters(n_var))
 
       select type (dict)
-      type is(type_dictionary)
+      type is (type_dictionary)
         do i = 1, n_var
           write (key, '(A, I0)') "variable_", i
           dict_var => dict%get_dictionary(key, required=.true., error=io_err)
@@ -365,7 +365,7 @@ contains
 
           call get_value(dict_var, 'norm_residual', residuals_norm, value_present=val_present, required=.false.)
           if (val_present) then
-            select case(trim(residuals_norm))
+            select case (trim(residuals_norm))
             case ("L2")
               solver_parameters(i)%res_norm = L2
             case ("Linfty")
@@ -386,8 +386,8 @@ contains
           end if
 
         end do
-        class default
-          call error_abort("Unknown type")
+      class default
+        call error_abort("Unknown type")
       end select
 
     class default
@@ -614,7 +614,7 @@ contains
     type(type_error), allocatable :: io_err
     character(len=ccs_string_len) :: elt
 
-    allocate(post_vars(0)) ! Set initial size to zero
+    allocate (post_vars(0)) ! Set initial size to zero
 
     select type (config_file)
     type is (type_dictionary)
@@ -641,7 +641,7 @@ contains
               end select
             end do
           else
-            write(log_unit_out,*) "COULDN'T FIND POST VARIABLES"
+            write (log_unit_out, *) "COULDN'T FIND POST VARIABLES"
           end if
 
         class default
@@ -683,12 +683,12 @@ contains
     type(type_error), allocatable :: io_err
 
     integer :: i
-    
+
     character(len=25) :: boundary_entry
     character(len=:), allocatable :: tmpstr
-    
+
     call get_boundary_count(config_file, n_boundaries)
-    allocate(bnd_names(n_boundaries))
+    allocate (bnd_names(n_boundaries))
 
     if (allocated(error)) then
       call error_abort(trim(error))
@@ -699,11 +699,11 @@ contains
       dict => config_file%get_dictionary("boundaries", required=.true., error=io_err)
 
       do i = 1, n_boundaries
-        write(boundary_entry, '(A, I0)') "boundary_", i
-        select type(dict)
-        type is(type_dictionary)
+        write (boundary_entry, '(A, I0)') "boundary_", i
+        select type (dict)
+        type is (type_dictionary)
           dict2 => dict%get_dictionary(boundary_entry, required=.true., error=io_err)
-          
+
           call get_value(dict2, "name", tmpstr)
           bnd_names(i) = trim(tmpstr)
         class default
@@ -714,9 +714,8 @@ contains
       call error_abort("type unhandled")
     end select
 
-    
   end subroutine get_boundary_names
-    
+
   module subroutine get_store_residuals(filename, store_residuals)
     character(len=*), intent(in) :: filename
     logical, intent(out) :: store_residuals
@@ -793,7 +792,7 @@ contains
 
       call get_value(dict, "n_variables", n_var)
       if (allocated(variables)) then
-        deallocate(variables)
+        deallocate (variables)
       end if
       allocate (variables(n_var))
 

@@ -12,8 +12,8 @@ contains
   module subroutine profiler_init()
 
     integer :: argc
-    character(len=256)    :: arg
-    logical               :: ret
+    character(len=256) :: arg
+    logical :: ret
     character(len=:), allocatable :: errmsg
 
     mgr = ConfigManager_new()
@@ -26,10 +26,10 @@ contains
           ret = mgr%error()
           if (ret) then
             errmsg = mgr%error_msg()
-            write(*,*) 'ConfigManager: ', errmsg
-          endif
-        endif
-      endif
+            write (*, *) 'ConfigManager: ', errmsg
+          end if
+        end if
+      end if
     end do
 
     call mgr%start
@@ -40,7 +40,7 @@ contains
   module subroutine profiler_shutdown(par_env)
     class(parallel_environment), intent(in) :: par_env
 
-    associate(foo => par_env)
+    associate (foo => par_env)
     end associate
     call mgr%flush
     call cali_flush(0)

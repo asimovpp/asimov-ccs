@@ -52,7 +52,7 @@ module meshing
   public :: get_mesh_generated, set_mesh_generated
   public :: get_bc_id
   public :: find_entities
-  
+
   interface get_centre
     module procedure get_cell_centre
     module procedure get_neighbour_centre
@@ -131,7 +131,7 @@ module meshing
   interface find_entities
     module procedure find_face_entities
   end interface find_entities
-  
+
   interface
 
     module subroutine set_mesh_object(input_mesh)
@@ -470,7 +470,7 @@ module meshing
     pure module subroutine get_vert_per_cell(vert_per_cell)
       integer(ccs_int), intent(out) :: vert_per_cell !< The number of vertices per cell
     end subroutine get_vert_per_cell
-    
+
     !> Set the cell centre of specified cell
     module subroutine set_cell_centre(loc_p, x_p)
       type(cell_locator), intent(in) :: loc_p         !< The cell locator object.
@@ -544,7 +544,7 @@ module meshing
       character(len=*), intent(in) :: name                                !< The boundary name
       type(face_locator), dimension(:), allocatable, intent(out) :: faces !< The list of boundary faces
     end subroutine find_face_entities
-    
+
   end interface
 
 end module meshing

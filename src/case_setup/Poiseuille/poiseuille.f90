@@ -8,7 +8,7 @@ program poiseuille
   use Poiseuille_core
   use constants, only: ccs_split_type_low_high
   use parallel, only: initialise_parallel_environment, cleanup_parallel_environment, &
-                      create_new_par_env 
+                      create_new_par_env
   use profiler, only: profiler_init, profiler_shutdown
 
   implicit none

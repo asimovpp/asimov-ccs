@@ -57,8 +57,8 @@ contains
       max_nb = max(max_nb, nnb)
     end do
 
-    allocate (idx(max_nb+1))
-    allocate (row(max_nb+1))
+    allocate (idx(max_nb + 1))
+    allocate (row(max_nb + 1))
 
     ! First build adjacency matrix for local cells
     call MatCreate(MPI_COMM_SELF, M, ierr)

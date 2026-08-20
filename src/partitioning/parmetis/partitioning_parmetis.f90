@@ -50,7 +50,7 @@ contains
     type(ccs_mesh), target, intent(inout) :: mesh                           !< The mesh for which to compute the parition
 
     call partition_kway_topo(par_env, mesh%topo)
-    
+
   end subroutine partition_kway_mesh
 
   !v Partition the mesh
@@ -151,7 +151,7 @@ contains
     type is (parallel_environment_mpi)
 
       if (is_root(par_env)) then
-        write(log_unit_out,*) "Partitioning with ParMETIS"
+        write (log_unit_out, *) "Partitioning with ParMETIS"
       end if
 
       comm = par_env%comm
@@ -164,7 +164,7 @@ contains
       graph_conn%local_partition(:) = int(local_partition(:), int64)
 
     class default
-      write(log_unit_out,*) "ERROR: Unknown parallel environment! "
+      write (log_unit_out, *) "ERROR: Unknown parallel environment! "
     end select
 
     call dprint("Number of edgecuts: " // str(int(edgecuts)))

@@ -11,7 +11,7 @@ module kinds
 #ifdef ACCS_PETSC
 #include <petsc/finclude/petscsys.h>
 #include <petscconf.h>
-use petscsys
+  use petscsys
 #endif
 
   implicit none
@@ -33,10 +33,10 @@ use petscsys
 
 #if defined(PETSC_USE_REAL_SINGLE)
   integer, public, parameter :: CCS_MPI_PRECISION = MPI_REAL
-  character(len=6), public, parameter :: CCS_PRECISION_STR = 'single' 
+  character(len=6), public, parameter :: CCS_PRECISION_STR = 'single'
 #else
   integer, public, parameter :: CCS_MPI_PRECISION = MPI_DOUBLE_PRECISION
-  character(len=6), public, parameter :: CCS_PRECISION_STR = 'double' 
+  character(len=6), public, parameter :: CCS_PRECISION_STR = 'double'
 #endif
 
   private

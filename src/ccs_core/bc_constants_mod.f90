@@ -23,6 +23,4 @@ module bc_constants
   ! integer(ccs_int), parameter :: bc_type_sym = 10
   ! integer(ccs_int), parameter :: bc_type_periodic = 11 ! not implemented yet
 
-
-
 end module bc_constants

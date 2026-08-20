@@ -42,7 +42,7 @@ contains
     if (write_csr .and. is_root(par_env)) then
       open (newunit=wrunit, FILE="csr_orig.txt", FORM="FORMATTED")
       do i = 1, mesh%topo%local_num_cells
-        write(wrunit, *) mesh%topo%nb_indices(:, i)
+        write (wrunit, *) mesh%topo%nb_indices(:, i)
       end do
       close (wrunit)
     end if
@@ -65,7 +65,7 @@ contains
     if (write_csr .and. is_root(par_env)) then
       open (newunit=wrunit, FILE="csr_new.txt", FORM="FORMATTED")
       do i = 1, mesh%topo%local_num_cells
-        write(wrunit, *) mesh%topo%nb_indices(:, i)
+        write (wrunit, *) mesh%topo%nb_indices(:, i)
       end do
       close (wrunit)
     end if
@@ -303,13 +303,12 @@ contains
 
     call destroy_shared_array(shared_env, mesh%topo%global_vertex_indices, mesh%topo%global_vertex_indices_window)
 
-
   end subroutine
 
   module subroutine print_bandwidth(par_env, run_options)
 
     use mpi
-    
+
     use parallel_types_mpi, only: parallel_environment_mpi
     use core, only: ccs_options
     use kinds, only: CCS_MPI_PRECISION
@@ -317,7 +316,7 @@ contains
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     type(ccs_options), intent(in) :: run_options
-    
+
     integer(ccs_int) :: bw_max
     real(ccs_real) :: bw_avg
 
@@ -329,19 +328,19 @@ contains
     end if
 
     call compute_bandwidth(bw_max, bw_avg)
-    
+
     select type (par_env)
     type is (parallel_environment_mpi)
       call MPI_Allreduce(MPI_IN_PLACE, bw_max, 1, MPI_INTEGER, MPI_MAX, par_env%comm, ierr)
       call MPI_Allreduce(bw_avg, sum_bw_avg, 1, CCS_MPI_PRECISION, MPI_SUM, par_env%comm, ierr)
-      if(is_root(par_env)) then 
-        write(log_unit_out,*) "Bandwidth: ", bw_max, sum_bw_avg/par_env%num_procs
+      if (is_root(par_env)) then
+        write (log_unit_out, *) "Bandwidth: ", bw_max, sum_bw_avg / par_env%num_procs
       end if
 
     class default
       call error_abort("Unsupported parallel environment!")
     end select
-    
+
   end subroutine
 
   subroutine compute_bandwidth(bw_max, bw_avg)

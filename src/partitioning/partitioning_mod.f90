@@ -21,13 +21,13 @@ module partitioning
   public :: proccnt_to_vtxdist
   public :: partition_count
   public :: compute_global_indices_partition
-  
+
   interface partition_kway
-     module procedure :: partition_kway_mesh
-     module procedure :: partition_kway_topo
-     module procedure :: partition_kway_graph_conn
+    module procedure :: partition_kway_mesh
+    module procedure :: partition_kway_topo
+    module procedure :: partition_kway_graph_conn
   end interface partition_kway
-  
+
   interface
 
     !v Partition the mesh
@@ -50,13 +50,13 @@ module partitioning
       class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared parallel environment
       type(ccs_mesh), target, intent(inout) :: mesh                              !< The mesh for which to compute the partition
     end subroutine compute_partitioner_input
-   
-  !v Deallocate partitioner data structures associated with the mesh
+
+    !v Deallocate partitioner data structures associated with the mesh
     module subroutine cleanup_partitioner_data(mesh)
       type(ccs_mesh), target, intent(inout) :: mesh                              !< The mesh
     end subroutine cleanup_partitioner_data
 
-    module subroutine compute_connectivity(par_env,shared_env, mesh)
+    module subroutine compute_connectivity(par_env, shared_env, mesh)
       class(parallel_environment), allocatable, target, intent(in) :: par_env    !< The global parallel environment
       class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared parallel environment
       type(ccs_mesh), target, intent(inout) :: mesh                              !< The mesh for which to compute the partition
@@ -80,7 +80,7 @@ module partitioning
     !  - The "surface to volume ratio" nhalo / nlocal (averaged)
     !  - The minimum departure from load balance min(nlocal) / avg(nlocal)
     !  - The maximum departure from load balance max(nlocal) / avg(nlocal)
-    module subroutine print_partition_quality(par_env, run_options) 
+    module subroutine print_partition_quality(par_env, run_options)
       class(parallel_environment), intent(in) :: par_env
       type(ccs_options), intent(in) :: run_options
     end subroutine print_partition_quality
@@ -103,7 +103,7 @@ module partitioning
       integer(ccs_long), dimension(:), allocatable :: global_indices
     end function compute_global_indices_partition
     !!! INTERNAL SUBROUTINES - ONLY DECLARED FOR TESTING !!!
-    
+
   end interface
 
 end module partitioning

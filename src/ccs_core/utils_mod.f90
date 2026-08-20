@@ -163,7 +163,7 @@ module utils
   interface reorder_data
     module procedure reorder_data_vec
   end interface reorder_data
- 
+
   integer(ccs_int), save :: outputlist_counter = 0
 
 contains
@@ -191,9 +191,9 @@ contains
     call mpi_initialized(init_flag, ierror)
     if (init_flag) then
       call mpi_comm_rank(MPI_COMM_WORLD, rank, ierror)
-      write(log_unit_out,*) trim(filename), "(", int2str(line), ")[", int2str(rank), "] : ", msg
+      write (log_unit_out, *) trim(filename), "(", int2str(line), ")[", int2str(rank), "] : ", msg
     else
-      write(log_unit_out,*) trim(filename), "(", int2str(line), ") : ", msg
+      write (log_unit_out, *) trim(filename), "(", int2str(line), ") : ", msg
     end if
   end subroutine
 
@@ -210,9 +210,9 @@ contains
     character(32) :: tmp_string
 
     if (present(format_str)) then
-      write(tmp_string, format_str) in_int
+      write (tmp_string, format_str) in_int
     else
-      write(tmp_string, *) in_int
+      write (tmp_string, *) in_int
     end if
     out_string = trim(adjustl(tmp_string))
   end function
@@ -226,9 +226,9 @@ contains
     character(32) :: tmp_string
 
     if (present(format_str)) then
-      write(tmp_string, format_str) in_real
+      write (tmp_string, format_str) in_real
     else
-      write(tmp_string, *) in_real
+      write (tmp_string, *) in_real
     end if
     out_string = trim(adjustl(tmp_string))
   end function
@@ -240,7 +240,7 @@ contains
 
     character(32) :: tmp_string
 
-    write(tmp_string, *) in_bool
+    write (tmp_string, *) in_bool
 
     out_string = trim(adjustl(tmp_string))
   end function
@@ -337,7 +337,7 @@ contains
         open (newunit=io_unit, file="tgv2d-ek.log", status="old", form="formatted", position="append")
       end if
       fmt = '(I0,1(1x,e12.4))'
-      write(io_unit, fmt) step, ek_global
+      write (io_unit, fmt) step, ek_global
       close (io_unit)
     end if
 
@@ -418,7 +418,7 @@ contains
         open (newunit=io_unit, file="tgv2d-ens.log", status="old", form="formatted", position="append")
       end if
       fmt = '(I0,1(1x,e12.4))'
-      write(io_unit, fmt) step, ens_global
+      write (io_unit, fmt) step, ens_global
       close (io_unit)
     end if
 
@@ -437,7 +437,7 @@ contains
     var%output = .true.
 
     outputlist_counter = outputlist_counter + 1
-    
+
   end subroutine add_field_to_outputlist
 
   subroutine reset_outputlist_counter()
@@ -445,7 +445,6 @@ contains
     outputlist_counter = 0
 
   end subroutine
-
 
   !> Convert advection scheme name -> ID.
   pure integer(ccs_int) function get_scheme_id(scheme_name)
@@ -493,5 +492,5 @@ contains
     end if
 
   end function get_scheme_name
-   
+
 end module utils

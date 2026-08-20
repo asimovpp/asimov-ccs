@@ -41,11 +41,11 @@ contains
   subroutine timer_init()
 
     if (.not. initialised) then
-      allocate(has_started(0))
-      allocate(ticks(0))
-      allocate(tocks(0))
-      allocate(counters(0))
-      allocate(timer_names(0))
+      allocate (has_started(0))
+      allocate (ticks(0))
+      allocate (tocks(0))
+      allocate (counters(0))
+      allocate (timer_names(0))
       total_index = 0
       initialised = .true.
     end if
@@ -55,17 +55,17 @@ contains
   subroutine timer_reset()
 
     if (initialised) then
-      deallocate(has_started)
-      deallocate(ticks)
-      deallocate(tocks)
-      deallocate(counters)
-      deallocate(timer_names)
+      deallocate (has_started)
+      deallocate (ticks)
+      deallocate (tocks)
+      deallocate (counters)
+      deallocate (timer_names)
       total_index = 0
       initialised = .false.
     end if
 
   end subroutine
-  
+
   !> Get timer index from its name
   pure subroutine timer_get_index(timer_name, timer_index)
     character(len=*), intent(in) :: timer_name
@@ -74,7 +74,7 @@ contains
 
     timer_index = -1
 
-    do i=1, size(timer_names)
+    do i = 1, size(timer_names)
       if (trim(timer_name) == trim(timer_names(i))) then
         timer_index = i
         exit
@@ -108,18 +108,18 @@ contains
     call timer_get_index(timer_name_local, timer_index)
     if (timer_index == -1) then
       timer_index = size(ticks) + 1
-      timer_names = [ timer_names, timer_name_local ]
-      ticks = [ ticks, 0.d0 ]
-      tocks = [ tocks, 0.d0 ]
-      counters = [ counters, 0 ]
-      has_started = [ has_started, .false. ]
+      timer_names = [timer_names, timer_name_local]
+      ticks = [ticks, 0.d0]
+      tocks = [tocks, 0.d0]
+      counters = [counters, 0]
+      has_started = [has_started, .false.]
       if (present(is_total_time)) then
         if (is_total_time) then
           total_index = timer_index
         end if
       end if
     end if
-    
+
   end subroutine
 
   !> Start a timer
@@ -161,25 +161,25 @@ contains
 
     call timer_get_time(timer_index, time)
 
-    select type(par_env)
-      type is (parallel_environment_mpi)
-        call MPI_Allreduce(time, max_time, 1, MPI_DOUBLE_PRECISION, MPI_MAX, par_env%comm, ierr)
-      class default
-        error stop "Unknown parallel environment"
+    select type (par_env)
+    type is (parallel_environment_mpi)
+      call MPI_Allreduce(time, max_time, 1, MPI_DOUBLE_PRECISION, MPI_MAX, par_env%comm, ierr)
+    class default
+      error stop "Unknown parallel environment"
     end select
 
     if (is_root(par_env)) then
-      write(log_unit_out,'(A30, F12.4, A)', advance="no")  trim(timer_names(timer_index)) // ":", max_time, " s"
+      write (log_unit_out, '(A30, F12.4, A)', advance="no") trim(timer_names(timer_index)) // ":", max_time, " s"
 
       if (total_index /= 0) then
         call timer_get_time(total_index, total_time)
-        write(log_unit_out, '(F10.2, A)', advance="no") 100*max_time / total_time, " %"
+        write (log_unit_out, '(F10.2, A)', advance="no") 100 * max_time / total_time, " %"
       end if
 
       if (counters(timer_index) >= 2) then
-        write(log_unit_out, '(F10.4, A, I10, A)', advance="no") max_time / counters(timer_index), " s/call", counters(timer_index), " calls"
+write(log_unit_out, '(F10.4, A, I10, A)', advance="no") max_time / counters(timer_index), " s/call", counters(timer_index), " calls"
       end if
-      write(log_unit_out, '(A)') ""
+      write (log_unit_out, '(A)') ""
     end if
 
   end subroutine
@@ -195,37 +195,36 @@ contains
 
     open (newunit=io_unit, file="timers.csv", status="replace", form="formatted")
 
-    write(io_unit, '(a)') 'name, timing (s), percentage, s/calls, n calls'
+    write (io_unit, '(a)') 'name, timing (s), percentage, s/calls, n calls'
 
-    do timer_index=1, size(ticks)
+    do timer_index = 1, size(ticks)
 
       call timer_get_time(timer_index, time)
 
       percentage = 0
       if (total_index /= 0) then
         call timer_get_time(total_index, total_time)
-        percentage = 100.0*time / total_time
+        percentage = 100.0 * time / total_time
       end if
 
-      write(io_unit,'(A30)', advance="no")  trim(timer_names(timer_index)) // ','
-      write(io_unit,'(F12.4, A)', advance="no")  time, ","
-      write(io_unit,'(F8.2, A)', advance="no")  percentage, ","
-      write(io_unit,'(F15.6, A)', advance="no")  time / counters(timer_index), ","
-      write(io_unit,'(I10)', advance="yes")  counters(timer_index)
-      
+      write (io_unit, '(A30)', advance="no") trim(timer_names(timer_index)) // ','
+      write (io_unit, '(F12.4, A)', advance="no") time, ","
+      write (io_unit, '(F8.2, A)', advance="no") percentage, ","
+      write (io_unit, '(F15.6, A)', advance="no") time / counters(timer_index), ","
+      write (io_unit, '(I10)', advance="yes") counters(timer_index)
+
     end do
 
-    close(io_unit)
+    close (io_unit)
 
   end subroutine
-
 
   !> Print all the timers
   subroutine timer_print_all(par_env)
     class(parallel_environment), intent(in) :: par_env
     integer(ccs_int) :: timer_index
 
-    do timer_index=1, size(ticks)
+    do timer_index = 1, size(ticks)
       call timer_print(par_env, timer_index)
     end do
 

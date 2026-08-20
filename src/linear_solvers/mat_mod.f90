@@ -220,7 +220,7 @@ module mat
       class(ccs_vector), intent(in) :: D      !< the vector containing matrix diagonal elements
       class(ccs_matrix), intent(inout) :: M   !< the matrix
     end subroutine add_matrix_diagonal
-    
+
     module subroutine zero_matrix(M)
       class(ccs_matrix), intent(inout) :: M
     end subroutine zero_matrix
@@ -229,7 +229,7 @@ module mat
     module subroutine check_operator_symmetry(M)
       class(ccs_matrix), intent(in) :: M
     end subroutine check_operator_symmetry
-    
+
   end interface
 
 end module mat

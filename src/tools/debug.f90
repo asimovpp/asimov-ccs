@@ -7,7 +7,6 @@ module debug
 
 contains
 
-
 !v Export fields as well as mpi rank and local cell ID to text file
   subroutine dump_flow_tofile(par_env, u, v, w, p)
 
@@ -40,7 +39,7 @@ contains
 
     call get_vector_data(p%values, p_data)
 
-    do irank = 0, par_env%num_procs -1
+    do irank = 0, par_env%num_procs - 1
 
       call sync(par_env)
 

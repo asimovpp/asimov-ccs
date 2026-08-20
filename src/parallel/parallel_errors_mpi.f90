@@ -35,7 +35,7 @@ contains
 
         if (error_code /= MPI_SUCCESS) then
           call mpi_error_string(error_code, error_message, length, ierr)
-          write(log_unit_out, *) error_message
+          write (log_unit_out, *) error_message
           call mpi_abort(par_env%comm, error_code, ierr)
         end if
 

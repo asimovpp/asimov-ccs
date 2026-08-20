@@ -112,7 +112,7 @@ module parallel
     module subroutine create_shared_array_int_2D(shared_env, length, array, window)
       class(parallel_environment), intent(in) :: shared_env
       integer(ccs_int), dimension(2), intent(in) :: length
-      integer(ccs_int), pointer, dimension(:,:), intent(out) :: array
+      integer(ccs_int), pointer, dimension(:, :), intent(out) :: array
       integer, intent(out) :: window
     end subroutine
 
@@ -128,18 +128,18 @@ module parallel
     module subroutine create_shared_array_real_2D(shared_env, length, array, window)
       class(parallel_environment), intent(in) :: shared_env
       integer(ccs_int), dimension(2), intent(in) :: length
-      real(ccs_real), pointer, dimension(:,:), intent(out) :: array
+      real(ccs_real), pointer, dimension(:, :), intent(out) :: array
       integer, intent(out) :: window
     end subroutine create_shared_array_real_2D
-    
+
     !> Create an real 3D MPI shared memory array
     module subroutine create_shared_array_real_3D(shared_env, length, array, window)
       class(parallel_environment), intent(in) :: shared_env
       integer(ccs_int), dimension(3), intent(in) :: length
-      real(ccs_real), pointer, dimension(:,:,:), intent(out) :: array
+      real(ccs_real), pointer, dimension(:, :, :), intent(out) :: array
       integer, intent(out) :: window
     end subroutine create_shared_array_real_3D
-    
+
     !> Destroy an integer 1D MPI shared memory array
     module subroutine destroy_shared_array_int_1D(shared_env, array, window)
       class(parallel_environment), intent(in) :: shared_env
@@ -153,7 +153,7 @@ module parallel
       integer(ccs_long), pointer, dimension(:), intent(inout) :: array
       integer, intent(inout) :: window
     end subroutine
-    
+
     !> Destroy a real 1D MPI shared memory array
     module subroutine destroy_shared_array_real_1D(shared_env, array, window)
       class(parallel_environment), intent(in) :: shared_env
@@ -164,14 +164,14 @@ module parallel
     !> Destroy an integer 2D MPI shared memory array
     module subroutine destroy_shared_array_int_2D(shared_env, array, window)
       class(parallel_environment), intent(in) :: shared_env
-      integer(ccs_int), pointer, dimension(:,:), intent(inout) :: array
+      integer(ccs_int), pointer, dimension(:, :), intent(inout) :: array
       integer, intent(inout) :: window
     end subroutine
 
     !> Destroy an real 2D MPI shared memory array
     module subroutine destroy_shared_array_real_2D(shared_env, array, window)
       class(parallel_environment), intent(in) :: shared_env
-      real(ccs_real), pointer, dimension(:,:), intent(inout) :: array
+      real(ccs_real), pointer, dimension(:, :), intent(inout) :: array
       integer, intent(inout) :: window
     end subroutine
 
@@ -180,7 +180,7 @@ module parallel
       class(parallel_environment), intent(in) :: par_env
       logical :: isroot
     end function
-  
+
     !> Check whether current process is root process in communicator
     module function is_valid(par_env) result(isvalid)
       class(parallel_environment), intent(in) :: par_env !< parallel environment
@@ -200,8 +200,8 @@ module parallel
       class(parallel_environment), intent(in) :: par_env                     !< The parent parallel environment of the shared_envs
       class(parallel_environment), intent(in) :: shared_env                  !< The shared environments whose roots we want in the root environment
       class(parallel_environment), allocatable, intent(out) :: roots_env   !< The resulting root environment
-    end subroutine 
-    
+    end subroutine
+
   end interface
 
   interface create_shared_array

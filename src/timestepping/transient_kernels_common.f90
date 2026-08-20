@@ -37,8 +37,7 @@ module transient_kernels
     end subroutine
   end interface
 
-
-  contains
+contains
 
   subroutine set_step(self, step, restart)
     !! To be run at the begining of every timestep, it sets the right coefficients self%width, explicit_coeffs and implicit_coeff
@@ -61,7 +60,6 @@ module transient_kernels
 
   end subroutine
 
-
   pure subroutine eval_coeffs(self, rho, V, coeff)
     !! Computes and returns the implicit coefficient (diagonal coeff)
     class(transient_kernel), intent(in) :: self
@@ -69,7 +67,7 @@ module transient_kernels
     real(ccs_real), intent(in) :: V
     real(ccs_real), intent(out) :: coeff
 
-    coeff = self%implicit_coeff * rho*V*self%invdt
+    coeff = self%implicit_coeff * rho * V * self%invdt
   end subroutine
 
   pure subroutine eval_explicit(self, rho, V, old, rhs)
@@ -80,7 +78,7 @@ module transient_kernels
     real(ccs_real), dimension(:), intent(in) :: old
     real(ccs_real), intent(out) :: rhs
 
-    rhs = dot_product(old(1:self%width), self%explicit_coeffs(1:self%width))*rho*V*self%invdt
+    rhs = dot_product(old(1:self%width), self%explicit_coeffs(1:self%width)) * rho * V * self%invdt
 
   end subroutine
 
@@ -93,9 +91,9 @@ module transient_kernels
     if (dt == 0.0_ccs_real) then
       error stop "Time step size is zero" ! Abort to avoid division by zero
     end if
-    
+
     self%dt = dt
-    self%invdt = 1.0_ccs_real/dt
+    self%invdt = 1.0_ccs_real / dt
 
   end subroutine
 
@@ -125,19 +123,19 @@ module transient_kernels
     class(transient_kernel) :: self
 
     if (allocated(self%explicit_coeffs)) then
-      deallocate(self%explicit_coeffs)
+      deallocate (self%explicit_coeffs)
     end if
 
     if (allocated(self%explicit_coeffs_trans)) then
-      deallocate(self%explicit_coeffs_trans)
+      deallocate (self%explicit_coeffs_trans)
     end if
 
     if (allocated(self%implicit_coeff_trans)) then
-      deallocate(self%implicit_coeff_trans)
+      deallocate (self%implicit_coeff_trans)
     end if
 
     if (allocated(self%width_trans)) then
-      deallocate(self%width_trans)
+      deallocate (self%width_trans)
     end if
 
   end subroutine

@@ -12,7 +12,7 @@ submodule(io_visualisation) io_visualisation_adios2
   use utils, only: exit_print, update
   use fields, only: get_field
   use types, only: field
-  
+
   implicit none
 
   logical, save :: initial_step = .true.
@@ -53,7 +53,7 @@ contains
 
     ! Variables for per timestep file naming in unsteady case
     character(len=10) :: step_str
-    
+
     class(io_environment), allocatable, save :: io_env
     class(io_process), allocatable, save :: sol_reader
     integer(ccs_long), dimension(1) :: sel_shape
@@ -80,7 +80,7 @@ contains
     if (present(step)) then
 
       ! Convert to string
-      write(step_str,'(I0)') step
+      write (step_str, '(I0)') step
       ! Unsteady case
       sol_file = trim(case_name // '_sol_' // step_str)
 
@@ -133,11 +133,11 @@ contains
         data_name = "/" // trim(phi%name)
 
         call read_array(sol_reader, data_name, sel_start, sel_count, data, steps)
-        call get_vector_data (phi%values, output_data)
+        call get_vector_data(phi%values, output_data)
         output_data = data
-        call restore_vector_data (phi%values, output_data)
+        call restore_vector_data(phi%values, output_data)
         call get_global_data_vec(par_env, mesh, phi%values, re_order_data)
-        ! re-ordering here. 
+        ! re-ordering here.
 
         call get_vector_data(phi%values, output_data)
         output_data = re_order_data
@@ -145,18 +145,18 @@ contains
         ! XXX: This doesn't appear to do anything
         ! call get_local_num_cells(n_local)
         ! do index_p = 1, n_local
-        !   call create_cell_locator(index_p, loc_p) 
+        !   call create_cell_locator(index_p, loc_p)
         !   call get_global_index(loc_p, global_index_p)
         !   call get_natural_index(loc_p, natural_index_p)
         ! end do
 
         call restore_vector_data(phi%values, output_data)
         call update(phi%values)
-        
-      end if 
-      nullify(phi)
+
+      end if
+      nullify (phi)
     end do
-    
+
     call profiler_end_region("Read output time")
 
     if (allocated(data)) then
@@ -175,9 +175,8 @@ contains
       call close_file(sol_reader)
       call cleanup_io(io_env)
     end if
-  
-  end subroutine read_fields
 
+  end subroutine read_fields
 
   !> Write the field data to file
   module subroutine write_fields(par_env, run_options, mesh, flow, step, maxstep)
@@ -203,7 +202,7 @@ contains
     character(len=:), allocatable :: sol_file     ! Solution file name
     character(len=:), allocatable :: adios2_file  ! ADIOS2 config file name
     character(len=:), allocatable :: data_name    ! String for storing data path in file
-    
+
     ! Variables for per timestep file naming in unsteady case
     character(len=10) :: step_str
 
@@ -228,7 +227,7 @@ contains
     integer(ccs_int) :: index_global
 
     class(field), pointer :: phi
-    
+
     adios2_file = run_options%paths%case_name // adiosconfig
 
     call initialise_io(par_env, adios2_file, io_env)
@@ -277,7 +276,7 @@ contains
     do i = 1, size(flow%fields)
       call get_field(flow, i, phi)
       if (phi%output) then
-      
+
         call profiler_begin_region("Get natural data (output)")
         call get_natural_data(par_env, mesh, phi%values, data)
         call profiler_end_region("Get natural data (output)")
@@ -295,7 +294,6 @@ contains
       end if
     end do
     call profiler_end_region("Write output time")
-   
 
     ! Write out gradients, if required (e.g. for calculating enstrophy)
     if (run_options%io%write_gradients) then
@@ -386,7 +384,7 @@ contains
   end subroutine end_step
 
   ! Create a timestep suffix string for the solution file
-  function timestep_suffix (step, maxstep) result(step_str)
+  function timestep_suffix(step, maxstep) result(step_str)
 
     integer(ccs_int), intent(in) :: step
     integer(ccs_int), intent(in) :: maxstep
@@ -394,16 +392,16 @@ contains
 
     character(len=20) :: format_str
     character(len=10) :: mag_str
-    integer :: mag 
+    integer :: mag
 
     ! How many decimal digits in maxstep? Convert to string
     mag = floor(log10(real(maxstep))) + 1
     ! Convert to string
-    write(mag_str,'(I0)') mag
+    write (mag_str, '(I0)') mag
     ! Create the format string for the file numbering
     format_str = trim("(I" // trim(mag_str) // "." // trim(mag_str) // ")")
     ! do not use format_str right now - keep it simple
-    write(step_str, trim(format_str)) step
+    write (step_str, trim(format_str)) step
 
   end function
 

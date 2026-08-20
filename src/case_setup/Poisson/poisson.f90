@@ -239,7 +239,7 @@ program poisson
 
   err_norm = norm(u, 2) * mesh%geo%h
   if (is_root(par_env)) then
-    write(log_unit_out,*) "Norm of error = ", err_norm
+    write (log_unit_out, *) "Norm of error = ", err_norm
   end if
 
   ! Clean up
@@ -293,7 +293,7 @@ contains
     type(ccs_options), intent(in) :: run_options
 
     call initialise_mesh(par_env, shared_env, run_options)
-    
+
   end subroutine initialise_poisson
 
   !> Forcing function

@@ -37,7 +37,7 @@ module reordering
       class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
       type(ccs_options), intent(in) :: run_options                            !< Runtime options object
     end subroutine print_bandwidth
-    
+
     !> Generate a mesh cell reordering mapping.
     module subroutine get_reordering(new_indices)
       integer(ccs_int), dimension(:), allocatable, intent(out) :: new_indices

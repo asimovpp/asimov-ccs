@@ -62,9 +62,9 @@ contains
     type(fluid), intent(inout) :: flow !< The flow field container where new field is to be constructed
 
     integer :: nfields
-    
+
     call print_field(par_env, field_properties)
-    
+
     associate (ccs_config_file => field_properties%ccs_config_file, &
                vec_properties => field_properties%vec_properties, &
                field_type => field_properties%field_type, &
@@ -75,10 +75,10 @@ contains
       call allocate_field(vec_properties, field_type, n_boundaries, store_residuals, flow)
 
       nfields = size(flow%fields)
-      associate(phi => flow%fields(nfields)%ptr)
+      associate (phi => flow%fields(nfields)%ptr)
         ! XXX: ccs_config_file is host-associated from program scope.
         call read_bc_config(ccs_config_file, field_name, phi)
-      
+
         phi%enable_cell_corrections = enable_cell_corrections
         phi%name = field_name
 
@@ -109,7 +109,7 @@ contains
     type(field), intent(inout) :: phi !< Field variable
 
     phi%solver_parameters%solve = solve
-    
+
   end subroutine set_is_field_solved
 
   !> Gets the solve flag for a field
@@ -118,7 +118,7 @@ contains
     logical, intent(out) :: solve   !< flag indicating whether to solve for the given field
 
     solve = phi%solver_parameters%solve
-    
+
   end subroutine get_is_field_solved
 
   !> Print a brief description (name, type) of a field as it is created
@@ -132,13 +132,13 @@ contains
 
     field_name = field_properties%field_name
     field_type = field_properties%field_type
-    
+
     if (is_root(par_env)) then
-      write(log_unit_out,*) "Create field: ", trim(field_name), " ("//get_scheme_name(field_type)//")"
+      write (log_unit_out, *) "Create field: ", trim(field_name), " (" // get_scheme_name(field_type) // ")"
     end if
-    
+
   end subroutine print_field
-  
+
   !> Allocate a field variable
   subroutine allocate_field(vec_properties, field_type, n_boundaries, store_residuals, flow)
 
@@ -199,11 +199,11 @@ contains
     end if
 
     call allocate_bc_arrays(n_boundaries, phi_ptr%ptr%bcs)
-    
-    allocate(phi_ptr%ptr%solver_parameters)
+
+    allocate (phi_ptr%ptr%solver_parameters)
 
     call add_field(phi_ptr, flow)
-    
+
   end subroutine allocate_field
 
   !> Get whether a field is face based or not
@@ -212,10 +212,10 @@ contains
     logical, intent(out) :: is_face_based
 
     select type (my_field)
-      type is (face_field)
-        is_face_based = .true.
-      class default
-        is_face_based = .false.
+    type is (face_field)
+      is_face_based = .true.
+    class default
+      is_face_based = .false.
     end select
 
   end subroutine
@@ -263,7 +263,7 @@ contains
   !> Set whether or not cell shape corrections should be used
   pure subroutine set_field_enable_cell_corrections(enable_cell_corrections, field_properties)
 
-    logical, intent(in) :: enable_cell_corrections 
+    logical, intent(in) :: enable_cell_corrections
     type(field_spec), intent(inout) :: field_properties
 
     field_properties%enable_cell_corrections = enable_cell_corrections
@@ -407,7 +407,6 @@ contains
 
   end subroutine get_field_idx
 
-
   !v Outputs each field configuration
   subroutine print_field_config(par_env, flow)
 
@@ -425,28 +424,28 @@ contains
     call count_fields(flow, nfields)
 
     if (is_root(par_env)) then
-        write(log_unit_out,*)  " "
-        write(log_unit_out,*)  "******************************************************************************"
-        write(log_unit_out,*)  "* SOLVER CONFIGURATION"
-        write(log_unit_out,*)  "******************************************************************************"
-        write(log_unit_out,*)  "* Precision: ", CCS_PRECISION_STR
-        do ifield=1, nfields
-          call get_field(flow, ifield, phi)
-          if (phi%solver_parameters%solve) then
-            write(log_unit_out,*) "************ ", trim(phi%name), " ************"
-            write(log_unit_out,'(A, E10.2)')  "   Residuals target: ", phi%solver_parameters%res_target
-            select case(phi%solver_parameters%res_norm)
-              case (L2)
-                write(log_unit_out,*) "  Residuals norm: L2"
-              case (Linfty)
-                write(log_unit_out,*) "  Residuals norm: Linfty"
-            end select
-            write(log_unit_out,'(A, F4.2)')  "   Relaxation factor: ", phi%solver_parameters%relaxation_factor
-            write(log_unit_out,*) "  Solver: ", phi%solver_parameters%solver_name
-            write(log_unit_out,*) "  Preconditioner: ", phi%solver_parameters%precon_name
-          end if
-        end do
-        write(log_unit_out,*)  " "
+      write (log_unit_out, *) " "
+      write (log_unit_out, *) "******************************************************************************"
+      write (log_unit_out, *) "* SOLVER CONFIGURATION"
+      write (log_unit_out, *) "******************************************************************************"
+      write (log_unit_out, *) "* Precision: ", CCS_PRECISION_STR
+      do ifield = 1, nfields
+        call get_field(flow, ifield, phi)
+        if (phi%solver_parameters%solve) then
+          write (log_unit_out, *) "************ ", trim(phi%name), " ************"
+          write (log_unit_out, '(A, E10.2)') "   Residuals target: ", phi%solver_parameters%res_target
+          select case (phi%solver_parameters%res_norm)
+          case (L2)
+            write (log_unit_out, *) "  Residuals norm: L2"
+          case (Linfty)
+            write (log_unit_out, *) "  Residuals norm: Linfty"
+          end select
+          write (log_unit_out, '(A, F4.2)') "   Relaxation factor: ", phi%solver_parameters%relaxation_factor
+          write (log_unit_out, *) "  Solver: ", phi%solver_parameters%solver_name
+          write (log_unit_out, *) "  Preconditioner: ", phi%solver_parameters%precon_name
+        end if
+      end do
+      write (log_unit_out, *) " "
     end if
 
   end subroutine

@@ -11,22 +11,22 @@ module timestepping_common_types
   ! application to be implemented more generically across arbitrary transient stencil
   ! widths. Additionally this allows for data hiding.
   type ptr_handle
-     private
-     real(ccs_real), dimension(:), pointer :: data => null()
-   contains
-     procedure :: read => read_ptr_handle
-     procedure :: get_pointer
-     procedure :: set_pointer
+    private
+    real(ccs_real), dimension(:), pointer :: data => null()
+  contains
+    procedure :: read => read_ptr_handle
+    procedure :: get_pointer
+    procedure :: set_pointer
   end type ptr_handle
 
 contains
-  
+
   pure real(ccs_real) function read_ptr_handle(self, idx) result(val)
     class(ptr_handle), intent(in) :: self
     integer(ccs_int), intent(in) :: idx
 
     val = self%data(idx)
-    
+
   end function read_ptr_handle
 
   function get_pointer(self) result(ptr)
@@ -42,7 +42,7 @@ contains
 
     self%data => ptr
   end subroutine set_pointer
-  
+
 end module timestepping_common_types
 
 submodule(timestepping) timestepping_common
@@ -190,7 +190,7 @@ contains
 
     call restore_vector_data_readonly(newv, new_data)
     call restore_vector_data(oldv, old_data)
-    
+
   end subroutine copy_old_data
 
   module subroutine apply_timestep_kernel(transient, phi, diag, M, b)
@@ -212,17 +212,17 @@ contains
     integer(ccs_int) :: i
 
     call transient%init()
-    call transient%set_step(current_step+1)
+    call transient%set_step(current_step + 1)
     call transient%set_dt(get_timestep())
 
     call finalise(M)
     call get_matrix_diagonal(M, diag)
 
-    allocate(old_pointer(transient%get_width()))
+    allocate (old_pointer(transient%get_width()))
     do i = 1, transient%get_width()
-       call get_vector_data_readonly(phi%old_values(i)%vec, ptr)
-       call old_pointer(i)%set_pointer(ptr)
-       nullify(ptr)
+      call get_vector_data_readonly(phi%old_values(i)%vec, ptr)
+      call old_pointer(i)%set_pointer(ptr)
+      nullify (ptr)
     end do
 
     call get_vector_data(diag, diag_data)
@@ -232,9 +232,9 @@ contains
     call apply_kernel_driver(transient, old_pointer, diag_data, b_data)
 
     do i = 1, transient%get_width()
-       ptr => old_pointer(i)%get_pointer()
-       call restore_vector_data_readonly(phi%old_values(i)%vec, ptr)
-       nullify(ptr)
+      ptr => old_pointer(i)%get_pointer()
+      call restore_vector_data_readonly(phi%old_values(i)%vec, ptr)
+      nullify (ptr)
     end do
     call restore_vector_data(diag, diag_data)
     call restore_vector_data(b, b_data)
@@ -258,8 +258,8 @@ contains
 
     rho = 1.0
 
-    allocate(old(transient%get_width()))
-    
+    allocate (old(transient%get_width()))
+
     call get_local_num_cells(local_num_cells)
     !$omp parallel do default(none) schedule(static)   &
     !$omp shared(local_num_cells, old_pointer, rho,    &
@@ -272,7 +272,7 @@ contains
       call transient%eval_coeffs(rho, V_p, coeff)
 
       do j = 1, transient%get_width()
-         old(j) = old_pointer(j)%read(i)
+        old(j) = old_pointer(j)%read(i)
       end do
 
       call transient%eval_explicit(rho, V_p, old, rhs)

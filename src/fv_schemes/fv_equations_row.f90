@@ -107,8 +107,8 @@ contains
     if (required == 0_ccs_int) return
 
     if (.not. allocated(row%global_col_indices) .and. .not. allocated(row%coefficients)) then
-      allocate (row%global_col_indices(required), source = 0_ccs_int)
-      allocate (row%coefficients(required), source = 0.0_ccs_real)
+      allocate (row%global_col_indices(required), source=0_ccs_int)
+      allocate (row%coefficients(required), source=0.0_ccs_real)
       return
     end if
     if (.not. allocated(row%global_col_indices) .or. .not. allocated(row%coefficients)) then
@@ -122,8 +122,8 @@ contains
     if (capacity >= required) return
 
     extension_size = required - capacity
-    allocate (global_col_indices_extension(extension_size), source = 0_ccs_int)
-    allocate (coefficients_extension(extension_size), source = 0.0_ccs_real)
+    allocate (global_col_indices_extension(extension_size), source=0_ccs_int)
+    allocate (coefficients_extension(extension_size), source=0.0_ccs_real)
     row%global_col_indices = [row%global_col_indices, global_col_indices_extension]
     row%coefficients = [row%coefficients, coefficients_extension]
 

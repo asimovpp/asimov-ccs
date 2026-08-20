@@ -37,7 +37,7 @@ module petsctypes
     type(tMat) :: M                            !< The PETSc matrix
     logical :: allocated = .false.             !< Indicates whether the PETSc matrix has been allocated
     integer(ccs_int) :: mode = huge(0_ccs_int) !< Current mode for setting values
-    logical :: modeset  = .false.              !< Is the current mode still valid? i.e. does matrix need updated before switching modes?
+    logical :: modeset = .false.              !< Is the current mode still valid? i.e. does matrix need updated before switching modes?
   contains
     final :: free_matrix_petsc
   end type matrix_petsc

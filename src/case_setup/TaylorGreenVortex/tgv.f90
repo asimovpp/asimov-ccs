@@ -17,13 +17,12 @@ program tgv
 
   implicit none
 
-  class(parallel_environment), allocatable:: par_env
-  class(parallel_environment), allocatable:: shared_env
+  class(parallel_environment), allocatable :: par_env
+  class(parallel_environment), allocatable :: shared_env
 
   type(ccs_options) :: run_options
 
-
-  type(fluid):: flow_fields
+  type(fluid) :: flow_fields
 
   ! Launch MPI
   call initialise_parallel_environment(par_env)
@@ -34,18 +33,18 @@ program tgv
   call configure_parallelism(run_options, par_env, shared_env)
 
   call profiler_begin_region('Total elapsed time')
-  if (is_root(par_env)) write (log_unit_out,*) "Starting ", run_options%paths%case_name, " case!"
+  if (is_root(par_env)) write (log_unit_out, *) "Starting ", run_options%paths%case_name, " case!"
 
   call profiler_begin_region('Total initialisation')
   call initialise_mesh(par_env, shared_env, run_options)
 
   ! Initialise fields
-  if (is_root(par_env)) write (log_unit_out,*) "Initialise fields"
+  if (is_root(par_env)) write (log_unit_out, *) "Initialise fields"
 
   call initialise_fields(par_env, run_options, flow_fields)
-  
+
   ! Initialise velocity field
-  if (is_root(par_env)) write (log_unit_out,*) "Initialise velocity field"
+  if (is_root(par_env)) write (log_unit_out, *) "Initialise velocity field"
   call initialise_flow(par_env, run_options, flow_fields, get_init_flow, get_init_mass_flux)
 
   call profiler_end_region('Total initialisation')
@@ -81,9 +80,9 @@ contains
     case default
       init_val = init_val + 0.0_ccs_real ! Keep the default value
     end select
-    
+
   end subroutine get_init_flow
-  
+
   pure subroutine get_init_mass_flux(loc_f, init_val)
     use types, only: face_locator
     use meshing, only: get_face_normal, get_centre
@@ -94,9 +93,9 @@ contains
 
     call get_face_normal(loc_f, face_normal)
     call get_centre(loc_f, x_f)
-  
+
     init_val = sin(x_f(1)) * cos(x_f(2)) * cos(x_f(3)) * face_normal(1) &
-             - cos(x_f(1)) * sin(x_f(2)) * cos(x_f(3)) * face_normal(2)
+               - cos(x_f(1)) * sin(x_f(2)) * cos(x_f(3)) * face_normal(2)
 
   end subroutine get_init_mass_flux
 
@@ -105,16 +104,16 @@ contains
     class(parallel_environment), allocatable, intent(in) :: par_env
     type(fluid), intent(in) :: flow_fields
 
-    class(field), pointer:: u, v, w
+    class(field), pointer :: u, v, w
 
     call get_field(flow_fields, "u", u)
     call get_field(flow_fields, "v", v)
     call get_field(flow_fields, "w", w)
     call calc_kinetic_energy(par_env, u, v, w)
     call calc_enstrophy(par_env, u, v, w)
-    nullify(u)
-    nullify(v)
-    nullify(w)
+    nullify (u)
+    nullify (v)
+    nullify (w)
 
   end subroutine postproc_tgv
 
@@ -127,10 +126,10 @@ contains
     class(field), intent(in) :: phi !< Field being transported
     class(ccs_vector), intent(inout) :: R !< Work vector (for evaluating linear/implicit sources)
     class(ccs_vector), intent(inout) :: S !< Work vector (for evaluating fixed/explicit sources)
-    
+
     ! Dummy implementation - just zeros the sources, see sero_sources for example implementation
     call zero_sources(flow, phi, R, S)
-    
+
   end subroutine eval_sources
 
 end program tgv

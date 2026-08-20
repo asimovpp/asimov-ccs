@@ -25,7 +25,7 @@ contains
   module subroutine create_vector(vec_properties, v, name)
 
     use petsc, only: PETSC_DECIDE, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE
-#if PETSC_VERSION_GE(3,23,0)    
+#if PETSC_VERSION_GE(3,23,0)
     use petscvec, only: VecCreateGhost, VecSetSizes, VecSetFromOptions, VecSet, VecSetOption, &
                         VecCreate, VecSetOptionsPrefix
 #else
@@ -111,7 +111,7 @@ contains
   !> Sets values in a PETSc vector
   module subroutine set_vector_values(val_dat, v)
 
-#if PETSC_VERSION_GE(3,23,0)  
+#if PETSC_VERSION_GE(3,23,0)
     use petsc, only: VecSetValues, eInsertMode
 #else
     use petsc, only: VecSetValues
@@ -122,7 +122,7 @@ contains
     class(ccs_vector), intent(inout) :: v   !< the PETSc vector.
 
     integer(ccs_int) :: n    ! Number of elements to add
-#if PETSC_VERSION_GE(3,23,0)  
+#if PETSC_VERSION_GE(3,23,0)
     type(eInsertMode) :: mode ! Append or insert mode
 #else
     integer(ccs_int) :: mode ! Append or insert mode
@@ -138,7 +138,7 @@ contains
         ! First check if safe to set
         if (v%modeset) then
           if (val_dat%setter_mode /= v%mode) then
-            write(log_unit_out,*) ""
+            write (log_unit_out, *) ""
             call error_abort("ERROR: trying to set vector using different mode without updating.")
           end if
         else
@@ -389,7 +389,7 @@ contains
 
     integer(ccs_err) :: ierr
 
-    select type(v)
+    select type (v)
     type is (vector_petsc)
       call VecSum(v%v, sum, ierr)
     class default
@@ -489,13 +489,13 @@ contains
 
       if (vec%ghosted) then
         call VecGhostGetLocalForm(vec%v, vec%v_local, ierr)
-#if PETSC_VERSION_GE(3,23,0)        
+#if PETSC_VERSION_GE(3,23,0)
         call VecGetArray(vec%v_local, array, ierr)
 #else
         call VecGetArrayF90(vec%v_local, array, ierr)
 #endif
       else
-#if PETSC_VERSION_GE(3,23,0)      
+#if PETSC_VERSION_GE(3,23,0)
         call VecGetArray(vec%v, array, ierr)
 #else
         call VecGetArrayF90(vec%v, array, ierr)
@@ -527,14 +527,14 @@ contains
       end if
 
       if (vec%ghosted) then
-#if PETSC_VERSION_GE(3,23,0)      
+#if PETSC_VERSION_GE(3,23,0)
         call VecRestoreArray(vec%v_local, array, ierr)
 #else
         call VecRestoreArrayF90(vec%v_local, array, ierr)
-#endif        
+#endif
         call VecGhostRestoreLocalForm(vec%v, vec%v_local, ierr)
       else
-#if PETSC_VERSION_GE(3,23,0)      
+#if PETSC_VERSION_GE(3,23,0)
         call VecRestoreArray(vec%v, array, ierr)
 #else
         call VecRestoreArrayF90(vec%v, array, ierr)
@@ -563,15 +563,15 @@ contains
     type is (vector_petsc)
       if (vec%ghosted) then
         call VecGhostGetLocalForm(vec%v, vec%v_local, ierr)
-#if PETSC_VERSION_GE(3,23,0)        
+#if PETSC_VERSION_GE(3,23,0)
         call VecGetArrayRead(vec%v_local, array, ierr)
-#else        
+#else
         call VecGetArrayReadF90(vec%v_local, array, ierr)
 #endif
       else
 #if PETSC_VERSION_GE(3,23,0)
         call VecGetArrayRead(vec%v, array, ierr)
-#else        
+#else
         call VecGetArrayReadF90(vec%v, array, ierr)
 #endif
       end if
@@ -595,14 +595,14 @@ contains
     select type (vec)
     type is (vector_petsc)
       if (vec%ghosted) then
-#if PETSC_VERSION_GE(3,23,0)      
+#if PETSC_VERSION_GE(3,23,0)
         call VecRestoreArrayRead(vec%v_local, array, ierr)
 #else
         call VecRestoreArrayReadF90(vec%v_local, array, ierr)
 #endif
         call VecGhostRestoreLocalForm(vec%v, vec%v_local, ierr)
       else
-#if PETSC_VERSION_GE(3,23,0)      
+#if PETSC_VERSION_GE(3,23,0)
         call VecRestoreArrayRead(vec%v, array, ierr)
 #else
         call VecRestoreArrayReadF90(vec%v, array, ierr)
@@ -692,7 +692,7 @@ contains
     use petsc, only: PETSC_DECIDE
     use petscvec, only: tVec, VecCreate, VecSetSizes, VecSetFromOptions, &
                         VecSetValues, VecAssemblyBegin, VecAssemblyEnd, &
-#if PETSC_VERSION_GE(3,23,0) 
+#if PETSC_VERSION_GE(3,23,0)
                         VecGetArrayRead, VecRestoreArrayRead, &
 #else
                         VecGetArrayReadF90, VecRestoreArrayReadF90, &
@@ -715,7 +715,7 @@ contains
 
     ! XXX: This would be better with VecCreateMPIWithArray, however the Fortran interface is
     !      missing...
-    select type(par_env)
+    select type (par_env)
     type is (parallel_environment_mpi)
       call VecCreate(par_env%comm, vec_tmp, ierr)
     class default
@@ -728,19 +728,19 @@ contains
     call VecAssemblyBegin(vec_tmp, ierr)
     call VecAssemblyEnd(vec_tmp, ierr)
 
-#if PETSC_VERSION_GE(3,23,0) 
+#if PETSC_VERSION_GE(3,23,0)
     call VecGetArrayRead(vec_tmp, data_tmp, ierr)
 #else
     call VecGetArrayReadF90(vec_tmp, data_tmp, ierr)
 #endif
     data_to(1:nlocal_out) = data_tmp(1:nlocal_out)
-#if PETSC_VERSION_GE(3,23,0) 
+#if PETSC_VERSION_GE(3,23,0)
     call VecRestoreArrayRead(vec_tmp, data_tmp, ierr)
 #else
     call VecRestoreArrayReadF90(vec_tmp, data_tmp, ierr)
 #endif
     call VecDestroy(vec_tmp, ierr)
-    
+
   end subroutine reorder_data_vec
 
 !   module subroutine vec_view(vec_properties, vec)

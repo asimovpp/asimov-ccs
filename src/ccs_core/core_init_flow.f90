@@ -1,7 +1,7 @@
 submodule(core) core_init_flow
 
   use ccs_base, only: mesh
-  
+
   use kinds, only: ccs_int, ccs_real
 
   use kinds, only: ccs_real, ccs_int
@@ -9,8 +9,8 @@ submodule(core) core_init_flow
   use utils, only: update
   use fields, only: get_field, get_field_is_face_based
   use meshing, only: create_cell_locator, count_neighbours, create_neighbour_locator, &
-                       get_local_index, create_face_locator, get_face_normal, get_centre, &
-                       get_face_interpolation, get_local_num_cells, get_boundary_status
+                     get_local_index, create_face_locator, get_face_normal, get_centre, &
+                     get_face_interpolation, get_local_num_cells, get_boundary_status
   use vec, only: get_vector_data, restore_vector_data
   use fv, only: calc_mass_flux_bc
   use profiler, only: profiler_begin_region, profiler_end_region
@@ -19,7 +19,7 @@ submodule(core) core_init_flow
 
   implicit none
 
-  contains
+contains
 
   !v Initialise both cell centre values and mass fluxes by calling get_init_flow and get_init_mass_flux
   !  on every cell or face
@@ -66,7 +66,7 @@ submodule(core) core_init_flow
     ! Arguments
     type(fluid), intent(inout) :: flow_fields !< The flow
 
-    interface 
+    interface
       !> User-supplied subroutine to set field values at cell centres
       pure subroutine get_init_flow(loc_p, field_name, init_val)
         use kinds, only: ccs_real
@@ -88,7 +88,7 @@ submodule(core) core_init_flow
 
     call get_local_num_cells(n_local)
 
-    do i_field=1, size(flow_fields%fields)
+    do i_field = 1, size(flow_fields%fields)
 
       call get_field(flow_fields, i_field, current_field)
 
@@ -112,7 +112,7 @@ submodule(core) core_init_flow
 
       call update(current_field%values)
 
-      nullify(current_field)
+      nullify (current_field)
 
     end do
 
@@ -124,7 +124,7 @@ submodule(core) core_init_flow
     character(len=*), intent(in) :: field_name
     real(ccs_real), intent(out) :: init_val
 
-    select case(field_name)
+    select case (field_name)
     case ("density")
       init_val = 1.0_ccs_real ! Zero density will cause solver failure!
     case ("viscosity")
@@ -132,9 +132,9 @@ submodule(core) core_init_flow
     case default
       init_val = 0.0_ccs_real
     end select
-    
+
   end subroutine get_init_default
-  
+
   !v Initialise the face centred mass flux values by calling the user-supplied initialisation on
   !  mesh faces.
   subroutine initialise_mass_flux(flow_fields, get_init_mass_flux)
@@ -155,12 +155,12 @@ submodule(core) core_init_flow
 
     class(field), pointer :: u, v, w
     class(field), pointer :: mf
-    
-    real(ccs_real), dimension(:), pointer:: mf_data
 
-    type(cell_locator):: loc_p
-    type(face_locator):: loc_f
-    type(neighbour_locator):: loc_nb
+    real(ccs_real), dimension(:), pointer :: mf_data
+
+    type(cell_locator) :: loc_p
+    type(face_locator) :: loc_f
+    type(neighbour_locator) :: loc_nb
     integer(ccs_int) :: n_local, index_p, index_nb, index_f
     integer(ccs_int) :: j, nnb
     real(ccs_real) :: interpol_factor
@@ -196,13 +196,13 @@ submodule(core) core_init_flow
           ! Allow case to overwrite bc value
           call get_init_mass_flux(loc_f, mf_data(index_f))
 
-        else if (index_p < index_nb) then  
+        else if (index_p < index_nb) then
           call get_centre(loc_f, x_f)
           call get_face_interpolation(loc_f, interpol_factor)
 
           u_p = [u%values_ro(index_p), v%values_ro(index_p), w%values_ro(index_p)]
           u_nb = [u%values_ro(index_nb), v%values_ro(index_nb), w%values_ro(index_nb)]
-          velocity = interpol_factor * u_p + (1-interpol_factor) * u_nb
+          velocity = interpol_factor * u_p + (1 - interpol_factor) * u_nb
 
           ! compute initial value based on current face coordinates
           mf_data(index_f) = dot_product(velocity, face_normal)

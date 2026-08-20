@@ -21,7 +21,7 @@ contains
     call get_local_num_cells(local_num_cells)
 
     allocate (new_indices(local_num_cells))
-    new_indices = (/(i, i=1,local_num_cells)/)
+    new_indices = (/(i, i=1, local_num_cells)/)
 
   end subroutine get_reordering
 

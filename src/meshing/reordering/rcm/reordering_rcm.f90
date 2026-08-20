@@ -5,7 +5,7 @@ submodule(reordering) reordering_rcm
 
   use rcm_mod
   use rcm_kinds
-  
+
   implicit none
 
 contains
