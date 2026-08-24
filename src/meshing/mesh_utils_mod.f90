@@ -2470,7 +2470,7 @@ contains
           call get_face_normal(loc_f, normal)
 
           ! Project cell centres (P and N) onto face normal (-> P' and N') and compute the ratio |fP'|/ (|fP'|+ |fN'|)
-          ! This is equivalent to getting the ratio between f'P over PN where f' is the point on the face intersecting NP
+          ! This is equivalent (via Thales' theorem) to getting the ratio between f'P over PN where f' is the point on the face intersecting NP
           interpol_factor = dot_product(normal, x_f - x_p) / abs(dot_product(normal, x_f - x_p) - dot_product(normal, x_f - x_nb))
 
           if (interpol_factor > 1) then
