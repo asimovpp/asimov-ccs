@@ -96,7 +96,7 @@ endif
 
 ifdef CALIPER
   INC += -I${CALIPER}/include/caliper/fortran
-  LIB += -L${CALIPER}/lib -lcaliper
+  LIB += -L${CALIPER}/lib64 -lcaliper
 endif
 
 ifdef LIKWID
