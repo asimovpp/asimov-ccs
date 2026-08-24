@@ -2439,6 +2439,7 @@ contains
     real(ccs_real), dimension(ndim) :: x_nb ! neighbour cell centre array
     real(ccs_real), dimension(ndim) :: x_f ! face centre array
     real(ccs_real), dimension(ndim) :: v_p_nb ! vector going through local and neighbour cell centres
+    real(ccs_real), dimension(ndim) :: normal
 
     if (allocated(mesh%geo%face_interpol)) then
       deallocate (mesh%geo%face_interpol)
@@ -2467,10 +2468,12 @@ contains
           call get_centre(loc_f, x_f)
           call get_centre(loc_nb, x_nb)
           call get_centre(loc_p, x_p)
+          call get_face_normal(loc_f, normal)
 
-          ! v_p_nb.V2 / |v_p_nb|**2
-          v_p_nb = x_nb - x_p
-          interpol_factor = dot_product(v_p_nb, x_f - x_p) / dot_product(v_p_nb, v_p_nb)
+          ! Project cell centres (P and N) onto face normal (-> P' and N') and compute the ratio |fP'|/ (|fP'|+ |fN'|)
+          ! This is equivalent to getting the ratio between f'P over PN where f' is the point on the face intersecting NP
+          interpol_factor = dot_product(normal, x_f - x_p) / abs(dot_product(normal, x_f - x_p) - dot_product(normal, x_f - x_nb))
+
           if (interpol_factor > 1) then
             call dprint("invalid interpol factor " // str(interpol_factor))
           end if
