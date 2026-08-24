@@ -75,3 +75,5 @@ subroutine equation_system(flow, eq, M, b)
 
 end subroutine
 ```
+
+Equation object contain payload object to allow for efficient iteration over the matrix rows
