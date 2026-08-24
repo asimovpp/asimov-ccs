@@ -2439,8 +2439,7 @@ contains
     real(ccs_real), dimension(ndim) :: x_p ! cell centre array
     real(ccs_real), dimension(ndim) :: x_nb ! neighbour cell centre array
     real(ccs_real), dimension(ndim) :: x_f ! face centre array
-    real(ccs_real), dimension(ndim) :: v_p_nb ! vector going through local and neighbour cell centres
-    real(ccs_real), dimension(ndim) :: normal
+    real(ccs_real), dimension(ndim) :: normal ! face normal
 
     ! MW START: add face interpolation diagnostics
     integer(ccs_int) :: index_f
@@ -2481,6 +2480,7 @@ contains
           call get_face_normal(loc_f, normal)
 
           ! Project cell centres (P and N) onto face normal (-> P' and N') and compute the ratio |fP'|/ (|fP'|+ |fN'|)
+          ! This is equivalent to getting the ratio between f'P over PN where f' is the point on the face intersecting NP
           interpol_factor = dot_product(normal, x_f - x_p) / abs(dot_product(normal, x_f - x_p) - dot_product(normal, x_f - x_nb))
 
           ! MW START: add face interpolation diagnostics
