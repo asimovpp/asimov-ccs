@@ -3009,4 +3009,69 @@ contains
 
   end subroutine test_mesh_internal_neighbours
 
+  subroutine report_mesh_surface_integral(par_env)
+    use kinds, only: CCS_MPI_PRECISION
+    use mpi
+    use parallel, only: is_root
+    use parallel_types_mpi, only: parallel_environment_mpi
+    use logging, only: log_unit_out
+    use meshing, only: create_face_locator, get_face_area, get_face_normal, get_local_num_cells
+
+    class(parallel_environment), intent(in), allocatable :: par_env
+
+    type(face_locator) :: loc_f
+    real(ccs_real), dimension(ndim) :: cell_integral
+    real(ccs_real), dimension(ndim) :: normal
+    real(ccs_real) :: area
+    real(ccs_real) :: cell_norm
+    real(ccs_real) :: total_local, total
+    real(ccs_real) :: max_local, max_global
+    integer(ccs_int) :: n_cells
+    integer(ccs_int) :: i, j
+    integer :: ierr
+
+    total_local = 0.0_ccs_real
+    max_local = 0.0_ccs_real
+
+    call get_local_num_cells(n_cells)
+
+    ! Compute the surface integral for each cell owned by this rank.
+    do i = 1, n_cells
+      cell_integral(:) = 0.0_ccs_real
+
+      do j = 1, mesh%topo%num_nb(i)
+        call create_face_locator(i, j, loc_f)
+        call get_face_area(loc_f, area)
+        call get_face_normal(loc_f, normal)
+
+        cell_integral(:) = cell_integral(:) + normal(:) * area
+      end do
+
+      ! Reduce the vector residual to a scalar magnitude for reporting.
+      cell_norm = norm2(cell_integral)
+      total_local = total_local + cell_norm
+      max_local = max(max_local, cell_norm)
+
+    end do
+
+    ! Reductions to get global mesh diagnostics
+    select type (par_env)
+    type is (parallel_environment_mpi)
+      call MPI_Allreduce(total_local, total, 1, CCS_MPI_PRECISION, MPI_SUM, par_env%comm, ierr)
+      call MPI_Allreduce(max_local, max_global, 1, CCS_MPI_PRECISION, MPI_MAX, par_env%comm, ierr)
+    class default
+      call error_abort("invalid parallel environment")
+    end select
+
+    if (is_root(par_env)) then
+      write(log_unit_out,*) "* Total surface integral: ", total
+      if (total > 0.0_ccs_real) then
+        write(log_unit_out,*) "* Max cell surface integral / total surface integral: ", max_global / total
+      else
+        write(log_unit_out,*) "* Max cell surface integral / total surface integral: ", 0.0_ccs_real
+      end if
+    end if
+
+  end subroutine report_mesh_surface_integral
+
 end module mesh_utils
