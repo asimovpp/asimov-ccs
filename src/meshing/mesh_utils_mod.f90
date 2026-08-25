@@ -108,6 +108,7 @@ module mesh_utils
   public :: print_geo
   public :: build_adjacency_matrix
   public :: test_mesh_internal_neighbours
+  public :: report_mesh_surface_integral
 
 contains
 
