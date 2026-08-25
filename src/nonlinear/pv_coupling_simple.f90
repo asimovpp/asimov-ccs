@@ -1190,7 +1190,7 @@ contains
     end do
 
     if (present(diverged)) then
-      diverged = (get_max_residuals(residuals, Linfty) > 10e8_ccs_real )
+      diverged = (get_max_residuals(residuals, Linfty) > 1e10_ccs_real)
     end if
 
   end subroutine check_convergence
