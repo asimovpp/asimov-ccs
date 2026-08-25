@@ -616,7 +616,7 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
 
     do i = 1, nfields
       call compute_gradients(fields(i)%ptr, gradients)
-      call set_gradients(fields(i)%ptr, fields(i)%ptr%solver_parameters%grad_relaxation_factor, gradients)
+      call set_gradients(fields(i)%ptr, gradients)
       call start_gradient_halo(fields(i)%ptr)
     end do
 
@@ -651,10 +651,10 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
 
   end subroutine compute_gradients
 
-  subroutine set_gradients(phi, relaxation_factor, gradients)
+  subroutine set_gradients(phi, gradients)
     class(field), intent(inout) :: phi
-    real(ccs_real), intent(in) :: relaxation_factor
     real(ccs_real), dimension(:, :), intent(in) :: gradients
+    real(ccs_real) :: relaxation_factor
 
     real(ccs_real), dimension(:), pointer :: x_gradient_data
     real(ccs_real), dimension(:), pointer :: y_gradient_data
@@ -662,6 +662,7 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
     integer(ccs_int) :: local_num_cells
     integer(ccs_int) :: i
 
+    relaxation_factor = phi%solver_parameters%grad_relaxation_factor
     local_num_cells = size(gradients, 1)
 
     call get_vector_data(phi%x_gradients, x_gradient_data)
