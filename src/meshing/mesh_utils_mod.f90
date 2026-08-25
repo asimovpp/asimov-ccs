@@ -3053,15 +3053,13 @@ contains
 
   end subroutine test_mesh_internal_neighbours
 
-  subroutine report_mesh_surface_integral(par_env)
+  subroutine report_mesh_surface_integral(par_env, mesh)
     use kinds, only: CCS_MPI_PRECISION
-    use mpi
-    use parallel, only: is_root
-    use parallel_types_mpi, only: parallel_environment_mpi
     use logging, only: log_unit_out
     use meshing, only: create_face_locator, get_face_area, get_face_normal, get_local_num_cells
 
-    class(parallel_environment), intent(in), allocatable :: par_env
+    class(parallel_environment), allocatable, intent(in) :: par_env
+    type(ccs_mesh), intent(inout) :: mesh          !< The mesh
 
     type(face_locator) :: loc_f
     real(ccs_real), dimension(ndim) :: cell_integral

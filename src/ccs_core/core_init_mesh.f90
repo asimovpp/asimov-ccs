@@ -53,7 +53,7 @@ contains
       ! Compute the mesh surface integral if the mesh was read from an input file
       if (run_options%mesh%init_mesh_type == read_input_mesh) then
         call profiler_begin_region("Compute mesh surface integral")
-        call report_mesh_surface_integral(par_env)
+        call report_mesh_surface_integral(par_env, mesh)
         call profiler_end_region("Compute mesh surface integral")
       end if
 
