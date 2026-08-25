@@ -42,7 +42,7 @@ contains
         call adios2_attribute_data(attr, adios2_attr, ierr)
 
       else
-        call error_abort("IO Error: unsupported integer type "//trim(attr_name))
+        call error_abort("IO Error: unsupported integer type " // trim(attr_name))
       end if
 
     class default
@@ -180,12 +180,12 @@ contains
 
       call adios2_inquire_variable(adios2_var, io_proc%io_task, var_name, ierr)
 
-      if(adios2_var%valid) then
+      if (adios2_var%valid) then
         call adios2_set_selection(adios2_var, 1, global_start, count, ierr)
 
         if (present(step)) then
           call adios2_set_step_selection(adios2_var, step, step_count, ierr)
-        endif
+        end if
 
         if (adios2_var%type == adios2_type_integer8) then
 
@@ -205,7 +205,7 @@ contains
 
       else
         error stop "Variable not found."
-      end if 
+      end if
 
     class default
       call error_abort("Unknown IO process handler type")
@@ -234,13 +234,13 @@ contains
     type is (adios2_io_process)
 
       call adios2_inquire_variable(adios2_var, io_proc%io_task, var_name, ierr)
-      
-      if(adios2_var%valid) then
+
+      if (adios2_var%valid) then
         call adios2_set_selection(adios2_var, 1, global_start, count, ierr)
 
         if (present(step)) then
           call adios2_set_step_selection(adios2_var, step, step_count, ierr)
-        endif
+        end if
 
         if (adios2_var%type == adios2_type_integer4) then
 
@@ -259,7 +259,7 @@ contains
 
       else
         error stop "Variable not found."
-      end if 
+      end if
 
     class default
       call error_abort("Unknown IO process handler type")
@@ -289,13 +289,13 @@ contains
 
       call adios2_inquire_variable(adios2_var, io_proc%io_task, var_name, ierr)
 
-      if(adios2_var%valid) then
+      if (adios2_var%valid) then
 
         call adios2_set_selection(adios2_var, 2, global_start, count, ierr)
 
         if (present(step)) then
           call adios2_set_step_selection(adios2_var, step, step_count, ierr)
-        endif
+        end if
 
         if (adios2_var%type == adios2_type_integer8) then
 
@@ -315,7 +315,7 @@ contains
 
       else
         error stop "Variable not found."
-      end if 
+      end if
 
     class default
       call error_abort("Unknown IO process handler type")
@@ -345,13 +345,13 @@ contains
 
       call adios2_inquire_variable(adios2_var, io_proc%io_task, var_name, ierr)
 
-      if(adios2_var%valid) then
+      if (adios2_var%valid) then
 
         call adios2_set_selection(adios2_var, 2, global_start, count, ierr)
 
         if (present(step)) then
           call adios2_set_step_selection(adios2_var, step, step_count, ierr)
-        endif
+        end if
 
         if (adios2_var%type == adios2_type_integer4) then
 
@@ -370,7 +370,7 @@ contains
 
       else
         error stop "Variable not found."
-      end if 
+      end if
 
     class default
       call error_abort("Unknown IO process handler type")
@@ -400,13 +400,13 @@ contains
 
       call adios2_inquire_variable(adios2_var, io_proc%io_task, var_name, ierr)
 
-      if(adios2_var%valid) then
+      if (adios2_var%valid) then
 
         call adios2_set_selection(adios2_var, 1, global_start, count, ierr)
 
         if (present(step)) then
           call adios2_set_step_selection(adios2_var, step, step_count, ierr)
-        endif
+        end if
 
         if (adios2_var%type == adios2_type_dp) then
 
@@ -426,7 +426,7 @@ contains
 
       else
         error stop "Variable not found."
-      end if 
+      end if
 
     class default
       call error_abort("Unknown IO process handler type")
@@ -456,13 +456,13 @@ contains
 
       call adios2_inquire_variable(adios2_var, io_proc%io_task, var_name, ierr)
 
-      if(adios2_var%valid) then
+      if (adios2_var%valid) then
 
         call adios2_set_selection(adios2_var, 1, global_start, count, ierr)
 
         if (present(step)) then
           call adios2_set_step_selection(adios2_var, step, step_count, ierr)
-        endif
+        end if
 
         if (adios2_var%type == adios2_type_real) then
 
@@ -481,7 +481,7 @@ contains
 
       else
         error stop "Variable not found."
-      end if 
+      end if
 
     class default
       call error_abort("Unknown IO process handler type")
@@ -511,13 +511,13 @@ contains
 
       call adios2_inquire_variable(adios2_var, io_proc%io_task, var_name, ierr)
 
-      if(adios2_var%valid) then
+      if (adios2_var%valid) then
 
         call adios2_set_selection(adios2_var, 2, global_start, count, ierr)
 
         if (present(step)) then
           call adios2_set_step_selection(adios2_var, step, step_count, ierr)
-        endif
+        end if
 
         if (adios2_var%type == adios2_type_dp) then
 
@@ -537,7 +537,7 @@ contains
 
       else
         error stop "Variable not found."
-      end if 
+      end if
 
     class default
       call error_abort("Unknown IO process handler type")
@@ -567,13 +567,13 @@ contains
 
       call adios2_inquire_variable(adios2_var, io_proc%io_task, var_name, ierr)
 
-      if(adios2_var%valid) then
+      if (adios2_var%valid) then
 
         call adios2_set_selection(adios2_var, 2, global_start, count, ierr)
 
         if (present(step)) then
           call adios2_set_step_selection(adios2_var, step, step_count, ierr)
-        endif
+        end if
 
         if (adios2_var%type == adios2_type_real) then
 
@@ -592,7 +592,7 @@ contains
 
       else
         error stop "Variable not found."
-      end if 
+      end if
 
     class default
       call error_abort("Unknown IO process handler type")
@@ -617,7 +617,7 @@ contains
       call adios2_define_attribute(adios2_attr, io_proc%io_task, attr_name, attr, ierr)
 
     class default
-      write(log_unit_out,*) "Unknown IO process handler type"
+      write (log_unit_out, *) "Unknown IO process handler type"
       stop 1
 
     end select
@@ -640,7 +640,7 @@ contains
       call adios2_define_attribute(adios2_attr, io_proc%io_task, attr_name, attr, ierr)
 
     class default
-      write(log_unit_out,*) "Unknown IO process handler type"
+      write (log_unit_out, *) "Unknown IO process handler type"
       stop 1
 
     end select
@@ -663,7 +663,7 @@ contains
       call adios2_define_attribute(adios2_attr, io_proc%io_task, attr_name, attr, ierr)
 
     class default
-      write(log_unit_out,*) "Unknown IO process handler type"
+      write (log_unit_out, *) "Unknown IO process handler type"
       stop 1
 
     end select
@@ -686,7 +686,7 @@ contains
       call adios2_define_attribute(adios2_attr, io_proc%io_task, attr_name, attr, ierr)
 
     class default
-      write(log_unit_out,*) "Unknown IO process handler type"
+      write (log_unit_out, *) "Unknown IO process handler type"
       stop 1
 
     end select
@@ -716,7 +716,7 @@ contains
       call adios2_put(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
 
     class default
-      write(log_unit_out,*) "Unknown IO process handler type"
+      write (log_unit_out, *) "Unknown IO process handler type"
       stop 1
 
     end select
@@ -746,7 +746,7 @@ contains
       call adios2_put(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
 
     class default
-      write(log_unit_out,*) "Unknown IO process handler type"
+      write (log_unit_out, *) "Unknown IO process handler type"
       stop 1
 
     end select
@@ -776,7 +776,7 @@ contains
       call adios2_put(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
 
     class default
-      write(log_unit_out,*) "Unknown IO process handler type"
+      write (log_unit_out, *) "Unknown IO process handler type"
       stop 1
 
     end select
@@ -806,7 +806,7 @@ contains
       call adios2_put(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
 
     class default
-      write(log_unit_out,*) "Unknown IO process handler type"
+      write (log_unit_out, *) "Unknown IO process handler type"
       stop 1
 
     end select
@@ -840,7 +840,7 @@ contains
       call adios2_put(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
 
     class default
-      write(log_unit_out,*) "Unknown IO process handler type"
+      write (log_unit_out, *) "Unknown IO process handler type"
       stop 1
 
     end select
@@ -874,7 +874,7 @@ contains
       call adios2_put(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
 
     class default
-      write(log_unit_out,*) "Unknown IO process handler type"
+      write (log_unit_out, *) "Unknown IO process handler type"
       stop 1
 
     end select
@@ -904,7 +904,7 @@ contains
       call adios2_put(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
 
     class default
-      write(log_unit_out,*) "Unknown IO process handler type"
+      write (log_unit_out, *) "Unknown IO process handler type"
       stop 1
 
     end select
@@ -934,7 +934,7 @@ contains
       call adios2_put(io_proc%engine, adios2_var, var, adios2_mode_sync, ierr)
 
     class default
-      write(log_unit_out,*) "Unknown IO process handler type"
+      write (log_unit_out, *) "Unknown IO process handler type"
       stop 1
 
     end select
@@ -943,8 +943,8 @@ contains
 
   !>  Print out downcast warning
   subroutine downcast_warning()
-    write(log_unit_out,*) "===> IO Warning:"
-    write(log_unit_out,*) "===> Downcasting from 64-bit to 32-bit, possible loss of precision."
+    write (log_unit_out, *) "===> IO Warning:"
+    write (log_unit_out, *) "===> Downcasting from 64-bit to 32-bit, possible loss of precision."
   end subroutine
 
 end submodule

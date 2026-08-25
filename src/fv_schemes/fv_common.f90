@@ -125,10 +125,10 @@ contains
     call update(M)
     call update(b)
 
-    deallocate(mat_coeffs%global_row_indices)
-    deallocate(mat_coeffs%global_col_indices)
-    deallocate(mat_coeffs%values)
-    deallocate(transport_eq)
+    deallocate (mat_coeffs%global_row_indices)
+    deallocate (mat_coeffs%global_col_indices)
+    deallocate (mat_coeffs%values)
+    deallocate (transport_eq)
   end subroutine compute_coeffs
 
   !> Computes the value of the scalar field on the boundary
@@ -173,8 +173,8 @@ contains
     real(ccs_real) :: dxmag
     real(ccs_real) :: bc_value
 
-    associate(foo=> component, bar=>normal)
-      end associate
+    associate (foo => component, bar => normal)
+    end associate
     call get_local_index(loc_p, index_p)
     call create_neighbour_locator(loc_p, loc_f%cell_face_ctr, loc_nb)
     call get_local_index(loc_nb, index_nb)
@@ -447,10 +447,10 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
     call get_bc_index(mf_field, index_nb, index_bc)
 
     select case (mf_field%bcs%bc_types(index_bc))
-    case(bc_type_dirichlet)
+    case (bc_type_dirichlet)
       flux = mf_field%bcs%values(index_bc)
 
-    case(bc_type_constructed)
+    case (bc_type_constructed)
       call get_face_normal(loc_f, n)
       call compute_boundary_values(u_field, x_direction, loc_p, loc_f, n, u_bc)
       call compute_boundary_values(v_field, y_direction, loc_p, loc_f, n, v_bc)
@@ -533,7 +533,7 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
           dxmag = 2.0_ccs_real * dx_orth
 
           ! eq 9.66
-          flux_corr = (p(index_nb) - p(index_p)) + (dot_product(grad_phi_nb, rnb_k_prime - x_nb) - dot_product(grad_phi_p, rp_prime - x_p))
+   flux_corr = (p(index_nb) - p(index_p)) + (dot_product(grad_phi_nb, rnb_k_prime - x_nb) - dot_product(grad_phi_p, rp_prime - x_p))
 
           ! interpolated pressure gradient at the face (i.e.)
           flux_corr = flux_corr - 0.5_ccs_real * dot_product((grad_phi_p + grad_phi_nb), x_nb - x_p)
@@ -543,7 +543,7 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
           call get_distance(loc_p, loc_nb, dx)
           dxmag = norm2(dx)
           flux_corr = -(p(index_nb) - p(index_p)) / dxmag
-          flux_corr = flux_corr + dot_product(interpol_factor * grad_phi_p + (1.0_ccs_real - interpol_factor) * grad_phi_nb, face_normal)
+     flux_corr = flux_corr + dot_product(interpol_factor * grad_phi_p + (1.0_ccs_real - interpol_factor) * grad_phi_nb, face_normal)
         end if
 
         call get_volume(loc_p, Vp)

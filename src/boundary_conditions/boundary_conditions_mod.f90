@@ -50,7 +50,6 @@ contains
 
   end subroutine read_bc_config
 
-
   !v Translate potentially high level boundary contition set by the user into a set of base boundary conditions
   subroutine translate_bcs_phi(bnd_normals, phi)
     use constants, only: ccs_string_len
@@ -63,7 +62,7 @@ contains
     real(ccs_real), parameter :: eps = 0.01
     logical :: is_momentum, is_pressure, is_pressure_corr, is_extra, is_mf
     logical :: is_mom_normal     !< Flag telling if the bc to be processed is normal to the velocity component
-     
+
     is_mom_normal = .false.
     is_momentum = .false.
     is_pressure = .false.
@@ -94,14 +93,14 @@ contains
       vel_normal_id = 1
     end if
 
-    do i=1, size(phi%bcs%bc_types)
-      
-      ! Flag telling if the bc to be processed is normal to the velocity component, 
+    do i = 1, size(phi%bcs%bc_types)
+
+      ! Flag telling if the bc to be processed is normal to the velocity component,
       !  not used for fields other than the velocity ones
-      is_mom_normal = (abs(abs(bnd_normals(vel_normal_id, i)) -1.0_ccs_real) <= eps)
-      
-      select case(phi%bcs%bc_types(i))
-      case(bc_type_wall)
+      is_mom_normal = (abs(abs(bnd_normals(vel_normal_id, i)) - 1.0_ccs_real) <= eps)
+
+      select case (phi%bcs%bc_types(i))
+      case (bc_type_wall)
         if (is_momentum) then
           if (is_mom_normal) then
             phi%bcs%bc_types(i) = bc_type_neumann
@@ -124,7 +123,7 @@ contains
           phi%bcs%values(i) = 0.0_ccs_real
         end if
 
-      case(bc_type_slip_wall)
+      case (bc_type_slip_wall)
         if (is_momentum) then
           phi%bcs%bc_types(i) = bc_type_neumann
           phi%bcs%values(i) = 0.0_ccs_real
@@ -142,7 +141,7 @@ contains
           phi%bcs%values(i) = 0.0_ccs_real
         end if
 
-      case(bc_type_inflow)
+      case (bc_type_inflow)
         if (is_momentum) then
           if (is_mom_normal) then
             phi%bcs%bc_types(i) = bc_type_dirichlet
@@ -163,7 +162,7 @@ contains
           phi%bcs%values(i) = 0.0_ccs_real
         end if
 
-      case(bc_type_outflow)
+      case (bc_type_outflow)
         if (is_momentum) then
           phi%bcs%bc_types(i) = bc_type_neumann
           phi%bcs%values(i) = 0.0_ccs_real
@@ -180,7 +179,7 @@ contains
           phi%bcs%values(i) = 0.0_ccs_real
         end if
 
-      case(bc_type_dirichlet)
+      case (bc_type_dirichlet)
         ! nothing to do
       case default
         ! Set mf to default as 'constructed' if not set by user
@@ -215,16 +214,15 @@ contains
       bcs%bc_types(boundary_index) = bc_type_wall
     case ("slipwall")
       bcs%bc_types(boundary_index) = bc_type_slip_wall
-    !case ("periodic")
-    !  bcs%bc_types(boundary_index) = bc_type_periodic
-    !case ("sym")
-    !  bcs%bc_types(boundary_index) = bc_type_sym
+      !case ("periodic")
+      !  bcs%bc_types(boundary_index) = bc_type_periodic
+      !case ("sym")
+      !  bcs%bc_types(boundary_index) = bc_type_sym
     case default
       error stop invalid_bc_name ! Invalid BC type string received
     end select
 
   end subroutine set_bc_type
-  
 
   !> Sets the bc struct's id field to the appropriate integer value
   pure subroutine set_bc_id(boundary_index, name, bcs)
@@ -237,10 +235,10 @@ contains
     type(bc_config), intent(inout) :: bcs          !< the bcs struct
 
     integer :: bc_id
-    
+
     call get_bc_id(mesh, name, bc_id)
     bcs%ids(boundary_index) = bc_id
-    
+
   end subroutine set_bc_id
 
   !> Sets the bc struct's value field to the given real value
@@ -284,7 +282,7 @@ contains
     if (index_tmp(1) == 0) then
       error stop bc_index_not_found ! BC index not found
     end if
-    
+
     index_bc = index_tmp(1)
   end subroutine get_bc_index
 

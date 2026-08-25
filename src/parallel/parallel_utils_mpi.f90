@@ -30,15 +30,15 @@ contains
     integer :: colour
     integer(ccs_err) :: ierr
 
-    allocate(parallel_environment_mpi :: par_env)
+    allocate (parallel_environment_mpi :: par_env)
 
     select type (parent_par_env)
     type is (parallel_environment_mpi)
       call set_colour_from_split(parent_par_env, split, use_mpi_splitting, colour)
       if (use_mpi_splitting) then
-        call mpi_comm_split_type(parent_par_env%comm, colour, 0, MPI_INFO_NULL, newcomm, ierr) 
-      else 
-        call mpi_comm_split(parent_par_env%comm, colour, 0, newcomm, ierr) 
+        call mpi_comm_split_type(parent_par_env%comm, colour, 0, MPI_INFO_NULL, newcomm, ierr)
+      else
+        call mpi_comm_split(parent_par_env%comm, colour, 0, newcomm, ierr)
       end if
       call error_handling(ierr, "mpi", parent_par_env)
 
@@ -53,7 +53,7 @@ contains
       call error_abort("Unsupported parallel environment")
     end select
   end subroutine create_new_par_env
-	
+
   !> Creates a parallel environment based on the provided communicator
   subroutine create_parallel_environment_from_comm(comm, par_env)
     integer, intent(in) :: comm                                          !< The communicator with which to make the parallel environment
@@ -79,11 +79,11 @@ contains
         call error_handling(ierr, "mpi", par_env)
 
         call par_env%set_rop()
-        par_env%root=0
+        par_env%root = 0
       else
         par_env%proc_id = -1
         par_env%num_procs = 0
-        par_env%root=-1
+        par_env%root = -1
       end if
     class default
       call error_abort("Unsupported parallel environment")
@@ -93,7 +93,7 @@ contains
   module subroutine create_shared_array_int_1D(shared_env, length, array, window)
 
     use iso_c_binding
-    
+
     class(parallel_environment), intent(in) :: shared_env
     integer(ccs_int), intent(in) :: length
     integer(ccs_int), pointer, dimension(:), intent(out) :: array
@@ -169,7 +169,7 @@ contains
 
     class(parallel_environment), intent(in) :: shared_env
     integer(ccs_int), dimension(2), intent(in) :: length
-    integer(ccs_int), pointer, dimension(:,:), intent(out) :: array
+    integer(ccs_int), pointer, dimension(:, :), intent(out) :: array
     integer, intent(out) :: window
     type(c_ptr) :: c_array_ptr
     integer(ccs_int) :: dummy_int = 1_ccs_int
@@ -244,7 +244,7 @@ contains
 
     class(parallel_environment), intent(in) :: shared_env
     integer(ccs_int), dimension(2), intent(in) :: length
-    real(ccs_real), pointer, dimension(:,:), intent(out) :: array
+    real(ccs_real), pointer, dimension(:, :), intent(out) :: array
     integer, intent(out) :: window
 
     type(c_ptr) :: c_array_ptr
@@ -282,7 +282,7 @@ contains
 
     class(parallel_environment), intent(in) :: shared_env
     integer(ccs_int), dimension(3), intent(in) :: length
-    real(ccs_real), pointer, dimension(:,:,:), intent(out) :: array
+    real(ccs_real), pointer, dimension(:, :, :), intent(out) :: array
     integer, intent(out) :: window
 
     type(c_ptr) :: c_array_ptr
@@ -317,7 +317,7 @@ contains
   integer(MPI_ADDRESS_KIND) function shared_alloc_size(shape, elem_bytes, shared_env, root_alloc) result(nbytes)
 
     use iso_fortran_env, only: int64
-    
+
     integer(ccs_int), dimension(:), intent(in) :: shape      !< What is the shape we are allocating
     integer(ccs_int), intent(in) :: elem_bytes               !< Size of elements (in bytes)
     type(parallel_environment_mpi), intent(in) :: shared_env !< The shared memory environment
@@ -327,38 +327,38 @@ contains
     integer(MPI_ADDRESS_KIND) :: delta
 
     if (any(shape < 0)) then
-       call error_abort("Allocated shape must be positive")
+      call error_abort("Allocated shape must be positive")
     end if
     if (elem_bytes < 0) then
-       call error_abort("Per element size [bytes] must be positive")
+      call error_abort("Per element size [bytes] must be positive")
     end if
-    
+
     ! Determine how many bytes to allocate
     nbytes = product(int(shape, int64)) * int(elem_bytes, int64)
 
     ! Determine how to distribute the allocation
     if (root_alloc) then
-       ! Root rank allocates
-       if (.not. is_root(shared_env)) then
-          nbytes = 0
-       end if
+      ! Root rank allocates
+      if (.not. is_root(shared_env)) then
+        nbytes = 0
+      end if
     else
-       ! Allocate across shared memory region
-       mybytes = nbytes / shared_env%num_procs
+      ! Allocate across shared memory region
+      mybytes = nbytes / shared_env%num_procs
 
-       ! Distribute bytes to lower ranks
-       delta = nbytes - shared_env%num_procs * mybytes
-       if (shared_env%proc_id < delta) then
-          mybytes = mybytes + 1
-       end if
+      ! Distribute bytes to lower ranks
+      delta = nbytes - shared_env%num_procs * mybytes
+      if (shared_env%proc_id < delta) then
+        mybytes = mybytes + 1
+      end if
 
-       nbytes = mybytes
+      nbytes = mybytes
     end if
-    
+
     if (nbytes < 0) then
-       call error_abort("Byte computation overflowed!")
+      call error_abort("Byte computation overflowed!")
     end if
-    
+
   end function shared_alloc_size
 
   module subroutine destroy_shared_array_int_1D(shared_env, array, window)
@@ -368,13 +368,13 @@ contains
     integer(ccs_err) :: ierr
 
     ! Keeping shared_env as argument to more clearly decrate this function as MPI shared memory related
-    associate(foo => shared_env)
+    associate (foo => shared_env)
     end associate
 
     call mpi_win_free(window, ierr)
     call error_handling(ierr, "mpi", shared_env)
 
-    nullify(array)
+    nullify (array)
 
   end subroutine
 
@@ -385,13 +385,13 @@ contains
     integer(ccs_err) :: ierr
 
     ! Keeping shared_env as argument to more clearly decrate this function as MPI shared memory related
-    associate(foo => shared_env)
+    associate (foo => shared_env)
     end associate
 
     call mpi_win_free(window, ierr)
     call error_handling(ierr, "mpi", shared_env)
 
-    nullify(array)
+    nullify (array)
 
   end subroutine
 
@@ -403,48 +403,47 @@ contains
     integer(ccs_err) :: ierr
 
     ! Keeping shared_env as argument to more clearly decrate this function as MPI shared memory related
-    associate(foo => shared_env)
+    associate (foo => shared_env)
     end associate
 
     call mpi_win_free(window, ierr)
     call error_handling(ierr, "mpi", shared_env)
 
-    nullify(array)
+    nullify (array)
 
   end subroutine
 
-
   module subroutine destroy_shared_array_int_2D(shared_env, array, window)
     class(parallel_environment), intent(in) :: shared_env
-    integer(ccs_int), pointer, dimension(:,:), intent(inout) :: array
+    integer(ccs_int), pointer, dimension(:, :), intent(inout) :: array
     integer, intent(inout) :: window
     integer(ccs_err) :: ierr
 
     ! Keeping shared_env as argument to more clearly decrate this function as MPI shared memory related
-    associate(foo => shared_env)
+    associate (foo => shared_env)
     end associate
 
     call mpi_win_free(window, ierr)
     call error_handling(ierr, "mpi", shared_env)
 
-    nullify(array)
+    nullify (array)
 
   end subroutine
 
   module subroutine destroy_shared_array_real_2D(shared_env, array, window)
     class(parallel_environment), intent(in) :: shared_env
-    real(ccs_real), pointer, dimension(:,:), intent(inout) :: array
+    real(ccs_real), pointer, dimension(:, :), intent(inout) :: array
     integer, intent(inout) :: window
     integer(ccs_err) :: ierr
 
     ! Keeping shared_env as argument to more clearly decrate this function as MPI shared memory related
-    associate(foo => shared_env)
+    associate (foo => shared_env)
     end associate
 
     call mpi_win_free(window, ierr)
     call error_handling(ierr, "mpi", shared_env)
 
-    nullify(array)
+    nullify (array)
 
   end subroutine
 
@@ -488,7 +487,7 @@ contains
       if (command_argument_count() == 0) then
 
         if (is_root(par_env)) then
-          write(log_unit_out,*) new_line('a') // "Usage: ./ccs_app [OPTIONS]" // new_line('a')
+          write (log_unit_out, *) new_line('a') // "Usage: ./ccs_app [OPTIONS]" // new_line('a')
           call print_help()
           call cleanup_parallel_environment(par_env)
           stop 0
@@ -524,7 +523,7 @@ contains
               stop 0
             case default
               if (is_root(par_env)) then
-                write(log_unit_out,*) "Argument ", trim(arg), " not supported by ASiMoV-CCS."
+                write (log_unit_out, *) "Argument ", trim(arg), " not supported by ASiMoV-CCS."
               end if
               call cleanup_parallel_environment(par_env)
               stop 1
@@ -551,13 +550,13 @@ contains
 
   subroutine print_help()
 
-    write(log_unit_out,*) "========================================="
-    write(log_unit_out,*) "ASiMoV-CCS command line OPTIONS          "
-    write(log_unit_out,*) "========================================="
-    write(log_unit_out,*) "--ccs_help:               This help menu"
-    write(log_unit_out,*) "--ccs_m <value>:          Problem size"
-    write(log_unit_out,*) "--ccs_case <string>:      Test case name" // new_line('a')
-    write(log_unit_out,*) "--ccs_in <string>:        Path to input directory" // new_line('a')
+    write (log_unit_out, *) "========================================="
+    write (log_unit_out, *) "ASiMoV-CCS command line OPTIONS          "
+    write (log_unit_out, *) "========================================="
+    write (log_unit_out, *) "--ccs_help:               This help menu"
+    write (log_unit_out, *) "--ccs_m <value>:          Problem size"
+    write (log_unit_out, *) "--ccs_case <string>:      Test case name" // new_line('a')
+    write (log_unit_out, *) "--ccs_in <string>:        Path to input directory" // new_line('a')
 
   end subroutine
 
@@ -572,10 +571,10 @@ contains
 
     select type (par_env)
     type is (parallel_environment_mpi)
-      if(is_root(par_env)) then 
-        inquire(file="STOP", EXIST=stop_run)
+      if (is_root(par_env)) then
+        inquire (file="STOP", EXIST=stop_run)
         if (stop_run) then
-          write(log_unit_out,*) "STOP file found"
+          write (log_unit_out, *) "STOP file found"
         end if
       end if
 
@@ -620,8 +619,8 @@ contains
       if (par_env%comm == MPI_COMM_NULL) then
         isvalid = .false.
       else if (par_env%comm /= MPI_COMM_NULL) then
-        isvalid = .true. 
-      else 
+        isvalid = .true.
+      else
         call error_abort("communicator not initialised")
       end if
 
@@ -648,11 +647,11 @@ contains
           colour = MPI_COMM_TYPE_SHARED
         end if
       else
-        if (split_type == ccs_split_undefined) then 
+        if (split_type == ccs_split_undefined) then
           colour = MPI_UNDEFINED
         else if (split_type == ccs_split_type_low_high) then
           colour = 0
-          if (par_env%proc_id >= par_env%num_procs/2) then
+          if (par_env%proc_id >= par_env%num_procs / 2) then
             colour = 1
           end if
         else if (split_type >= 0) then
@@ -673,10 +672,10 @@ contains
 
     integer :: colour
     logical :: use_mpi_splitting
-    
+
     if (is_root(shared_env)) then
       colour = 1
-    else 
+    else
       colour = ccs_split_undefined
     end if
 

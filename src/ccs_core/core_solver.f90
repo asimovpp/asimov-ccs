@@ -2,7 +2,7 @@
 !
 ! This provides the interface that runs the solver.
 
-submodule (core) core_solver
+submodule(core) core_solver
 #include "ccs_macros.inc"
   use kinds, only: ccs_int
   use types, only: fluid
@@ -10,7 +10,7 @@ submodule (core) core_solver
   use parallel_types, only: parallel_environment
 
   use ccs_base, only: mesh
-  
+
   use pv_coupling, only: solve_nonlinear
   use scalars, only: update_scalars
   use profiler, only: profiler_begin_region, profiler_end_region
@@ -62,7 +62,7 @@ contains
 
     integer(ccs_int) :: it_start, it_end
 
-    logical:: diverged = .false.
+    logical :: diverged = .false.
 
     call create_signal_handler()
 
@@ -70,7 +70,7 @@ contains
       call activate_timestepping()
       call set_timestep(run_options%solve%dt)
     end if
-  
+
     it_start = run_options%solve%it_start
     it_end = run_options%solve%it_end
     if (timestepping_is_active()) then
@@ -79,7 +79,7 @@ contains
       ! num steps may not have been set
       num_steps = 1
     end if
-    
+
     do t = 1, num_steps
       call profiler_begin_region("Solver time inc I/O")
 
@@ -87,13 +87,13 @@ contains
       call report_cfl(par_env, flow_fields)
       call advance_step(par_env, run_options, eval_sources, flow_fields, diverged)
       ! XXX: Or coupler update here?
-      
+
       if (timestepping_is_active()) then
         if (is_root(par_env)) then
-          write(log_unit_out,*) "TIME = ", t
+          write (log_unit_out, *) "TIME = ", t
         end if
       end if
-      
+
       call postproc(par_env, flow_fields)
 
       if (check_stop_run(par_env, run_options, t, flow_fields, diverged)) then
@@ -107,7 +107,6 @@ contains
 
       call profiler_end_region("Solver time inc I/O")
     end do
-
 
   end subroutine run_solver
 
@@ -134,7 +133,7 @@ contains
     logical :: flow_sol
 
     flow_sol = check_flow_sol(par_env, flow_fields)
-      
+
     if (flow_sol) then
       call solve_nonlinear(par_env, run_options, eval_sources, mesh, flow_fields, diverged)
     else
@@ -143,7 +142,7 @@ contains
       call update_scalars(par_env, mesh, eval_sources, flow_fields)
     end if
     call finalise_timestep()
-    
+
   end subroutine advance_step
 
   !> Checks for stop conditions.
@@ -162,9 +161,9 @@ contains
     else
       check_stop_run = .false.
     end if
-    
+
   end function check_stop_run
-  
+
   !> Checks for stop condition if divergence is detected and dumps solution if this occurs.
   logical function stop_if_diverged(par_env, run_options, t, flow_fields, diverged)
 
@@ -173,10 +172,10 @@ contains
     integer, intent(in) :: t
     type(fluid), intent(inout) :: flow_fields
     logical, intent(in) :: diverged
-    
+
     if (diverged) then
       if (is_root(par_env)) then
-        write(log_unit_out,*) "INFO: Divergence detected"
+        write (log_unit_out, *) "INFO: Divergence detected"
       end if
       call dump_run(par_env, run_options, t, flow_fields)
 
@@ -184,7 +183,7 @@ contains
     else
       stop_if_diverged = .false.
     end if
-    
+
   end function stop_if_diverged
 
   !> Checks for stop condition due to STOP file or SIGTERM and dumps solution if this occurs.
@@ -200,14 +199,14 @@ contains
 
     if (query_stop_run(par_env)) then
       if (is_root(par_env)) then
-        write(log_unit_out,*) "INFO: Found STOP file"
+        write (log_unit_out, *) "INFO: Found STOP file"
       end if
       call dump_run(par_env, run_options, t, flow_fields)
 
       stop_on_request = .true.
     else if (sigterm_issued) then
       if (is_root(par_env)) then
-        write(log_unit_out,*) "INFO: Received SIGTERM signal"
+        write (log_unit_out, *) "INFO: Received SIGTERM signal"
       end if
       call dump_run(par_env, run_options, t, flow_fields)
 
@@ -227,7 +226,7 @@ contains
     type(fluid), intent(inout) :: flow_fields
 
     if (is_root(par_env)) then
-      write(log_unit_out,*) "STOPPING SIMULATION"
+      write (log_unit_out, *) "STOPPING SIMULATION"
     end if
     call write_step(par_env, run_options, t, flow_fields)
 
@@ -236,12 +235,12 @@ contains
   !v Check whether we are solving fluid flow or scalars only. If pressure and at least one of u,v,w
   !  are present then we are solving the flow field, otherwise it is scalar transport with frozen
   !  flow field.
-  logical function check_flow_sol(par_env, flow_fields) 
+  logical function check_flow_sol(par_env, flow_fields)
 
     use types, only: field
     use parallel, only: is_root
     use fields, only: get_field
-    
+
     class(parallel_environment), intent(in) :: par_env !< The parallel environemnt
     type(fluid), intent(in) :: flow_fields             !< The flow field structure
 
@@ -264,32 +263,32 @@ contains
     check_flow_sol = have_p .and. have_vel
     if (is_root(par_env)) then
       if (check_flow_sol) then
-        write(log_unit_out,*) "Solving fluid flow"
+        write (log_unit_out, *) "Solving fluid flow"
       else
-        write(log_unit_out,*) "Solving scalar transport only"
+        write (log_unit_out, *) "Solving scalar transport only"
       end if
     end if
-    
+
   end function check_flow_sol
-  
+
   !> Predicate to test if conditions for solution output are met
   logical pure function check_to_write(run_options, t)
 
     type(ccs_options), intent(in) :: run_options !< The runtime configuration
     integer(ccs_int), intent(in) :: t            !< The timestep counter
-    
+
     if (timestepping_is_active()) then
-      associate(num_steps => run_options%solve%num_steps, &
-                write_frequency => run_options%io%write_frequency)
+      associate (num_steps => run_options%solve%num_steps, &
+                 write_frequency => run_options%io%write_frequency)
         check_to_write = ((t == 1) .or. (t == num_steps) .or. (mod(t, write_frequency) == 0))
       end associate
     else
       ! End of steady run
       check_to_write = .true.
     end if
-    
+
   end function check_to_write
-  
+
   !> Utility subroutine to write the solution for a step
   subroutine write_step(par_env, run_options, t, flow_fields)
 
@@ -302,10 +301,10 @@ contains
 
     integer(ccs_int) :: num_steps
     real(ccs_real) :: dt
-    
+
     num_steps = run_options%solve%num_steps
     dt = run_options%solve%dt
-    
+
     call profiler_begin_region("I/O time for solution")
     if (timestepping_is_active()) then
       call write_solution(par_env, run_options, mesh, flow_fields, t, num_steps, dt)

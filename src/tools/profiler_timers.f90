@@ -17,15 +17,15 @@ contains
   module subroutine profiler_shutdown(par_env)
     use timers, only: timer_print_all, timer_export_csv, timer_reset
     use parallel_types_mpi, only: parallel_environment_mpi
-  
+
     class(parallel_environment), intent(in) :: par_env
-    
-    select type(par_env)
-      type is (parallel_environment_mpi)
-        call timer_export_csv(par_env)
-        call timer_print_all(par_env)
-      class default
-        error stop "Unknown parallel environment"
+
+    select type (par_env)
+    type is (parallel_environment_mpi)
+      call timer_export_csv(par_env)
+      call timer_print_all(par_env)
+    class default
+      error stop "Unknown parallel environment"
     end select
 
     call timer_reset()
@@ -52,6 +52,5 @@ contains
     call timer_stop(timer_index)
 
   end subroutine
-
 
 end submodule

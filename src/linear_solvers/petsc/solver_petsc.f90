@@ -104,17 +104,17 @@ contains
             call KSPSolve(ksp, b%v, u%v, ierr)
             call update(u)
             if (ierr /= 0) then
-              write(log_unit_out,*) "ERROR in linear solve."
+              write (log_unit_out, *) "ERROR in linear solve."
               call error_abort("ERROR in linear solve.")
             end if
 
           class default
-            write(log_unit_out,*)"ERROR: Trying to use non-PETSc vector for solution with PETSc solver."
+            write (log_unit_out, *) "ERROR: Trying to use non-PETSc vector for solution with PETSc solver."
             call error_abort("ERROR: Trying to use non-PETSc vector for solution with PETSc solver.")
           end select
 
         class default
-          write(log_unit_out,*) "ERROR: Trying to use non-PETSc vector for RHS with PETSc solver."
+          write (log_unit_out, *) "ERROR: Trying to use non-PETSc vector for RHS with PETSc solver."
           call error_abort("ERROR: Trying to use non-PETSc vector for RHS with PETSc solver.")
         end select
 
@@ -156,7 +156,7 @@ contains
 #if PETSC_VERSION_GE(3,23,0)
         call KSPGetType(ksp, petsc_method_name, ierr)
         if (trim(petsc_method_name) /= trim(method_name)) then
-          call error_abort("ERROR: petsc solver method ("//trim(petsc_method_name)//") doesn't match requested method ("// trim(method_name)//")")
+          call error_abort("ERROR: petsc solver method (" // trim(petsc_method_name) // ") doesn't match requested method (" //  trim(method_name) // ")")
         end if
 #else
         petsc_method_name = ""
@@ -205,13 +205,13 @@ contains
         call PCSetType(pc, trim(precon_name), ierr)
 
         if (ierr /= 0) then
-          call error_abort("ERROR: setting preconditioner method failed, " // trim(precon_name) // " preconditioner likely unsupported.")
+         call error_abort("ERROR: setting preconditioner method failed, " // trim(precon_name) // " preconditioner likely unsupported.")
         end if
 
 #if PETSC_VERSION_GE(3,23,0)
         call PCGetType(pc, petsc_precon_name, ierr)
         if (trim(petsc_precon_name) /= trim(precon_name)) then
-          call error_abort("ERROR: petsc precon method ("//trim(petsc_precon_name)//") doesn't match requested precon ("// trim(precon_name)//")")
+          call error_abort("ERROR: petsc precon method (" // trim(petsc_precon_name) // ") doesn't match requested precon (" //  trim(precon_name) // ")")
         end if
 #else
         petsc_precon_name = ""

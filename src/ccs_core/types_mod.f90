@@ -32,9 +32,9 @@ module types
   !> Container type for setting values in a vector.
   type, public :: vector_values
     integer(ccs_int), dimension(:), allocatable :: global_indices !< Array of (global) indices to set values
-                                                                  !< on, must be same size as values array.
+    !< on, must be same size as values array.
     real(ccs_real), dimension(:), allocatable :: values           !< Array of values, must be same size as
-                                                                  !< index array.
+    !< index array.
     integer(ccs_int) :: setter_mode = huge(0_ccs_int)             !< Which mode to use when setting values?
     integer(ccs_int) :: current_entry = huge(0_ccs_int)           !< Which entry are we currently working on?
   end type vector_values
@@ -51,8 +51,8 @@ module types
     integer(ccs_int), dimension(:), allocatable :: global_row_indices !< Array of (global) row indices to set values on.
     integer(ccs_int), dimension(:), allocatable :: global_col_indices !< Array of (global) column indices to set values on.
     real(ccs_real), dimension(:), allocatable :: values  !< Array of values, must be logically 2D and
-                                                         !< of size = size(row_indices) * size(col_indices). Uses
-                                                         !< row-major ordering.
+    !< of size = size(row_indices) * size(col_indices). Uses
+    !< row-major ordering.
     integer(ccs_int) :: setter_mode = huge(0_ccs_int) !< Which mode to use when setting values?
     integer(ccs_int) :: current_row = huge(0_ccs_int) !< Which row are we currently working on?
     integer(ccs_int) :: current_col = huge(0_ccs_int) !< Which column are we currently working on?
@@ -67,8 +67,8 @@ module types
   type, public :: equation_system
     character(len=:), allocatable :: name  !< Name of the equation system
     class(ccs_vector), pointer :: solution => null() !< Solution vector
-    class(ccs_vector), pointer :: rhs      => null() !< Right-hand side vector
-    class(ccs_matrix), pointer :: matrix   => null() !< Matrix
+    class(ccs_vector), pointer :: rhs => null() !< Right-hand side vector
+    class(ccs_matrix), pointer :: matrix => null() !< Matrix
     class(parallel_environment), pointer :: par_env => null() !< The parallel environment
   end type equation_system
 
@@ -80,17 +80,17 @@ module types
   !v Graph connectivity type
   type, public :: graph_connectivity
     integer(ccs_long), dimension(:), allocatable :: xadj           !< Array that points to where in adjncy the list for each vertex
-                                                                    !<   begins and ends  - name from ParMETIS
+    !<   begins and ends  - name from ParMETIS
     integer(ccs_long), dimension(:), allocatable :: adjncy          !< Array storing adjacency lists for each vertex consecutively
-                                                                    !<   - name from ParMETIS
+    !<   - name from ParMETIS
     integer(ccs_long), dimension(:), allocatable :: vtxdist         !< Array that indicates vertices local to a processor. Rank p_i stores
-                                                                    !<   the vertices from vtxdist[i] up to (but not including) vertex
-                                                                    !<   vtxdist[i + 1] - name from ParMETIS
+    !<   the vertices from vtxdist[i] up to (but not including) vertex
+    !<   vtxdist[i + 1] - name from ParMETIS
     integer(ccs_long), dimension(:), allocatable :: vwgt            !< Weights on vertices - name from ParMETIS
     integer(ccs_long), dimension(:), allocatable :: adjwgt          !< Weights on edges - name from ParMETIS
     integer(ccs_long), dimension(:), allocatable :: local_partition !< Local partition array
   end type graph_connectivity
-  
+
   !v Topology type
   !
   !  Describes the topology (i.e. connectivity) of the mesh.
@@ -114,41 +114,41 @@ module types
     integer(ccs_int) :: shared_array_local_offset = huge(0_ccs_int)         !< Offset within shared arrays for quantities that are locally indexed (i.e. each rank is responsible for local_num_cells of these)
     integer(ccs_int) :: shared_array_total_offset = huge(0_ccs_int)         !< Offset within shared arrays for quantities that are totally indexed (i.e. each rank is responsible for total_num_cells of these)
     integer(ccs_int), dimension(:), allocatable :: natural_indices          !< The global index of cells in the original ordering (local + halo)
-                                                                            !<   natural_icell = natural_indices(local_icell)
+    !<   natural_icell = natural_indices(local_icell)
     integer(ccs_int), dimension(:), allocatable :: global_indices           !< The global index of cells (local + halo)
-                                                                            !<   global_icell = global_indices(local_icell)
+    !<   global_icell = global_indices(local_icell)
     integer(ccs_int), dimension(:, :), pointer :: global_face_indices => null() !< Global list of faces indices
-                                                                                !<   global_iface = global_face_indices(cell_iface, global_icell)
-                                                                                !<   (no special treatment for halo or boundary faces)
-    integer :: global_face_indices_window  = huge(0)                    !< Associated shared window
+    !<   global_iface = global_face_indices(cell_iface, global_icell)
+    !<   (no special treatment for halo or boundary faces)
+    integer :: global_face_indices_window = huge(0)                    !< Associated shared window
     integer(ccs_int), dimension(:, :), allocatable :: loc_global_vertex_indices !< local version of the global list of vertex indices
-                                                                                !<   global_ivert = loc_global_vertex_indices(ivert, local_icell)
+    !<   global_ivert = loc_global_vertex_indices(ivert, local_icell)
     integer(ccs_int), dimension(:, :), pointer :: global_vertex_indices => null() !< Global list of vertex indices
-                                                                                  !<   global_ivert = global_vertex_indices(ivert, global_icell)
-    integer :: global_vertex_indices_window   = huge(0)             !< Associated shared window
+    !<   global_ivert = global_vertex_indices(ivert, global_icell)
+    integer :: global_vertex_indices_window = huge(0)             !< Associated shared window
     integer(ccs_int), dimension(:, :), allocatable :: face_indices          !< Cell face index in local face vector (face, cell)
-                                                                            !<   iface = global_face_indices(cell_iface, icell)
-                                                                            !<   (no special treatment for halo or boundary faces)
+    !<   iface = global_face_indices(cell_iface, icell)
+    !<   (no special treatment for halo or boundary faces)
     integer(ccs_int), dimension(:, :), allocatable :: nb_indices            !< Cell face index in local face vector (face, cell)
-                                                                            !<   nb_icell = nb_indices(cell_iface, icell) -> returns <0 on boundaries
+    !<   nb_icell = nb_indices(cell_iface, icell) -> returns <0 on boundaries
     integer(ccs_int), dimension(:), allocatable :: num_nb                   !< The local number of neighbours per cell
-                                                                            !<   num_nb = num_nb(icell), equiv to number of faces, boundary 'neighbours' are counted
-    integer(ccs_int), dimension(:), pointer :: face_cell1  => null()        !< Array of 1st face cells
-                                                                            !<   global_icell1 = face_cell1(global_iface).
-    integer :: face_cell1_window  = huge(0)                         !< Associated shared window
+    !<   num_nb = num_nb(icell), equiv to number of faces, boundary 'neighbours' are counted
+    integer(ccs_int), dimension(:), pointer :: face_cell1 => null()        !< Array of 1st face cells
+    !<   global_icell1 = face_cell1(global_iface).
+    integer :: face_cell1_window = huge(0)                         !< Associated shared window
     integer(ccs_int), dimension(:), pointer :: face_cell2 => null()         !< Array of 2nd face cells
-                                                                            !<   global_icell2 = face_cell2(global_iface) -> returns 0 on boundaries
-    integer :: face_cell2_window  = huge(0)                         !< Associated shared window
+    !<   global_icell2 = face_cell2(global_iface) -> returns 0 on boundaries
+    integer :: face_cell2_window = huge(0)                         !< Associated shared window
     integer(ccs_int), dimension(:), pointer :: bnd_rid => null()            !< global face boundary index.
-                                                                            !< 0 on internal faces
-                                                                            !< -X on a bondary face according to the boundary index
+    !< 0 on internal faces
+    !< -X on a bondary face according to the boundary index
     integer :: bnd_rid_window = huge(0)                             !< Associated shared window
   end type topology
 
   !> Geometry type
   type, public :: geometry
-    real(ccs_real) :: h  = huge(0.0_ccs_real)            !< The (constant) grid spacing XXX: remove!
-    real(ccs_real) :: scalefactor  = huge(0.0_ccs_real)  !< Scalefactor
+    real(ccs_real) :: h = huge(0.0_ccs_real)            !< The (constant) grid spacing XXX: remove!
+    real(ccs_real) :: scalefactor = huge(0.0_ccs_real)  !< Scalefactor
     real(ccs_real), dimension(:, :), pointer :: face_areas => null()      !< Face areas (face, cell)
     integer :: face_areas_window = huge(0)             !< Associated shared window
     real(ccs_real), dimension(:), pointer :: volumes => null() !< Cell volumes
@@ -340,9 +340,8 @@ module types
       real(ccs_real), intent(in) :: lf
       real(ccs_real), dimension(3, 2), intent(in) :: rvecs
       real(ccs_real), dimension(3, 2), intent(in) :: grads
-      real(ccs_real):: expl
+      real(ccs_real) :: expl
     end function eval_interface
-
 
     pure function width_interface(self) result(width)
       import :: abstract_kernel

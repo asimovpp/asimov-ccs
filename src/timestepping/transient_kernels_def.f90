@@ -7,21 +7,20 @@ module transient_kernel_def
 !> the first element being used for the 1st timestep, etc. until the full scheme can be used.
 !>
 
-
   use transient_kernels
 
   type, extends(transient_kernel) :: transient_first_order_kernel
-    contains
+  contains
     procedure :: init => init_first_order
   end type
 
   type, extends(transient_kernel) :: transient_second_order_kernel
-    contains
+  contains
     procedure :: init => init_second_order
   end type
 
   type, extends(transient_kernel) :: transient_theta_kernel
-    contains
+  contains
     procedure :: init => init_theta
   end type
 
@@ -29,7 +28,7 @@ module transient_kernel_def
   private :: init_second_order
   private :: init_theta
 
-  contains
+contains
 
   subroutine init_first_order(self)
     !! Implicit Euler (1st order scheme)
@@ -39,11 +38,10 @@ module transient_kernel_def
 
     self%order = 1
     self%width_trans = [1]
-    allocate(self%explicit_coeffs_trans(1, 1))
+    allocate (self%explicit_coeffs_trans(1, 1))
     self%explicit_coeffs_trans(1, 1) = 1.0_ccs_real
-    self%implicit_coeff_trans = [ 1.0_ccs_real ]
+    self%implicit_coeff_trans = [1.0_ccs_real]
   end subroutine
-
 
   subroutine init_second_order(self)
     !! Three time level (2nd order) scheme. Reverts back to 1st order scheme for 1st timestep
@@ -54,11 +52,11 @@ module transient_kernel_def
     self%order = 2
     self%width_trans = [1, 2]
 
-    allocate(self%explicit_coeffs_trans(2, 2))
-    self%explicit_coeffs_trans(:, 1) = [ 1.0_ccs_real, 0.0_ccs_real ] ! 1st order scheme (for 1st timestep)
-    self%explicit_coeffs_trans(:, 2) = [ 2.0_ccs_real, -0.5_ccs_real ] ! 2nd order scheme
+    allocate (self%explicit_coeffs_trans(2, 2))
+    self%explicit_coeffs_trans(:, 1) = [1.0_ccs_real, 0.0_ccs_real] ! 1st order scheme (for 1st timestep)
+    self%explicit_coeffs_trans(:, 2) = [2.0_ccs_real, -0.5_ccs_real] ! 2nd order scheme
 
-    allocate(self%implicit_coeff_trans(2))
+    allocate (self%implicit_coeff_trans(2))
     self%implicit_coeff_trans(1) = 1.0_ccs_real ! 1st order scheme
     self%implicit_coeff_trans(2) = 1.5_ccs_real ! 2nd order scheme
   end subroutine
@@ -79,14 +77,13 @@ module transient_kernel_def
     end if
     self%width_trans = [1, 2]
 
-    allocate(self%explicit_coeffs_trans(2, 2))
-    self%explicit_coeffs_trans(:, 1) = [ 1.0_ccs_real, 0.0_ccs_real ] ! 1st order scheme (for 1st timestep)
-    self%explicit_coeffs_trans(:, 2) = [ 1.0_ccs_real + theta, -0.5_ccs_real*theta ] ! Theta scheme
+    allocate (self%explicit_coeffs_trans(2, 2))
+    self%explicit_coeffs_trans(:, 1) = [1.0_ccs_real, 0.0_ccs_real] ! 1st order scheme (for 1st timestep)
+    self%explicit_coeffs_trans(:, 2) = [1.0_ccs_real + theta, -0.5_ccs_real * theta] ! Theta scheme
 
-    allocate(self%implicit_coeff_trans(2))
+    allocate (self%implicit_coeff_trans(2))
     self%implicit_coeff_trans(1) = 1.0_ccs_real ! 1st order scheme
-    self%implicit_coeff_trans(2) = 1.0_ccs_real + 0.5_ccs_real*theta ! Theta scheme
+    self%implicit_coeff_trans(2) = 1.0_ccs_real + 0.5_ccs_real * theta ! Theta scheme
   end subroutine
-
 
 end module transient_kernel_def

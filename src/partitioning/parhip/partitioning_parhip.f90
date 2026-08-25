@@ -8,7 +8,7 @@ submodule(partitioning) partitioning_parhip
   use meshing, only: get_global_num_cells
   use parallel, only: is_root, is_valid, create_shared_array, destroy_shared_array, sync
   use logging, only: log_unit_out
- 
+
   implicit none
 
   interface
@@ -47,7 +47,7 @@ contains
     type(ccs_mesh), target, intent(inout) :: mesh                              !< The mesh for which to compute the parition
 
     call partition_kway_topo(par_env, mesh%topo)
-    
+
   end subroutine partition_kway_mesh
 
   !v Partition the mesh
@@ -62,7 +62,7 @@ contains
     type(topology), target, intent(inout) :: topo                              !< The mesh topology for which to compute the parition
 
     call partition_kway_graph_conn(par_env, topo%graph_conn)
-    
+
   end subroutine partition_kway_topo
 
   !v Partition the mesh
@@ -84,7 +84,7 @@ contains
     integer(ccs_int) :: irank
 
     integer(ccs_long) :: global_num_cells
-    
+
     integer(c_long), dimension(:), allocatable :: vtxdist
     integer(c_long), dimension(:), allocatable :: xadj
     integer(c_long), dimension(:), allocatable :: adjncy
@@ -112,9 +112,9 @@ contains
     ! vtxdist should contain the (initial) global cell partition - the final element is global cell
     ! count + 1
     global_num_cells = graph_conn%vtxdist(num_procs + 1) - 1
-    
+
     ! ParHIP needs 0-indexing - shift array contents by -1
-    allocate(vtxdist, mold=graph_conn%vtxdist)
+    allocate (vtxdist, mold=graph_conn%vtxdist)
     vtxdist = graph_conn%vtxdist - 1
     xadj = graph_conn%xadj - 1
     adjncy = graph_conn%adjncy - 1
@@ -137,7 +137,7 @@ contains
     type is (parallel_environment_mpi)
 
       if (is_root(par_env)) then
-        write(log_unit_out,*) "Partitioning with ParHIP"
+        write (log_unit_out, *) "Partitioning with ParHIP"
       end if
 
       comm = par_env%comm
@@ -149,7 +149,7 @@ contains
       graph_conn%local_partition(:) = local_partition(:)
 
     class default
-      write(log_unit_out,*) "ERROR: Unknown parallel environment!"
+      write (log_unit_out, *) "ERROR: Unknown parallel environment!"
     end select
 
     call dprint("Number of edgecuts: " // str(edgecuts))

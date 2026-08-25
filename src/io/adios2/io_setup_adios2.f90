@@ -96,7 +96,7 @@ contains
       type is (adios2_io_process)
 
         call adios2_declare_io(io_proc%io_task, io_env%adios, process_name, ierr)
-        if(timestepping_is_active()) then
+        if (timestepping_is_active()) then
           delta_t = get_timestep()
           call adios2_define_attribute(dt_attr, io_proc%io_task, "dt", delta_t, ierr)
         end if
@@ -125,7 +125,7 @@ contains
 
     character(len=:), allocatable :: engine_type
     character(len=:), allocatable :: file_type
-    
+
     integer(ccs_int) :: ierr
 
     file_type = ""
@@ -133,7 +133,7 @@ contains
     select type (io_proc)
     type is (adios2_io_process)
 
-      if(mode == "write") then
+      if (mode == "write") then
 
         ! query the engine type - defined in the ADIOS2 XML configuration file
         call adios2_io_engine_type(engine_type, io_proc%io_task, ierr)
@@ -150,7 +150,7 @@ contains
         ! Append the correct file extension
         call adios2_open(io_proc%engine, io_proc%io_task, filename // file_type, get_mode(mode), ierr)
 
-      else if(mode == "read" .or. mode == "append") then
+      else if (mode == "read" .or. mode == "append") then
 
         call adios2_open(io_proc%engine, io_proc%io_task, filename, get_mode(mode), ierr)
         if (ierr /= 0) then
@@ -210,7 +210,7 @@ contains
 
     integer(ccs_int) :: ierr
 
-    select type(io_proc)
+    select type (io_proc)
     type is (adios2_io_process)
 
       call adios2_steps(steps, io_proc%engine, ierr)

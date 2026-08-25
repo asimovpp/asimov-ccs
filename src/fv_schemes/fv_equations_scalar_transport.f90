@@ -38,7 +38,7 @@ contains
     if (allocated(self%adv_kernel)) then
       deallocate (self%adv_kernel)
     end if
-    allocate (self%adv_kernel, source = kernel)
+    allocate (self%adv_kernel, source=kernel)
 
   end subroutine scalar_transport_set_advection
 

@@ -116,7 +116,7 @@ contains
 
     use partitioning, only: compute_partitioner_input
 
-    use profiler  
+    use profiler
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The parallel environment
@@ -141,7 +141,7 @@ contains
     geo_file = case_name // "_mesh" // geoext
     adios2_file = case_name // adiosconfig
     if (is_root(par_env)) then
-      write(log_unit_out,*) "Mesh file:", geo_file
+      write (log_unit_out, *) "Mesh file:", geo_file
     end if
 
     call create_shared_roots_comm(par_env, shared_env, reader_env)
@@ -179,7 +179,7 @@ contains
 
     mesh%bnd_names = run_options%mesh%bnd_names
     call check_mesh_bnd_names(par_env, mesh)
-    
+
   end subroutine read_mesh
 
   !> Helper subroutine to check boundary ID/name compatibility.
@@ -194,12 +194,12 @@ contains
     logical :: id_names_valid
 
     integer :: ierr
-    
+
     if (is_root(par_env)) then
-      write(log_unit_out,*) "=========================="
-      write(log_unit_out,*) "Boundary ID map"
+      write (log_unit_out, *) "=========================="
+      write (log_unit_out, *) "Boundary ID map"
       do i = 1, size(mesh%bnd_names)
-        write(log_unit_out,*) i, trim(mesh%bnd_names(i))
+        write (log_unit_out, *) i, trim(mesh%bnd_names(i))
       end do
     end if
 
@@ -211,7 +211,7 @@ contains
 
     ! Check range
     id_names_valid = (bc_cnt == size(mesh%bnd_names))
-    select type(par_env)
+    select type (par_env)
     type is (parallel_environment_mpi)
       call MPI_Allreduce(MPI_IN_PLACE, id_names_valid, 1, MPI_LOGICAL, MPI_LOR, par_env%comm, ierr)
     class default
@@ -223,7 +223,7 @@ contains
 
     ! Check no boundary IDs exceed the range
     id_names_valid = (bc_cnt <= size(mesh%bnd_names))
-    select type(par_env)
+    select type (par_env)
     type is (parallel_environment_mpi)
       call MPI_Allreduce(MPI_IN_PLACE, id_names_valid, 1, MPI_LOGICAL, MPI_LOR, par_env%comm, ierr)
     class default
@@ -235,12 +235,12 @@ contains
     call sync(par_env)
 
     if (is_root(par_env)) then
-      write(log_unit_out,*) "Boundary name list / ID compatibility: PASS"
-      write(log_unit_out,*) "=========================="
+      write (log_unit_out, *) "Boundary name list / ID compatibility: PASS"
+      write (log_unit_out, *) "=========================="
     end if
-    
+
   end subroutine check_mesh_bnd_names
-  
+
   !v Read the topology data from an input (HDF5) file
   ! This subroutine assumes the following names are used in the file:
   ! "ncel" - the total number of cells
@@ -520,7 +520,6 @@ contains
 
     integer :: temp_a_f_window, temp_n_f_window, temp_window, temp_x_f_window, temp_x_v_window
 
-
     call set_mesh_object(mesh)
     select type (shared_env)
     type is (parallel_environment_mpi)
@@ -567,7 +566,7 @@ contains
 
     associate (local_offset => mesh%topo%shared_array_local_offset, &
                total_offset => mesh%topo%shared_array_total_offset)
-      ! Allocate shared memory array for cell volumes 
+      ! Allocate shared memory array for cell volumes
       call create_shared_array(shared_env, sum_total_num_cells, mesh%geo%volumes, mesh%geo%volumes_window)
 
       ! Read variable "/cell/vol"
@@ -577,7 +576,7 @@ contains
         call read_array(geo_reader, "/cell/vol", vol_p_start, vol_p_count, temp_vol_c)
       end if
       call sync(shared_env)
-      mesh%geo%volumes(total_offset+1:total_offset + total_num_cells) = temp_vol_c(mesh%topo%natural_indices(:))
+      mesh%geo%volumes(total_offset + 1:total_offset + total_num_cells) = temp_vol_c(mesh%topo%natural_indices(:))
       call sync(shared_env)
       call destroy_shared_array(shared_env, temp_vol_c, temp_window)
 
@@ -587,7 +586,7 @@ contains
       ! How many data points will be read?
       x_p_count = [ndim, global_num_cells]
 
-      ! Allocate shared memory array for cell centre coordinates 
+      ! Allocate shared memory array for cell centre coordinates
       call create_shared_array(shared_env, [ndim, sum_total_num_cells], mesh%geo%x_p, mesh%geo%x_p_window)
 
       ! Read variable "/cell/x"
@@ -597,7 +596,7 @@ contains
         call read_array(geo_reader, "/cell/x", x_p_start, x_p_count, temp_x_p)
       end if
       call sync(shared_env)
-      mesh%geo%x_p(:, total_offset+1:total_offset + total_num_cells) = temp_x_p(:, mesh%topo%natural_indices(:))
+      mesh%geo%x_p(:, total_offset + 1:total_offset + total_num_cells) = temp_x_p(:, mesh%topo%natural_indices(:))
       call sync(shared_env)
       call destroy_shared_array(shared_env, temp_x_p, temp_window)
 
@@ -643,7 +642,7 @@ contains
       call sync(shared_env)
 
       ! Allocate shared memory arrays for face centres, face normals, face areas and vertex coordinates
-      call create_shared_array(shared_env, [ndim, all_max_faces, sum_local_num_cells], mesh%geo%x_f, mesh%geo%x_f_window) 
+      call create_shared_array(shared_env, [ndim, all_max_faces, sum_local_num_cells], mesh%geo%x_f, mesh%geo%x_f_window)
       call create_shared_array(shared_env, [ndim, all_max_faces, sum_local_num_cells], mesh%geo%face_normals, mesh%geo%face_normals_window) 
       call create_shared_array(shared_env, [all_max_faces, sum_local_num_cells], mesh%geo%face_areas, mesh%geo%face_areas_window)
       call create_shared_array(shared_env, [ndim, vert_per_cell, sum_local_num_cells], mesh%geo%vert_coords, mesh%geo%vert_coords_window)
@@ -725,7 +724,7 @@ contains
     type(ccs_options), intent(in) :: run_options
 
     character(len=128), dimension(4) :: bnd_names      !< Boundary name list
-    
+
     type(ccs_mesh) :: mesh                             !< The resulting mesh.
 
     character(:), allocatable :: error_message
@@ -737,7 +736,7 @@ contains
     cps = run_options%mesh%cps
 
     bnd_names = run_options%mesh%bnd_names
-    
+
     if (cps * cps < par_env%num_procs) then
       error_message = "ERROR: Global number of cells < number of ranks. &
                       &Increase the mesh size or reduce the number of MPI ranks."
@@ -763,7 +762,7 @@ contains
     ! Create boundary names list
     mesh%bnd_names = bnd_names
     call check_mesh_bnd_names(par_env, mesh)
-  
+
   end function build_square_mesh
 
   !v Utility constructor to build a square mesh.
@@ -1015,7 +1014,7 @@ contains
 
         length(1) = mesh%topo%vert_per_cell
         length(2) = mesh%topo%global_num_cells
-       call create_shared_array(shared_env, length, mesh%topo%global_vertex_indices, mesh%topo%global_vertex_indices_window)
+        call create_shared_array(shared_env, length, mesh%topo%global_vertex_indices, mesh%topo%global_vertex_indices_window)
 
         ! Global vertex numbering
         if (is_root(shared_env)) then
@@ -1316,14 +1315,14 @@ contains
   function build_mesh(par_env, shared_env, run_options) result(mesh)
 
     use partitioning, only: compute_partitioner_input
-    use profiler  
+    use profiler
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env    !< The parallel environment
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared memory environment
     type(ccs_options), intent(in) :: run_options
 
     character(len=128), dimension(6) :: bnd_names
-    
+
     type(ccs_mesh) :: mesh                             !< The resulting mesh.
 
     character(:), allocatable :: error_message
@@ -1335,9 +1334,9 @@ contains
     nx = run_options%mesh%cps
     ny = run_options%mesh%cps
     nz = run_options%mesh%cps
-    
+
     bnd_names = run_options%mesh%bnd_names
-    
+
     call set_mesh_object(mesh)
     call set_mesh_generated(.true.)
     call nullify_mesh_object()
@@ -1374,7 +1373,7 @@ contains
     ! Create boundary names list
     mesh%bnd_names = bnd_names
     call check_mesh_bnd_names(par_env, mesh)
-    
+
   end function build_mesh
 
   !v Utility constructor to build a 3D mesh with hex cells.
@@ -1677,7 +1676,7 @@ contains
 
         length(1) = mesh%topo%vert_per_cell
         length(2) = mesh%topo%global_num_cells
-       call create_shared_array(shared_env, length, mesh%topo%global_vertex_indices, mesh%topo%global_vertex_indices_window)
+        call create_shared_array(shared_env, length, mesh%topo%global_vertex_indices, mesh%topo%global_vertex_indices_window)
 
         ! Global vertex numbering
         if (is_root(shared_env)) then
@@ -1853,7 +1852,7 @@ contains
 
     real(ccs_real), dimension(3) :: x_v ! Vertex centre array
     type(vert_locator) :: loc_v         ! Vertex locator object
-    
+
     integer :: ierr
 
     associate (foo => nz) ! Silence unused dummy argument
@@ -1907,7 +1906,7 @@ contains
 
           call set_centre(loc_p, x_p)
         end do
-        call sync(shared_env) 
+        call sync(shared_env)
 
         do i = 1_ccs_int, local_num_cells
           call create_cell_locator(i, loc_p)
@@ -2038,7 +2037,7 @@ contains
           x_v(3) = x_p(3) - 0.5_ccs_real * h
           call set_centre(loc_v, x_v)
         end do
-        call sync(shared_env) 
+        call sync(shared_env)
       end associate
 
       call compute_face_interpolation(mesh)
@@ -2277,7 +2276,7 @@ contains
 
     call get_total_num_cells(total_num_cells)
     if (total_num_cells /= (size(mesh%topo%global_indices) + size(new_halos))) then
-      write(log_unit_out,*) total_num_cells, size(mesh%topo%global_indices), size(new_halos)
+      write (log_unit_out, *) total_num_cells, size(mesh%topo%global_indices), size(new_halos)
       call error_abort("ERROR: Local total cell count and size of global indices + new halos not in agreement")
     end if
 
@@ -2552,78 +2551,78 @@ contains
     integer(ccs_int) :: i          ! loop counters
     integer(ccs_int) :: nb_elem = 10
 
-    write(log_unit_out,*) par_env%proc_id, "############################# Print Geometry ########################################"
+    write (log_unit_out, *) par_env%proc_id, "############################# Print Geometry ########################################"
 
-    write(log_unit_out,*) par_env%proc_id, "h                  : ", mesh%geo%h
-    write(log_unit_out,*) par_env%proc_id, "scalefactor        : ", mesh%geo%scalefactor
-    write(log_unit_out,*) ""
+    write (log_unit_out, *) par_env%proc_id, "h                  : ", mesh%geo%h
+    write (log_unit_out, *) par_env%proc_id, "scalefactor        : ", mesh%geo%scalefactor
+    write (log_unit_out, *) ""
 
     associate (local_offset => mesh%topo%shared_array_local_offset, &
                total_offset => mesh%topo%shared_array_total_offset)
 
       if (associated(mesh%geo%volumes)) then
-        write(log_unit_out,*) par_env%proc_id, "volumes     : ", mesh%geo%volumes(1 + total_offset:nb_elem + total_offset)
+        write (log_unit_out, *) par_env%proc_id, "volumes     : ", mesh%geo%volumes(1 + total_offset:nb_elem + total_offset)
       else
-        write(log_unit_out,*) par_env%proc_id, "volumes     : UNALLOCATED"
+        write (log_unit_out, *) par_env%proc_id, "volumes     : UNALLOCATED"
       end if
 
       if (allocated(mesh%geo%face_interpol)) then
-        write(log_unit_out,*) par_env%proc_id, "face_interpol          : ", mesh%geo%face_interpol(1:nb_elem)
+        write (log_unit_out, *) par_env%proc_id, "face_interpol          : ", mesh%geo%face_interpol(1:nb_elem)
       else
-        write(log_unit_out,*) par_env%proc_id, "face_interpol          : UNALLOCATED"
+        write (log_unit_out, *) par_env%proc_id, "face_interpol          : UNALLOCATED"
       end if
 
-      write(log_unit_out,*) ""
+      write (log_unit_out, *) ""
       if (associated(mesh%geo%face_areas)) then
         do i = 1, nb_elem
-          write(log_unit_out,*) par_env%proc_id, "face_areas(1:" // str(nb_elem / 2) // ", " // str(i) // ")", &
+          write (log_unit_out, *) par_env%proc_id, "face_areas(1:" // str(nb_elem / 2) // ", " // str(i) // ")", &
             mesh%geo%face_areas(1:nb_elem / 2, i + local_offset)
         end do
       else
-        write(log_unit_out,*) par_env%proc_id, "face_areas             : UNALLOCATED"
+        write (log_unit_out, *) par_env%proc_id, "face_areas             : UNALLOCATED"
       end if
 
-      write(log_unit_out,*) ""
+      write (log_unit_out, *) ""
       if (associated(mesh%geo%x_p)) then
         do i = 1, nb_elem
-          write(log_unit_out,*) par_env%proc_id, "x_p(:)", mesh%geo%x_p(:, i + total_offset)
+          write (log_unit_out, *) par_env%proc_id, "x_p(:)", mesh%geo%x_p(:, i + total_offset)
         end do
       else
-        write(log_unit_out,*) par_env%proc_id, "x_p                    : UNALLOCATED"
+        write (log_unit_out, *) par_env%proc_id, "x_p                    : UNALLOCATED"
       end if
 
-      write(log_unit_out,*) ""
+      write (log_unit_out, *) ""
       if (associated(mesh%geo%x_f)) then
         do i = 1, nb_elem
-          write(log_unit_out,*) par_env%proc_id, "x_f(2, 1:" // str(nb_elem / 2) // ", " // str(i) // ")", &
+          write (log_unit_out, *) par_env%proc_id, "x_f(2, 1:" // str(nb_elem / 2) // ", " // str(i) // ")", &
             mesh%geo%x_f(2, 1:nb_elem / 2, i + local_offset)
         end do
       else
-        write(log_unit_out,*) par_env%proc_id, "x_f                    : UNALLOCATED"
+        write (log_unit_out, *) par_env%proc_id, "x_f                    : UNALLOCATED"
       end if
 
-      write(log_unit_out,*) ""
+      write (log_unit_out, *) ""
       if (associated(mesh%geo%face_normals)) then
         do i = 1, nb_elem
-          write(log_unit_out,*) par_env%proc_id, "face_normals(2, 1:" // str(nb_elem / 2) // ", " // str(i) // ")", &
+          write (log_unit_out, *) par_env%proc_id, "face_normals(2, 1:" // str(nb_elem / 2) // ", " // str(i) // ")", &
             mesh%geo%face_normals(2, 1:nb_elem / 2, i + local_offset)
         end do
       else
-        write(log_unit_out,*) par_env%proc_id, "face_normals          : UNALLOCATED"
+        write (log_unit_out, *) par_env%proc_id, "face_normals          : UNALLOCATED"
       end if
 
-      write(log_unit_out,*) ""
+      write (log_unit_out, *) ""
       if (associated(mesh%geo%vert_coords)) then
         do i = 1, nb_elem
-          write(log_unit_out,*) par_env%proc_id, "vert_coords(2, 1:" // str(nb_elem / 2) // ", " // str(i) // ")", &
+          write (log_unit_out, *) par_env%proc_id, "vert_coords(2, 1:" // str(nb_elem / 2) // ", " // str(i) // ")", &
             mesh%geo%vert_coords(2, 1:nb_elem / 2, i + local_offset)
         end do
       else
-        write(log_unit_out,*) par_env%proc_id, "vert_coords           : UNALLOCATED"
+        write (log_unit_out, *) par_env%proc_id, "vert_coords           : UNALLOCATED"
       end if
     end associate
 
-    write(log_unit_out,*) par_env%proc_id, "############################# End Print Geometry ########################################"
+    write (log_unit_out, *) par_env%proc_id, "############################# End Print Geometry ########################################"
 
   end subroutine print_geo
 
@@ -2641,7 +2640,7 @@ contains
     integer(ccs_int) :: global_num_faces, num_faces, max_faces
     integer(ccs_int) :: vert_per_cell, global_num_vertices
 
-    write(log_unit_out,*) par_env%proc_id, "############################# Print Topology ########################################"
+    write (log_unit_out, *) par_env%proc_id, "############################# Print Topology ########################################"
 
     call get_local_num_cells(local_num_cells)
     call get_global_num_cells(global_num_cells)
@@ -2653,102 +2652,102 @@ contains
     call get_vert_per_cell(vert_per_cell)
     call get_global_num_vertices(global_num_vertices)
 
-    write(log_unit_out,*) par_env%proc_id, "global_num_cells    : ", global_num_cells
-    write(log_unit_out,*) par_env%proc_id, "local_num_cells     : ", local_num_cells
-    write(log_unit_out,*) par_env%proc_id, "halo_num_cells      : ", halo_num_cells
-    write(log_unit_out,*) par_env%proc_id, "total_num_cells     : ", total_num_cells
-    write(log_unit_out,*) par_env%proc_id, "global_num_vertices : ", global_num_vertices
-    write(log_unit_out,*) par_env%proc_id, "vert_per_cell       : ", vert_per_cell
-    write(log_unit_out,*) par_env%proc_id, "global_num_faces    : ", global_num_faces
-    write(log_unit_out,*) par_env%proc_id, "num_faces           : ", num_faces
-    write(log_unit_out,*) par_env%proc_id, "max_faces           : ", max_faces
-    write(log_unit_out,*) ""
+    write (log_unit_out, *) par_env%proc_id, "global_num_cells    : ", global_num_cells
+    write (log_unit_out, *) par_env%proc_id, "local_num_cells     : ", local_num_cells
+    write (log_unit_out, *) par_env%proc_id, "halo_num_cells      : ", halo_num_cells
+    write (log_unit_out, *) par_env%proc_id, "total_num_cells     : ", total_num_cells
+    write (log_unit_out, *) par_env%proc_id, "global_num_vertices : ", global_num_vertices
+    write (log_unit_out, *) par_env%proc_id, "vert_per_cell       : ", vert_per_cell
+    write (log_unit_out, *) par_env%proc_id, "global_num_faces    : ", global_num_faces
+    write (log_unit_out, *) par_env%proc_id, "num_faces           : ", num_faces
+    write (log_unit_out, *) par_env%proc_id, "max_faces           : ", max_faces
+    write (log_unit_out, *) ""
 
     if (allocated(mesh%topo%global_indices)) then
-      write(log_unit_out,*) par_env%proc_id, "global_indices     : ", mesh%topo%global_indices(1:nb_elem)
+      write (log_unit_out, *) par_env%proc_id, "global_indices     : ", mesh%topo%global_indices(1:nb_elem)
     else
-      write(log_unit_out,*) par_env%proc_id, "global_indices     : UNALLOCATED"
+      write (log_unit_out, *) par_env%proc_id, "global_indices     : UNALLOCATED"
     end if
 
     if (allocated(mesh%topo%num_nb)) then
-      write(log_unit_out,*) par_env%proc_id, "num_nb             : ", mesh%topo%num_nb(1:nb_elem)
+      write (log_unit_out, *) par_env%proc_id, "num_nb             : ", mesh%topo%num_nb(1:nb_elem)
     else
-      write(log_unit_out,*) par_env%proc_id, "num_nb             : UNALLOCATED"
+      write (log_unit_out, *) par_env%proc_id, "num_nb             : UNALLOCATED"
     end if
 
     if (associated(mesh%topo%face_cell1)) then
-      write(log_unit_out,*) par_env%proc_id, "face_cell1        : ", mesh%topo%face_cell1(1:nb_elem)
+      write (log_unit_out, *) par_env%proc_id, "face_cell1        : ", mesh%topo%face_cell1(1:nb_elem)
     else
-      write(log_unit_out,*) par_env%proc_id, "face_cell1        : UNALLOCATED"
+      write (log_unit_out, *) par_env%proc_id, "face_cell1        : UNALLOCATED"
     end if
 
     if (associated(mesh%topo%face_cell2)) then
-      write(log_unit_out,*) par_env%proc_id, "face_cell2        : ", mesh%topo%face_cell2(1:nb_elem)
+      write (log_unit_out, *) par_env%proc_id, "face_cell2        : ", mesh%topo%face_cell2(1:nb_elem)
     else
-      write(log_unit_out,*) par_env%proc_id, "face_cell2        : UNALLOCATED"
+      write (log_unit_out, *) par_env%proc_id, "face_cell2        : UNALLOCATED"
     end if
 
     if (associated(mesh%topo%bnd_rid)) then
-      write(log_unit_out,*) par_env%proc_id, "bnd_rid           : ", mesh%topo%bnd_rid(1:nb_elem)
+      write (log_unit_out, *) par_env%proc_id, "bnd_rid           : ", mesh%topo%bnd_rid(1:nb_elem)
     else
-      write(log_unit_out,*) par_env%proc_id, "bnd_rid           : UNALLOCATED"
+      write (log_unit_out, *) par_env%proc_id, "bnd_rid           : UNALLOCATED"
     end if
 
     if (allocated(mesh%topo%graph_conn%vwgt)) then
-      write(log_unit_out,*) par_env%proc_id, "vwgt              : ", mesh%topo%graph_conn%vwgt(1:nb_elem)
+      write (log_unit_out, *) par_env%proc_id, "vwgt              : ", mesh%topo%graph_conn%vwgt(1:nb_elem)
     else
-      write(log_unit_out,*) par_env%proc_id, "vwgt              : UNALLOCATED"
+      write (log_unit_out, *) par_env%proc_id, "vwgt              : UNALLOCATED"
     end if
 
     if (allocated(mesh%topo%graph_conn%adjwgt)) then
-      write(log_unit_out,*) par_env%proc_id, "adjwgt            : ", mesh%topo%graph_conn%adjwgt(1:nb_elem)
+      write (log_unit_out, *) par_env%proc_id, "adjwgt            : ", mesh%topo%graph_conn%adjwgt(1:nb_elem)
     else
-      write(log_unit_out,*) par_env%proc_id, "adjwgt            : UNALLOCATED"
+      write (log_unit_out, *) par_env%proc_id, "adjwgt            : UNALLOCATED"
     end if
 
     if (allocated(mesh%topo%graph_conn%local_partition)) then
-      write(log_unit_out,*) par_env%proc_id, "local_partition   : ", mesh%topo%graph_conn%local_partition(1:nb_elem)
+      write (log_unit_out, *) par_env%proc_id, "local_partition   : ", mesh%topo%graph_conn%local_partition(1:nb_elem)
     else
-      write(log_unit_out,*) par_env%proc_id, "local_partition   : UNALLOCATED"
+      write (log_unit_out, *) par_env%proc_id, "local_partition   : UNALLOCATED"
     end if
 
-    write(log_unit_out,*) ""
+    write (log_unit_out, *) ""
     if (associated(mesh%topo%global_face_indices)) then
       do i = 1, nb_elem
-        write(log_unit_out,*) par_env%proc_id, "global_face_indices(1:"   //   str(nb_elem / 2)   //   ", "   //   str(i)   //   ")", mesh%topo%global_face_indices(1:nb_elem / 2, i)
+        write(log_unit_out,*) par_env%proc_id, "global_face_indices(1:"    //    str(nb_elem / 2)    //    ", "    //    str(i)    //    ")", mesh%topo%global_face_indices(1:nb_elem / 2, i)
       end do
     else
-      write(log_unit_out,*) par_env%proc_id, "global_face_indices   : UNALLOCATED"
+      write (log_unit_out, *) par_env%proc_id, "global_face_indices   : UNALLOCATED"
     end if
 
-    write(log_unit_out,*) ""
+    write (log_unit_out, *) ""
     if (associated(mesh%topo%global_vertex_indices)) then
       do i = 1, nb_elem
-        write(log_unit_out,*) par_env%proc_id, "global_vertex_indices(1:"   //   str(nb_elem / 2)   //   ", "   //   str(i)   //   ")", mesh%topo%global_vertex_indices(1:nb_elem / 2, i)
+        write(log_unit_out,*) par_env%proc_id, "global_vertex_indices(1:"    //    str(nb_elem / 2)    //    ", "    //    str(i)    //    ")", mesh%topo%global_vertex_indices(1:nb_elem / 2, i)
       end do
     else
-      write(log_unit_out,*) par_env%proc_id, "global_vertex_indices : UNALLOCATED"
+      write (log_unit_out, *) par_env%proc_id, "global_vertex_indices : UNALLOCATED"
     end if
 
-    write(log_unit_out,*) ""
+    write (log_unit_out, *) ""
     if (allocated(mesh%topo%face_indices)) then
       do i = 1, nb_elem
-    write(log_unit_out,*) par_env%proc_id, "face_indices(1:" // str(nb_elem / 2) // ", " // str(i) // ")", mesh%topo%face_indices(1:nb_elem / 2, i)
+    write(log_unit_out,*) par_env%proc_id, "face_indices(1:"  //  str(nb_elem / 2)  //  ", "  //  str(i)  //  ")", mesh%topo%face_indices(1:nb_elem / 2, i)
       end do
     else
-      write(log_unit_out,*) par_env%proc_id, "face_indices          : UNALLOCATED"
+      write (log_unit_out, *) par_env%proc_id, "face_indices          : UNALLOCATED"
     end if
 
-    write(log_unit_out,*) ""
+    write (log_unit_out, *) ""
     if (allocated(mesh%topo%nb_indices)) then
       do i = 1, nb_elem
-        write(log_unit_out,*) par_env%proc_id, "nb_indices(1:" // str(nb_elem / 2) // ", " // str(i) // ")", mesh%topo%nb_indices(1:nb_elem / 2, i)
+        write(log_unit_out,*) par_env%proc_id, "nb_indices(1:"  //  str(nb_elem / 2)  //  ", "  //  str(i)  //  ")", mesh%topo%nb_indices(1:nb_elem / 2, i)
       end do
     else
-      write(log_unit_out,*) par_env%proc_id, "nb_indices            : UNALLOCATED"
+      write (log_unit_out, *) par_env%proc_id, "nb_indices            : UNALLOCATED"
     end if
 
-    write(log_unit_out,*) par_env%proc_id, "############################# End Print Topology ########################################"
+    write (log_unit_out, *) par_env%proc_id, "############################# End Print Topology ########################################"
 
   end subroutine print_topo
 
@@ -2862,10 +2861,10 @@ contains
   ! Build adjacency matrix for local cells
   pure subroutine build_adjacency_matrix(xadj, adjncy)
 
-    integer(ccs_int), allocatable, dimension(:), intent(out) :: xadj   !< Array that points to where in adjncy 
-                                                                       !  the list for each cell begins and ends
+    integer(ccs_int), allocatable, dimension(:), intent(out) :: xadj   !< Array that points to where in adjncy
+    !  the list for each cell begins and ends
     integer(ccs_int), allocatable, dimension(:), intent(out) :: adjncy !< Array storing adjacency lists for each cell consecutively
-    
+
     integer(ccs_int) :: local_num_cells
     integer(ccs_int) :: ctr
     integer(ccs_int) :: idx
@@ -2882,7 +2881,7 @@ contains
     allocate (adjncy(3 * local_num_cells)) ! A reasonable starting point (minimal faces per cell is 3 == TRI)
     ctr = 1
     xadj(1) = ctr
-    
+
     do i = 1, local_num_cells
       call create_cell_locator(i, loc_p)
       call count_neighbours(loc_p, nnb)
@@ -2892,10 +2891,10 @@ contains
         if (cell_local) then
           call get_local_index(loc_nb, idx)
           if (ctr > size(adjncy)) then
-            allocate(tmp(size(adjncy) + alloc_step))
+            allocate (tmp(size(adjncy) + alloc_step))
             tmp(1:size(adjncy)) = adjncy(:)
             adjncy = tmp
-            deallocate(tmp)
+            deallocate (tmp)
           end if
           adjncy(ctr) = idx
           ctr = ctr + 1
@@ -2906,15 +2905,15 @@ contains
 
     if (size(adjncy) > (ctr - 1)) then
       ! Shrink adjncy array
-      allocate(tmp(ctr - 1))
-      tmp(:) = adjncy(1:(ctr-1))
+      allocate (tmp(ctr - 1))
+      tmp(:) = adjncy(1:(ctr - 1))
       adjncy = tmp
     end if
-    
+
   end subroutine build_adjacency_matrix
 
-  !v Sets the offsets used for indexing into shared arrays for data that belongs to each rank. 
-  !  The halo cells may be interleaved with the local cells for some data so we need to store offsets 
+  !v Sets the offsets used for indexing into shared arrays for data that belongs to each rank.
+  !  The halo cells may be interleaved with the local cells for some data so we need to store offsets
   !  for both types of arrays.
   subroutine set_offsets(shared_env, mesh)
     class(parallel_environment), intent(in) :: shared_env   !< The shared environment
@@ -2942,12 +2941,12 @@ contains
       if (rank == 0) then
         allocate (temp_offset(shared_env%num_procs))
         temp_offset(1) = 0
-        do i = 2, shared_env%num_procs 
+        do i = 2, shared_env%num_procs
           temp_offset(i) = temp_offset(i - 1) + shared_array_local_offsets(i - 1)
         end do
         shared_array_local_offsets = temp_offset
-        
-        do i = 2, shared_env%num_procs 
+
+        do i = 2, shared_env%num_procs
           temp_offset(i) = temp_offset(i - 1) + shared_array_total_offsets(i - 1)
         end do
         shared_array_total_offsets = temp_offset
@@ -2956,7 +2955,7 @@ contains
 
       mesh%topo%shared_array_local_offset = shared_array_local_offsets(rank + 1)
       mesh%topo%shared_array_total_offset = shared_array_total_offsets(rank + 1)
-      
+
       call destroy_shared_array(shared_env, shared_array_local_offsets, shared_array_local_offsets_window)
       call destroy_shared_array(shared_env, shared_array_total_offsets, shared_array_total_offsets_window)
     class default

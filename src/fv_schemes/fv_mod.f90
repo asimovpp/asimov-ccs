@@ -131,7 +131,7 @@ module fv
       real(ccs_real) :: flux                           !< the flux across the boundary
     end function calc_mass_flux_uvw
 
-  !v Returns mass flux through a boundary
+    !v Returns mass flux through a boundary
     pure module function calc_mass_flux_bc(u_field, v_field, w_field, mf_field, loc_f) result(flux)
       class(field), intent(in) :: u_field      !< x velocities field
       class(field), intent(in) :: v_field      !< y velocities field

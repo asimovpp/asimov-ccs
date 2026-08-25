@@ -20,7 +20,7 @@ submodule(pv_coupling) pv_coupling_simple
   use utils, only: update, initialise, finalise, set_size, set_values, &
                    mult, zero, clear_entries, set_entry, set_row, set_mode, &
                    str, exit_print, debug_print
-  use fields, only:  count_fields, get_field_idx, get_field, get_is_field_solved
+  use fields, only: count_fields, get_field_idx, get_field, get_is_field_solved
 
   use solver, only: create_solver, solve, set_equation_system, axpy, set_solver_method, set_solver_precon
   use constants, only: add_mode, insert_mode, ndim
@@ -191,7 +191,7 @@ contains
     end if
     call update_gradient(grad_fields(1:nfields))
     do i = 1, size(grad_fields)
-      nullify(grad_fields(i)%ptr)
+      nullify (grad_fields(i)%ptr)
     end do
 
     outerloop: do i = it_start, it_end
@@ -246,7 +246,7 @@ contains
             write (log_unit_out, '(a)') 'Diverged!'
             write (log_unit_out, *)
           end if
-        exit outerloop
+          exit outerloop
         end if
       end if
 
@@ -255,11 +255,11 @@ contains
     deallocate (lin_solverP)
 
     ! Free up memory
-    deallocate(invAu)
-    deallocate(invAv)
-    deallocate(invAw)
+    deallocate (invAu)
+    deallocate (invAv)
+    deallocate (invAw)
 
-    nullify(u, v, w, p, p_prime, mf, viscosity, density)
+    nullify (u, v, w, p, p_prime, mf, viscosity, density)
 
   end subroutine solve_nonlinear
 
@@ -322,7 +322,7 @@ contains
     if (u_sol) then
       call zero_vector(invAu)
       call calculate_velocity_component(flow, par_env, eval_sources, p, 1, M, vec, lin_sys, u, invAu, &
-           workvec, sourcevec, res, residuals)
+                                        workvec, sourcevec, res, residuals)
       call axpy(1.0_ccs_real, invAu, invA)
       call vec_reciprocal(invAu)
       dim = dim + 1.0_ccs_real
@@ -333,7 +333,7 @@ contains
     if (v_sol) then
       call zero_vector(invAv)
       call calculate_velocity_component(flow, par_env, eval_sources, p, 2, M, vec, lin_sys, v, invAv, &
-           workvec, sourcevec, res, residuals)
+                                        workvec, sourcevec, res, residuals)
       call axpy(1.0_ccs_real, invAv, invA)
       call vec_reciprocal(invAv)
       dim = dim + 1.0_ccs_real
@@ -344,7 +344,7 @@ contains
     if (w_sol) then
       call zero_vector(invAw)
       call calculate_velocity_component(flow, par_env, eval_sources, p, 3, M, vec, lin_sys, w, invAw, &
-           workvec, sourcevec, res, residuals)
+                                        workvec, sourcevec, res, residuals)
       call axpy(1.0_ccs_real, invAw, invA)
       call vec_reciprocal(invAw)
       dim = dim + 1.0_ccs_real
@@ -635,10 +635,10 @@ contains
       call get_volume(loc_p, Vol)
       call count_neighbours(loc_p, nnb)
 
-      r1=0.0_ccs_real
-      r2=0.0_ccs_real
+      r1 = 0.0_ccs_real
+      r2 = 0.0_ccs_real
 
-      do j=1,nnb
+      do j = 1, nnb
         call create_neighbour_locator(loc_p, j, loc_nb)
         call get_local_index(loc_nb, index_nb)
         call get_boundary_status(loc_nb, is_boundary)
@@ -648,69 +648,69 @@ contains
         call get_face_interpolation(loc_f, interpolation_factor)
 
         !evaluating gradients for neighbouring cell
-        if(component==1) then ! x-component of velocity
+        if (component == 1) then ! x-component of velocity
           ! present cell gradients
-          duvwp(1)=dux_data(index_p)
-          duvwp(2)=dvx_data(index_p)
-          duvwp(3)=dwx_data(index_p)
+          duvwp(1) = dux_data(index_p)
+          duvwp(2) = dvx_data(index_p)
+          duvwp(3) = dwx_data(index_p)
 
-          if(.not.is_boundary) then ! no boundary face
+          if (.not. is_boundary) then ! no boundary face
             ! neighbouring cell gradients
-            duvwf(1)=dux_data(index_nb)
-            duvwf(2)=dvx_data(index_nb)
-            duvwf(3)=dwx_data(index_nb)
+            duvwf(1) = dux_data(index_nb)
+            duvwf(2) = dvx_data(index_nb)
+            duvwf(3) = dwx_data(index_nb)
 
-            duvw(1)=(interpolation_factor*duvwp(1))+((1.0_ccs_real-interpolation_factor)*duvwf(1))
-            duvw(2)=(interpolation_factor*duvwp(2))+((1.0_ccs_real-interpolation_factor)*duvwf(2))
-            duvw(3)=(interpolation_factor*duvwp(3))+((1.0_ccs_real-interpolation_factor)*duvwf(3))
-            viscosity_face=(interpolation_factor*viscosity_data(index_p))+((1.0_ccs_real-interpolation_factor)*viscosity_data(index_nb))
-            r1=face_area*viscosity_face*dot_product(duvw,face_normal)
+            duvw(1) = (interpolation_factor * duvwp(1)) + ((1.0_ccs_real - interpolation_factor) * duvwf(1))
+            duvw(2) = (interpolation_factor * duvwp(2)) + ((1.0_ccs_real - interpolation_factor) * duvwf(2))
+            duvw(3) = (interpolation_factor * duvwp(3)) + ((1.0_ccs_real - interpolation_factor) * duvwf(3))
+        viscosity_face=(interpolation_factor*viscosity_data(index_p))+((1.0_ccs_real-interpolation_factor)*viscosity_data(index_nb))
+            r1 = face_area * viscosity_face * dot_product(duvw, face_normal)
           else ! boundary face
-            r1=face_area*viscosity_data(index_p)*dot_product(duvwp,face_normal)
+            r1 = face_area * viscosity_data(index_p) * dot_product(duvwp, face_normal)
           end if
-          r2=r1+r2
+          r2 = r1 + r2
         else if (component == 2) then ! y-component of velocity
           ! present cell gradients
-          duvwp(1)=duy_data(index_p)
-          duvwp(2)=dvy_data(index_p)
-          duvwp(3)=dwy_data(index_p)
+          duvwp(1) = duy_data(index_p)
+          duvwp(2) = dvy_data(index_p)
+          duvwp(3) = dwy_data(index_p)
 
-          if(.not.is_boundary) then ! no boundary face
+          if (.not. is_boundary) then ! no boundary face
             ! neighbouring cell gradients
-            duvwf(1)=duy_data(index_nb)
-            duvwf(2)=dvy_data(index_nb)
-            duvwf(3)=dwy_data(index_nb)
+            duvwf(1) = duy_data(index_nb)
+            duvwf(2) = dvy_data(index_nb)
+            duvwf(3) = dwy_data(index_nb)
 
-            duvw(1)=(interpolation_factor*duvwp(1))+((1.0_ccs_real-interpolation_factor)*duvwf(1))
-            duvw(2)=(interpolation_factor*duvwp(2))+((1.0_ccs_real-interpolation_factor)*duvwf(2))
-            duvw(3)=(interpolation_factor*duvwp(3))+((1.0_ccs_real-interpolation_factor)*duvwf(3))
-            viscosity_face=(interpolation_factor*viscosity_data(index_p))+((1.0_ccs_real-interpolation_factor)*viscosity_data(index_nb))
-            r1=face_area*viscosity_face*dot_product(duvw,face_normal)
+            duvw(1) = (interpolation_factor * duvwp(1)) + ((1.0_ccs_real - interpolation_factor) * duvwf(1))
+            duvw(2) = (interpolation_factor * duvwp(2)) + ((1.0_ccs_real - interpolation_factor) * duvwf(2))
+            duvw(3) = (interpolation_factor * duvwp(3)) + ((1.0_ccs_real - interpolation_factor) * duvwf(3))
+        viscosity_face=(interpolation_factor*viscosity_data(index_p))+((1.0_ccs_real-interpolation_factor)*viscosity_data(index_nb))
+            r1 = face_area * viscosity_face * dot_product(duvw, face_normal)
           else ! boundary face
-            r1=face_area*viscosity_data(index_p)*dot_product(duvwp,face_normal)
+            r1 = face_area * viscosity_data(index_p) * dot_product(duvwp, face_normal)
           end if
-          r2=r1+r2
-        else if(component == 3) then ! z-component of velocity
+          r2 = r1 + r2
+        else if (component == 3) then ! z-component of velocity
           ! present cell gradients
-          duvwp(1)=duz_data(index_p)
-          duvwp(2)=dvz_data(index_p)
-          duvwp(3)=dwz_data(index_p)
+          duvwp(1) = duz_data(index_p)
+          duvwp(2) = dvz_data(index_p)
+          duvwp(3) = dwz_data(index_p)
 
-          if(.not.is_boundary) then ! no boundary face
+          if (.not. is_boundary) then ! no boundary face
             ! neighbouring cell gradients
-            duvwf(1)=duz_data(index_nb)
-            duvwf(2)=dvz_data(index_nb)
-            duvwf(3)=dwz_data(index_nb)
+            duvwf(1) = duz_data(index_nb)
+            duvwf(2) = dvz_data(index_nb)
+            duvwf(3) = dwz_data(index_nb)
 
-            duvw(1)=(interpolation_factor*duvwp(1))+((1.0_ccs_real-interpolation_factor)*duvwf(1))
-            duvw(2)=(interpolation_factor*duvwp(2))+((1.0_ccs_real-interpolation_factor)*duvwf(2))
-            duvw(3)=(interpolation_factor*duvwp(3))+((1.0_ccs_real-interpolation_factor)*duvwf(3))
-            viscosity_face=(interpolation_factor*viscosity_data(index_p))+((1.0_ccs_real-interpolation_factor)*viscosity_data(index_nb))
-            r1=face_area*viscosity_face*dot_product(duvw,face_normal)
+            duvw(1) = (interpolation_factor * duvwp(1)) + ((1.0_ccs_real - interpolation_factor) * duvwf(1))
+            duvw(2) = (interpolation_factor * duvwp(2)) + ((1.0_ccs_real - interpolation_factor) * duvwf(2))
+            duvw(3) = (interpolation_factor * duvwp(3)) + ((1.0_ccs_real - interpolation_factor) * duvwf(3))
+        viscosity_face=(interpolation_factor*viscosity_data(index_p))+((1.0_ccs_real-interpolation_factor)*viscosity_data(index_nb))
+            r1 = face_area * viscosity_face * dot_product(duvw, face_normal)
           else ! boundary face
-            r1=face_area*viscosity_data(index_p)*dot_product(duvwp,face_normal)
+            r1 = face_area * viscosity_data(index_p) * dot_product(duvwp, face_normal)
           end if
-          r2=r1+r2
+          r2 = r1 + r2
         end if
       end do
 
@@ -1025,7 +1025,7 @@ contains
     class(field), pointer :: w       !< The z velocities being corrected
     type(field_ptr), dimension(3) :: grad_fields
 
-    nullify(u, v, w, p_prime)
+    nullify (u, v, w, p_prime)
 
     call get_field(flow, "u", u)
     call get_field(flow, "v", v)
@@ -1059,10 +1059,10 @@ contains
     grad_fields(3)%ptr => w
     call update_gradient(grad_fields)
 
-    nullify(grad_fields(1)%ptr)
-    nullify(grad_fields(2)%ptr)
-    nullify(grad_fields(3)%ptr)
-    nullify(u, v, w, p_prime)
+    nullify (grad_fields(1)%ptr)
+    nullify (grad_fields(2)%ptr)
+    nullify (grad_fields(3)%ptr)
+    nullify (u, v, w, p_prime)
 
   end subroutine update_velocity
 
@@ -1182,7 +1182,7 @@ contains
 
     ! checks if RMS of residuals is below target
     converged = .true.
-    do ifield=1, nfields
+    do ifield = 1, nfields
       call get_field(flow, ifield, phi)
       if (phi%solver_parameters%solve) then
         converged = converged .and. is_converged(residuals, phi, ifield)

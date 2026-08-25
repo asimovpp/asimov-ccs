@@ -108,17 +108,17 @@ contains
     integer(ccs_err) :: ierr
 
     select type (M)
-      type is (matrix_petsc)
-        call MatAssemblyBegin(M%M, MAT_FINAL_ASSEMBLY, ierr)
-        call MatAssemblyEnd(M%M, MAT_FINAL_ASSEMBLY, ierr)
-      class default
-        call error_abort("Unsupported matrix type")
+    type is (matrix_petsc)
+      call MatAssemblyBegin(M%M, MAT_FINAL_ASSEMBLY, ierr)
+      call MatAssemblyEnd(M%M, MAT_FINAL_ASSEMBLY, ierr)
+    class default
+      call error_abort("Unsupported matrix type")
     end select
 
   end subroutine finalise_matrix
 
-  !> Returns information about matrix storage (number of nonzeros, memory, etc.) 
-  ! see https://petsc.org/release/manualpages/Mat/MatInfo/ for all the available fields
+  !> Returns information about matrix storage (number of nonzeros, memory, etc.)
+  ! see https: // petsc.org/release/manualpages/Mat/MatInfo/ for all the available fields
   module subroutine get_info_matrix(M)
 
 #if PETSC_VERSION_GE(3,23,0)
@@ -131,19 +131,19 @@ contains
     integer(ccs_err) :: ierr
 
     select type (M)
-      type is (matrix_petsc)
-        call MatGetInfo(M%M, MAT_LOCAL, info, ierr)
-        write(log_unit_out,*) "---"
-        write(log_unit_out,*) "nnz allocated: ", info%nz_allocated
-        write(log_unit_out,*) "nnz used: ", info%nz_used
-        write(log_unit_out,*) "nnz unneeded: ", info%nz_unneeded
-      class default
-        call error_abort("Unsupported matrix type")
+    type is (matrix_petsc)
+      call MatGetInfo(M%M, MAT_LOCAL, info, ierr)
+      write (log_unit_out, *) "---"
+      write (log_unit_out, *) "nnz allocated: ", info%nz_allocated
+      write (log_unit_out, *) "nnz used: ", info%nz_used
+      write (log_unit_out, *) "nnz unneeded: ", info%nz_unneeded
+    class default
+      call error_abort("Unsupported matrix type")
     end select
 
 #else
     use petscmat, only: MAT_INFO_SIZE, MatGetInfo, MAT_INFO_MEMORY, MAT_INFO_NZ_ALLOCATED, MAT_LOCAL, &
-       MAT_INFO_NZ_USED, MAT_INFO_NZ_UNNEEDED
+                        MAT_INFO_NZ_USED, MAT_INFO_NZ_UNNEEDED
 
     class(ccs_matrix), intent(inout) :: M
     double precision, dimension(MAT_INFO_SIZE) :: info
@@ -151,16 +151,16 @@ contains
     integer(ccs_err) :: ierr
 
     select type (M)
-      type is (matrix_petsc)
-        call MatGetInfo(M%M, MAT_LOCAL, info, ierr)
-        write(log_unit_out,*) "---"
-        write(log_unit_out,*) "nnz allocated: ", info(MAT_INFO_NZ_ALLOCATED)
-        write(log_unit_out,*) "nnz used: ", info(MAT_INFO_NZ_USED)
-        write(log_unit_out,*) "nnz unneeded: ", info(MAT_INFO_NZ_UNNEEDED)
-      class default
-        call error_abort("Unsupported matrix type")
+    type is (matrix_petsc)
+      call MatGetInfo(M%M, MAT_LOCAL, info, ierr)
+      write (log_unit_out, *) "---"
+      write (log_unit_out, *) "nnz allocated: ", info(MAT_INFO_NZ_ALLOCATED)
+      write (log_unit_out, *) "nnz used: ", info(MAT_INFO_NZ_USED)
+      write (log_unit_out, *) "nnz unneeded: ", info(MAT_INFO_NZ_UNNEEDED)
+    class default
+      call error_abort("Unsupported matrix type")
     end select
-    
+
 #endif
 
   end subroutine get_info_matrix
@@ -171,13 +171,13 @@ contains
     class(ccs_matrix), intent(inout) :: M   !< the matrix
 
     select type (M)
-      type is (matrix_petsc)
+    type is (matrix_petsc)
 
-        call begin_update_matrix(M)
-        call end_update_matrix(M)
+      call begin_update_matrix(M)
+      call end_update_matrix(M)
 
-      class default
-        call error_abort("Unsupported matrix type")
+    class default
+      call error_abort("Unsupported matrix type")
     end select
 
   end subroutine
@@ -611,18 +611,18 @@ contains
 
     real(ccs_real) :: tol
 
-    select type(M)
+    select type (M)
     type is (matrix_petsc)
-       tol = 1.0e-6
-       call MatIsSymmetric(M%M, tol, symm, ierr)
+      tol = 1.0e-6
+      call MatIsSymmetric(M%M, tol, symm, ierr)
 
-       if (.not. symm) then
-          call error_abort("Matrix " // trim(M%name) // " is unsymmetric")
-       end if
+      if (.not. symm) then
+        call error_abort("Matrix " // trim(M%name) // " is unsymmetric")
+      end if
     class default
-       call error_abort("Unknown matrix type.")
+      call error_abort("Unknown matrix type.")
     end select
-    
+
   end subroutine check_operator_symmetry
 
 end submodule mat_petsc

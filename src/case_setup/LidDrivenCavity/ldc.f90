@@ -35,17 +35,17 @@ program ldc
 
   call get_config(par_env, run_options)
   call configure_parallelism(run_options, par_env, shared_env)
-  if (is_root(par_env)) write(log_unit_out,*) "Starting ", run_options%paths%case_name, " case!"
+  if (is_root(par_env)) write (log_unit_out, *) "Starting ", run_options%paths%case_name, " case!"
 
   ! Create a mesh
   call initialise_mesh(par_env, shared_env, run_options)
 
   ! Initialise fields
-  if (is_root(par_env)) write(log_unit_out,*) "Initialise fields"
+  if (is_root(par_env)) write (log_unit_out, *) "Initialise fields"
   call initialise_fields(par_env, run_options, flow_fields)
 
   ! Initialise velocity field
-  if (is_root(par_env)) write(log_unit_out,*) "Initialise velocity field"
+  if (is_root(par_env)) write (log_unit_out, *) "Initialise velocity field"
   call initialise_flow(par_env, run_options, flow_fields, get_init_flow, get_init_mass_flux)
 
   call profiler_end_region('Total initialisation')
@@ -70,9 +70,9 @@ contains
     type(fluid), intent(in) :: flow_fields
 
     ! Silence compiler warnings
-    associate(foo => par_env, bar => flow_fields)
+    associate (foo => par_env, bar => flow_fields)
     end associate
-    
+
   end subroutine postproc_ldc
 
   pure subroutine get_init_flow(loc_p, field_name, init_val)
@@ -84,11 +84,11 @@ contains
     real(ccs_real), intent(inout) :: init_val
 
     ! Silence ompiler warnings
-    associate(foo => loc_p, bar => field_name, baz => init_val)
+    associate (foo => loc_p, bar => field_name, baz => init_val)
     end associate
-    
+
   end subroutine get_init_flow
-  
+
   pure subroutine get_init_mass_flux(loc_f, init_val)
 
     use types, only: face_locator
@@ -110,10 +110,10 @@ contains
     class(field), intent(in) :: phi !< Field being transported
     class(ccs_vector), intent(inout) :: R !< Work vector (for evaluating linear/implicit sources)
     class(ccs_vector), intent(inout) :: S !< Work vector (for evaluating fixed/explicit sources)
-    
+
     ! Dummy implementation - just zeros the sources, see sero_sources for example implementation
     call zero_sources(flow, phi, R, S)
-    
+
   end subroutine eval_sources
 
 end program ldc

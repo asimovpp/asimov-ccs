@@ -17,14 +17,14 @@ program sandia
 
   implicit none
 
-  class(parallel_environment), allocatable:: par_env
-  class(parallel_environment), allocatable:: shared_env
+  class(parallel_environment), allocatable :: par_env
+  class(parallel_environment), allocatable :: shared_env
 
   type(ccs_options) :: run_options
 
-  type(fluid):: flow_fields
+  type(fluid) :: flow_fields
   ! type(bc_profile), allocatable:: profile
-  
+
   ! Launch MPI
   call initialise_parallel_environment(par_env)
   call profiler_init()
@@ -33,7 +33,7 @@ program sandia
   call configure_parallelism(run_options, par_env, shared_env)
 
   call profiler_begin_region('Total elapsed time')
-  if (is_root(par_env)) write(log_unit_out,*) "Starting ", run_options%paths%case_name, " case!"
+  if (is_root(par_env)) write (log_unit_out, *) "Starting ", run_options%paths%case_name, " case!"
 
   call profiler_begin_region('Total initialisation')
 
@@ -41,7 +41,7 @@ program sandia
   call initialise_mesh(par_env, shared_env, run_options)
 
   ! Initialise fields
-  if (is_root(par_env)) write(log_unit_out,*) "Initialise fields"
+  if (is_root(par_env)) write (log_unit_out, *) "Initialise fields"
 
   ! Initialise the fields
   call initialise_fields(par_env, run_options, flow_fields)
@@ -49,16 +49,16 @@ program sandia
   ! XXX: coupling BCs could be built here
 
   ! Initialise velocity field
-  if (is_root(par_env)) write(log_unit_out,*) "Initialise velocity field"
+  if (is_root(par_env)) write (log_unit_out, *) "Initialise velocity field"
   call initialise_flow(par_env, run_options, flow_fields, get_init_flow, get_init_mass_flux)
 
   ! Solve using SIMPLE algorithm
-  if (is_root(par_env)) write(log_unit_out,*) "Start SIMPLE"
+  if (is_root(par_env)) write (log_unit_out, *) "Start SIMPLE"
 
   call profiler_end_region('Total initialisation')
 
   call run_solver(par_env, run_options, eval_sources, postproc_sandia, flow_fields)
-  
+
   ! Clean-up
   call profiler_end_region('Total elapsed time')
   call profiler_shutdown(par_env)
@@ -82,16 +82,16 @@ contains
     if (field_name == "scalar") then
       call get_centre(loc_p, x_p)
       if (x_p(1) < -0.08) then
-        init_val = 1.0_ccs_real 
+        init_val = 1.0_ccs_real
       else
-        init_val = 0.0_ccs_real 
+        init_val = 0.0_ccs_real
       end if
     else ! anything but scalar field
       init_val = init_val ! Accept whatever initial value is set
     end if
 
   end subroutine
-  
+
   pure subroutine get_init_mass_flux(loc_f, init_val)
     use types, only: face_locator
     type(face_locator), intent(in) :: loc_f
@@ -111,9 +111,9 @@ contains
 
     ! All cases must define this, but if they don't require case-specific processing then simply
     ! make a no-op (use associate to silence unused variable compiler warnings)
-    associate(foo => par_env, bar => flow_fields)
+    associate (foo => par_env, bar => flow_fields)
     end associate
-    
+
   end subroutine postproc_sandia
 
   !> Case-specific source terms
@@ -125,10 +125,10 @@ contains
     class(field), intent(in) :: phi !< Field being transported
     class(ccs_vector), intent(inout) :: R !< Work vector (for evaluating linear/implicit sources)
     class(ccs_vector), intent(inout) :: S !< Work vector (for evaluating fixed/explicit sources)
-    
+
     ! Dummy implementation - just zeros the sources, see sero_sources for example implementation
     call zero_sources(flow, phi, R, S)
-    
+
   end subroutine eval_sources
 
 end program sandia

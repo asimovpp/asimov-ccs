@@ -11,7 +11,7 @@ contains
   !v Determine how the mesh should be reordered according to the Morton space filling curve
   module subroutine get_reordering(new_indices)
 
-    use mortif, only: demorton2D  
+    use mortif, only: demorton2D
     use meshing, only: get_local_num_cells
     use mesh_utils, only: build_adjacency_matrix
 
@@ -27,7 +27,7 @@ contains
     integer(ccs_long) :: max_mcode
     integer(ccs_int) :: row, col
     logical :: isfound
-    integer(ccs_int), dimension(:), allocatable :: perm 
+    integer(ccs_int), dimension(:), allocatable :: perm
 
     call dprint("Reordering with z-curve.")
 
@@ -41,7 +41,7 @@ contains
     do while (max_mcode < local_num_cells)
       max_mcode = max_mcode * 2
     end do
-    
+
     allocate (perm(local_num_cells))
     perm(:) = -1
     ctr = 1
@@ -61,7 +61,7 @@ contains
         ! the col==row non-zeros are not explicitly in the adj matrix
         if (col .eq. row) then
           isfound = .true.
-        else if (any(col .eq. adjncy(xadj(row):xadj(row+1)-1))) then 
+        else if (any(col .eq. adjncy(xadj(row):xadj(row + 1) - 1))) then
           isfound = .true.
         end if
 
@@ -73,7 +73,7 @@ contains
             ctr = ctr + 1
           end if
         end if
-        
+
       end if
     end do
 

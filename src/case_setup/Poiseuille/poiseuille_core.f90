@@ -13,7 +13,7 @@ module poiseuille_core
   use types, only: field, fluid, ccs_mesh, bc_profile
   use parallel, only: is_root
   use parallel_types, only: parallel_environment
-  use utils, only:  calc_kinetic_energy, calc_enstrophy
+  use utils, only: calc_kinetic_energy, calc_enstrophy
   use fields, only: get_field, dealloc_fluid_fields
   use boundary_conditions, only: set_bc_profile
   use timestepping, only: reset_timestepping
@@ -30,8 +30,8 @@ module poiseuille_core
   ! Global variables to pass errors to/from postprocessing
   real(ccs_real), dimension(3) :: pois_error_L2_global = huge(0.0_ccs_real)
   real(ccs_real), dimension(3) :: pois_error_Linf_global = huge(0.0_ccs_real)
-  
-  contains
+
+contains
 
   subroutine run_poiseuille(par_env, shared_env, error_L2, error_Linf, input_mesh)
     class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
@@ -53,7 +53,7 @@ module poiseuille_core
     ! Read case name and runtime parameters from configuration file
     call get_config(par_env, run_options)
 
-    if (is_root(par_env)) write(log_unit_out,*) "Starting ", run_options%paths%case_name, " case!"
+    if (is_root(par_env)) write (log_unit_out, *) "Starting ", run_options%paths%case_name, " case!"
 
     if (present(input_mesh)) then
       mesh = input_mesh
@@ -63,25 +63,24 @@ module poiseuille_core
     end if
 
     ! Initialise fields
-    if (is_root(par_env)) write(log_unit_out,*) "Initialise fields"
+    if (is_root(par_env)) write (log_unit_out, *) "Initialise fields"
     call initialise_fields(par_env, run_options, flow_fields)
 
     ! Create and initialise field vectors
-    if (is_root(par_env)) write(log_unit_out,*) "Initialise field vectors"
-    
-    
+    if (is_root(par_env)) write (log_unit_out, *) "Initialise field vectors"
+
     ! Set to 1st boundary condition (inlet)
     call get_field(flow_fields, "u", u)
     call get_inlet_profile(run_options, profile)
     call set_bc_profile(u, profile, 1)
-    nullify(u)
+    nullify (u)
 
     ! Initialise velocity field
-    if (is_root(par_env)) write(log_unit_out,*) "Initialise velocity field"
+    if (is_root(par_env)) write (log_unit_out, *) "Initialise velocity field"
     call initialise_flow(par_env, run_options, flow_fields, get_init_flow, get_init_mass_flux)
 
     ! Solve using SIMPLE algorithm
-    if (is_root(par_env)) write(log_unit_out,*) "Start SIMPLE"
+    if (is_root(par_env)) write (log_unit_out, *) "Start SIMPLE"
 
     call profiler_end_region('Total initialisation')
 
@@ -90,7 +89,7 @@ module poiseuille_core
     call run_solver(par_env, run_options, eval_sources, postproc_poiseuille, flow_fields)
     error_L2 = pois_error_L2_global
     error_Linf = pois_error_Linf_global
-    
+
     ! Clean-up
     call profiler_end_region('Total elapsed time')
 
@@ -116,11 +115,11 @@ module poiseuille_core
     call calc_enstrophy(par_env, u, v, w)
 
     call calc_error(par_env, u, v, p, pois_error_L2_global, pois_error_Linf_global)
-    nullify(u)
-    nullify(v)
-    nullify(w)
-    nullify(p)
-    
+    nullify (u)
+    nullify (v)
+    nullify (w)
+    nullify (p)
+
   end subroutine postproc_poiseuille
 
   pure subroutine get_init_flow(loc_p, field_name, init_val)
@@ -132,11 +131,11 @@ module poiseuille_core
     real(ccs_real), intent(inout) :: init_val
 
     ! Silence compiler warnings
-    associate(foo => loc_p, bar => field_name, baz => init_val)
+    associate (foo => loc_p, bar => field_name, baz => init_val)
     end associate
 
   end subroutine
-  
+
   pure subroutine get_init_mass_flux(loc_f, init_val)
     use types, only: face_locator
     type(face_locator), intent(in) :: loc_f
@@ -157,27 +156,27 @@ module poiseuille_core
     integer(ccs_int) :: cps
 
     cps = run_options%mesh%cps
-    n = 200*3*cps
+    n = 200 * 3 * cps
 
-    allocate(profile)
+    allocate (profile)
 
-    allocate(profile%centre(3))
-    allocate(profile%values(n))
-    allocate(profile%coordinates(n))
+    allocate (profile%centre(3))
+    allocate (profile%values(n))
+    allocate (profile%coordinates(n))
     h = 1.0_ccs_real
     mu = 0.01_ccs_real
-    P = 8*mu 
+    P = 8 * mu
 
-    profile%centre(:) = [ 0, 0, 0 ]
+    profile%centre(:) = [0, 0, 0]
 
-    do i=1, n
-      y =  real(i-1, ccs_real)*h/real(n-1, ccs_real)
-      profile%coordinates(i) = y      
-      profile%values(i) = P*y*(h-y)/ (2.0_ccs_real*mu)
+    do i = 1, n
+      y = real(i - 1, ccs_real) * h / real(n - 1, ccs_real)
+      profile%coordinates(i) = y
+      profile%values(i) = P * y * (h - y) / (2.0_ccs_real * mu)
     end do
 
   end subroutine
-  
+
   subroutine calc_error(par_env, u, v, p, error_L2, error_Linf)
 
     use constants, only: ndim
@@ -241,9 +240,9 @@ module poiseuille_core
       ! Compute analytical solution
       x = x_p(1)
       y = x_p(2)
-      u_an = 8*mu*y*(1-y)/(2*mu)
+      u_an = 8 * mu * y * (1 - y) / (2 * mu)
       v_an = 0.0_ccs_real
-      p_an = -8*mu*(x-1)
+      p_an = -8 * mu * (x - 1)
 
       error_L2_local(1) = error_L2_local(1) + (u_an - u_data(index_p))**2
       error_L2_local(2) = error_L2_local(2) + (v_an - v_data(index_p))**2
@@ -292,10 +291,10 @@ module poiseuille_core
     class(field), intent(in) :: phi !< Field being transported
     class(ccs_vector), intent(inout) :: R !< Work vector (for evaluating linear/implicit sources)
     class(ccs_vector), intent(inout) :: S !< Work vector (for evaluating fixed/explicit sources)
-    
+
     ! Dummy implementation - just zeros the sources, see sero_sources for example implementation
     call zero_sources(flow, phi, R, S)
-    
+
   end subroutine eval_sources
 
 end module poiseuille_core

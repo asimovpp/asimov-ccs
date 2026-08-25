@@ -2,7 +2,7 @@
 module logging
 #include "ccs_macros.inc"
 
-  use iso_fortran_env, only : output_unit
+  use iso_fortran_env, only: output_unit
 
   implicit none
 
@@ -10,7 +10,7 @@ module logging
 
   integer :: log_unit_out = output_unit
 
-  contains
+contains
 
   !> Initialise logging module
   subroutine initialise_logging(par_env, file_name)
@@ -24,9 +24,9 @@ module logging
     integer :: ierr
 
     if (is_root(par_env)) then
-      open(newunit=log_unit_out, file=file_name, status="replace", iostat=ierr)
+      open (newunit=log_unit_out, file=file_name, status="replace", iostat=ierr)
       if (ierr /= 0) then
-        write(log_unit_out,*) "ERROR: Could not open log file " // file_name
+        write (log_unit_out, *) "ERROR: Could not open log file " // file_name
         stop 1
       end if
       initialised = .true.
@@ -45,9 +45,9 @@ module logging
     integer :: ierr
 
     if (is_root(par_env)) then
-      close(log_unit_out, iostat=ierr)
+      close (log_unit_out, iostat=ierr)
       if (ierr /= 0) then
-        write(log_unit_out,*) "ERROR: Could not close log file."
+        write (log_unit_out, *) "ERROR: Could not close log file."
       end if
       initialised = .false.
     end if

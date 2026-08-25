@@ -3,7 +3,7 @@ module signal_handler
 #include "ccs_macros.inc"
 
   use kinds
-  use, intrinsic :: iso_c_binding, only : c_int, c_funloc, c_funptr
+  use, intrinsic :: iso_c_binding, only: c_int, c_funloc, c_funptr
 
   implicit none
 
@@ -19,9 +19,9 @@ module signal_handler
       import :: c_funptr, c_int
       implicit none
       integer(kind=c_int), intent(in), value :: sig      !< the POSIX signal number to be captured
-      type(c_funptr),      intent(in), value :: func     !< the signal handler function to be called
-                                                         !< when the target signal is captured
-      type(c_funptr)                         :: c_signal !< this function
+      type(c_funptr), intent(in), value :: func     !< the signal handler function to be called
+      !< when the target signal is captured
+      type(c_funptr) :: c_signal !< this function
     end function c_signal
   end interface
 
@@ -37,7 +37,7 @@ contains
   !> Routine that gets called when signal `signum` is trapped
   subroutine catch_signal(signum) bind(c)
     integer(kind=c_int), intent(in), value :: signum !< POSIX signal number that, once captured, triggers this function
-    associate(foo => signum)
+    associate (foo => signum)
     end associate
     sigterm_issued = .true. !< this public argument is checked by the core_solver and, when true, triggers a stop
   end subroutine catch_signal

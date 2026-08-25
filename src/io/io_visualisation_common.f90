@@ -14,15 +14,15 @@ submodule(io_visualisation) io_visualisation_common
   use core, only: ccs_options, build_mesh_2d, build_mesh_3d, read_input_mesh
   use types, only: field
   use fields, only: get_field
-  
+
   implicit none
 
   character(len=1), dimension(4), parameter :: skip_fields = &
-       [ "u", "v", "w", &
-          "p" ]
+                                               ["u", "v", "w", &
+                                                "p"]
 
   logical, save :: initial_step = .true.
-    
+
   character(len=2), parameter :: l1 = '  '           ! Indentation level 1
   character(len=4), parameter :: l2 = '    '         ! Indentation level 2
   character(len=6), parameter :: l3 = '      '       ! Indentation level 3
@@ -39,7 +39,7 @@ contains
 
   end subroutine
 
-  !> Read the flow solution 
+  !> Read the flow solution
   module subroutine read_solution(par_env, case_name, mesh, flow, step, maxstep)
 
     ! Arguments
@@ -132,7 +132,7 @@ contains
     integer(ccs_int) :: ncel
 
     class(field), pointer :: phi
-    
+
     xdmf_file = run_options%paths%case_name // '_sol.xmf'
     sol_file = run_options%paths%case_name // '_sol'
 
@@ -165,7 +165,6 @@ contains
         write (ioxdmf, '(a,a)') l1, '<Domain>'
       end if
 
-
       write (ioxdmf, '(a,a)') l3, '<Grid Name = "Mesh">'
 
       if (present(step)) then
@@ -173,7 +172,7 @@ contains
       end if
 
       call write_xdmf_mesh(run_options, ioxdmf)
-      
+
       ! Velocity vector
       ! Count number of velocity components in list of fields to be written out
       num_vel_cmp = 0
@@ -193,19 +192,19 @@ contains
       if (run_options%mesh%init_mesh_type == read_input_mesh) then
         call get_global_num_cells(ncel)
         dimstring = "1000000000000000" ! Preallocate string for 1,000 trilion
-        write(dimstring, '(i0)') ncel
+        write (dimstring, '(i0)') ncel
       else
         ncel = run_options%mesh%cps
         dimstring = "1000000 1000000 1000000" ! Preallocate string for 1M^3
         if (run_options%mesh%init_mesh_type == build_mesh_2d) then
-          write(dimstring, '(2(i0,1x))') ncel, ncel
+          write (dimstring, '(2(i0,1x))') ncel, ncel
         else if (run_options%mesh%init_mesh_type == build_mesh_3d) then
-          write(dimstring, '(3(i0,1x))') ncel, ncel, ncel
+          write (dimstring, '(3(i0,1x))') ncel, ncel, ncel
         else
           error stop "Impossible condition"
         end if
       end if
-      
+
       if (num_vel_cmp > 0) then
         write (ioxdmf, '(a,a)') l4, '<Attribute Name = "velocity" AttributeType = "Vector" Center = "Cell">'
 
@@ -213,9 +212,9 @@ contains
         if (num_vel_cmp == 1) then
           write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', trim(dimstring), 1, '" ItemType = "Function" Function = "JOIN($0)">'
         else if (num_vel_cmp == 2) then
-          write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', trim(dimstring), 2, '" ItemType = "Function" Function = "JOIN($0, $1)">'
+        write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', trim(dimstring), 2, '" ItemType = "Function" Function = "JOIN($0, $1)">'
         else if (num_vel_cmp == 3) then
-          write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', trim(dimstring), 3, '" ItemType = "Function" Function = "JOIN($0, $1, $2)">'
+    write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', trim(dimstring), 3, '" ItemType = "Function" Function = "JOIN($0, $1, $2)">'
         end if
 
         fmt = '(a,a,a,3(a),i0,a)'
@@ -225,7 +224,7 @@ contains
           if (phi%output) then
             if ((trim(phi%name) == 'u') .or. (trim(phi%name) == 'v') .or. (trim(phi%name) == 'w')) then
               write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', trim(dimstring), '">', trim(sol_file), ':/Step', &
-                   step_counter, '/'//trim(phi%name)//'</DataItem>'
+                step_counter, '/' // trim(phi%name) // '</DataItem>'
             end if
           end if
         end do
@@ -251,9 +250,9 @@ contains
         call get_field(flow, i, phi)
         if (phi%output) then
           if (.not. any(skip_fields == trim(phi%name))) then
-            write (ioxdmf, '(a,a)') l4, '<Attribute Name = "'//phi%name//'" AttributeType = "Scalar" Center = "Cell">'
+            write (ioxdmf, '(a,a)') l4, '<Attribute Name = "' // phi%name // '" AttributeType = "Scalar" Center = "Cell">'
             write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', trim(dimstring), '" Format = "HDF">', trim(sol_file), ':/Step', &
-                 step_counter, '/'//trim(phi%name)//'</DataItem>'
+              step_counter, '/' // trim(phi%name) // '</DataItem>'
             write (ioxdmf, '(a,a)') l4, '</Attribute>'
           end if
         end if
@@ -283,7 +282,7 @@ contains
           if (phi%output) then
             if ((trim(phi%name) == 'u') .or. (trim(phi%name) == 'v') .or. (trim(phi%name) == 'w')) then
               write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', trim(dimstring), '">', trim(sol_file), ':/Step', &
-                   step_counter, '/'//trim(phi%name)//'</DataItem>'
+                step_counter, '/' // trim(phi%name) // '</DataItem>'
             end if
           end if
         end do
@@ -356,12 +355,12 @@ contains
   subroutine write_xdmf_mesh(run_options, ioxdmf)
 
     use meshing, only: get_mesh_generated
-    
+
     type(ccs_options), intent(in) :: run_options
     integer(ccs_int), intent(in) :: ioxdmf
-    
+
     logical :: is_generated
-    
+
     ! Check whether mesh was read or generated and set data path root appropriately
     call get_mesh_generated(is_generated)
     if (is_generated) then
@@ -376,10 +375,10 @@ contains
   subroutine write_xdmf_mesh_file(run_options, ioxdmf)
 
     use meshing, only: get_global_num_cells, get_vert_per_cell, get_global_num_vertices
-    
+
     type(ccs_options), intent(in) :: run_options
     integer(ccs_int), intent(in) :: ioxdmf
-    
+
     integer(ccs_int) :: ncel
     integer(ccs_int) :: vert_per_cell
     integer(ccs_int) :: nvrt
@@ -402,20 +401,19 @@ contains
 
     fmt = '(a,a,i0,1x,i0,3(a))'
     write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', ncel, vert_per_cell, '" Format = "HDF">', &
-         trim(geo_file), ':/cell/vertices</DataItem>'
+      trim(geo_file), ':/cell/vertices</DataItem>'
     write (ioxdmf, '(a,a)') l4, '</Topology>'
 
     ! Geometry
     write (ioxdmf, '(a,a)') l4, '<Geometry Type = "XYZ">'
     write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', nvrt, ndim, '" Format = "HDF">', trim(geo_file), &
-         ':/vert</DataItem>'
+      ':/vert</DataItem>'
     write (ioxdmf, '(a,a)') l4, '</Geometry>'
 
   end subroutine write_xdmf_mesh_file
 
   !> Write the XDMF entry for a CCS-generated mesh
   subroutine write_xdmf_mesh_build(run_options, ioxdmf)
-
 
     type(ccs_options), intent(in) :: run_options
     integer(ccs_int), intent(in) :: ioxdmf
@@ -435,39 +433,39 @@ contains
     if (run_options%mesh%init_mesh_type == build_mesh_2d) then
       ! Topology
       write (ioxdmf, '(a,a,i0,a,i0,a)') l4, &
-           '<Topology Type = "2DCoRectMesh" NumberOfElements = "', npt, ' ', npt, '"/>'
+        '<Topology Type = "2DCoRectMesh" NumberOfElements = "', npt, ' ', npt, '"/>'
 
       ! Geometry
       write (ioxdmf, '(a,a)') l4, '<Geometry Type = "Origin_DxDy">'
       write (ioxdmf, '(a,a)') l4, &
-           '<DataItem Dimensions="2" NumberType="Float" Precision="8" Format="XML">'
+        '<DataItem Dimensions="2" NumberType="Float" Precision="8" Format="XML">'
       write (ioxdmf, '(a,a)') l5, '0. 0.'
       write (ioxdmf, '(a,a)') l4, '</DataItem>'
       write (ioxdmf, '(a,a)') l4, &
-           '<DataItem Dimensions="2" NumberType="Float" Precision="8" Format="XML">'
+        '<DataItem Dimensions="2" NumberType="Float" Precision="8" Format="XML">'
       write (ioxdmf, '(a,e23.16,a,e23.16)') l5, h, ' ', h
       write (ioxdmf, '(a,a)') l4, '</DataItem>'
       write (ioxdmf, '(a,a)') l4, '</Geometry>'
     else if (run_options%mesh%init_mesh_type == build_mesh_3d) then
       ! Topology
       write (ioxdmf, '(a,a,i0,a,i0,a,i0,a)') l4, &
-           '<Topology Type = "3DCoRectMesh" NumberOfElements = "', npt, ' ', npt, ' ', npt, '"/>'
+        '<Topology Type = "3DCoRectMesh" NumberOfElements = "', npt, ' ', npt, ' ', npt, '"/>'
 
       ! Geometry
       write (ioxdmf, '(a,a)') l4, '<Geometry Type = "Origin_DxDyDz">'
       write (ioxdmf, '(a,a)') l4, &
-           '<DataItem Dimensions="3" NumberType="Float" Precision="8" Format="XML">'
+        '<DataItem Dimensions="3" NumberType="Float" Precision="8" Format="XML">'
       write (ioxdmf, '(a,a)') l5, '0. 0. 0.'
       write (ioxdmf, '(a,a)') l4, '</DataItem>'
       write (ioxdmf, '(a,a)') l4, &
-           '<DataItem Dimensions="3" NumberType="Float" Precision="8" Format="XML">'
+        '<DataItem Dimensions="3" NumberType="Float" Precision="8" Format="XML">'
       write (ioxdmf, '(a,e23.16,a,e23.16,a,e23.16)') l5, h, ' ', h, ' ', h
       write (ioxdmf, '(a,a)') l4, '</DataItem>'
       write (ioxdmf, '(a,a)') l4, '</Geometry>'
     else
       error stop "Impossible state"
     end if
-  
+
   end subroutine write_xdmf_mesh_build
 
 end submodule

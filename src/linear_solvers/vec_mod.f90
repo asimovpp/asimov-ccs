@@ -203,7 +203,7 @@ module vec
       class(ccs_vector), intent(inout) :: vec                       !< the vector to reset
       real(ccs_real), dimension(:), pointer, intent(in) :: array !< the array containing the data to restore
     end subroutine restore_vector_data_readonly
-    
+
     !> Set vector values to be located at either cell-centre or face
     pure module subroutine set_vector_location(loc, vec_properties)
       integer(ccs_int), intent(in) :: loc
@@ -259,7 +259,7 @@ module vec
       integer(ccs_int), dimension(:), intent(in) :: idx_to
       real(ccs_real), dimension(:), intent(out) :: data_to
     end subroutine reorder_data_vec
-    
+
   end interface
 
 end module vec

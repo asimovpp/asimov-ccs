@@ -35,7 +35,7 @@ module core
     character(len=:), allocatable :: mesh_path
     character(len=:), allocatable :: ccs_config_file
   end type ccs_paths
-  
+
   !v Options for the mesh configuration
   type :: mesh_options
     integer(ccs_int) :: init_mesh_type = mesh_null
@@ -45,7 +45,7 @@ module core
     logical :: compute_partqual = .true.
     character(len=ccs_string_len), dimension(:), allocatable :: bnd_names
   end type mesh_options
-  
+
   !v Options for IO configuration
   type :: io_options
     integer(ccs_int) :: write_frequency = huge(0_ccs_int)
@@ -78,7 +78,7 @@ module core
     logical :: use_mpi_splitting = .false.
     integer :: split_type = huge(0_ccs_int)
   end type parallel_options
-  
+
   !v Reference values for the problem
   type :: ref_vals
     real(ccs_real) :: p_ref = huge(0.0_ccs_real)    !< reference pressure
@@ -90,7 +90,7 @@ module core
     real(ccs_real) :: len_ref = huge(0.0_ccs_real)  !< reference length, used to define the Reynolds number of the flow
     integer :: pref_at_cell = huge(0_ccs_int)       !< cell at which the reference pressure is set
   end type ref_vals
-  
+
   !v Type to contain the configuration of the CCS run
   type :: ccs_options
     type(ccs_paths) :: paths
@@ -115,17 +115,17 @@ module core
     ! environments, etc.
     module subroutine configure_parallelism(run_options, par_env, shared_env)
       type(ccs_options), intent(in) :: run_options
-      class(parallel_environment), allocatable, intent(in) ::  par_env    !< The (primary) parallel environment
+      class(parallel_environment), allocatable, intent(in) :: par_env    !< The (primary) parallel environment
       class(parallel_environment), allocatable, intent(out) :: shared_env !< The split (shared) parallel environment
     end subroutine configure_parallelism
-    
+
     !v Initialise both cell centre values and mass fluxes by calling get_init_flow and get_init_mass_flux
     !  on every cell or face
     module subroutine initialise_flow(par_env, run_options, flow_fields, get_init_flow, get_init_mass_flux)
       class(parallel_environment), intent(in) :: par_env !< Parallel environment
       type(ccs_options), intent(in) :: run_options       !< Runtime configuration
       type(fluid), intent(inout) :: flow_fields          !< The flow
-      interface 
+      interface
         !> User-supplied subroutine to set field values at cell centres
         pure subroutine get_init_flow(loc_p, field_name, init_val)
           use kinds, only: ccs_real
@@ -158,7 +158,7 @@ module core
     !
     ! This is responsible for setting the building common fields and any other fields specified in the case config file
     module subroutine initialise_fields(par_env, run_options, flow_fields)
-      class(parallel_environment), intent(in), allocatable:: par_env !< The parallel environment
+      class(parallel_environment), intent(in), allocatable :: par_env !< The parallel environment
       type(ccs_options), intent(in) :: run_options                   !< The runtime configuration
       type(fluid), intent(out) :: flow_fields                        !< The flow field structure
     end subroutine initialise_fields
@@ -195,5 +195,5 @@ module core
     end subroutine run_solver
 
   end interface
-    
+
 end module core

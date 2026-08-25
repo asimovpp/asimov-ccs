@@ -59,11 +59,11 @@ contains
       phi_D = phi(2)
       grad_C = grads(:, 1)
       d = rvecs(:, 1) - rvecs(:, 2)
-    else                       
+    else
       phi_C = phi(2)
       phi_D = phi(1)
       grad_C = grads(:, 2)
-      d = rvecs(:, 2) - rvecs(:, 1) 
+      d = rvecs(:, 2) - rvecs(:, 1)
     end if
   end subroutine get_flow_orientation
 
@@ -81,13 +81,13 @@ contains
     else
       compute_nvd = 1.0_ccs_real - (phi_D - phi_C) / (2.0_ccs_real * d_grad_C)
     end if
-    
+
   end function compute_nvd
 
   real(ccs_real) pure function compute_gamma(phi_nvd, beta)
     real(ccs_real), intent(in) :: phi_nvd
     real(ccs_real), intent(in) :: beta
-    
+
     if (phi_nvd <= 0.0_ccs_real .or. phi_nvd >= 1.0_ccs_real) then
       ! Upwind
       compute_gamma = 0.0_ccs_real

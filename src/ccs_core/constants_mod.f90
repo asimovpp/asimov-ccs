@@ -43,13 +43,13 @@ module constants
   ! Constants for splitting mpi communicator
   integer, public, parameter :: ccs_split_type_shared = 0
   integer, public, parameter :: ccs_split_undefined = -1 ! Our own splits need to be negative so as to not conflict with any possible colouring used
-  integer, public, parameter :: ccs_split_type_low_high = -2 
+  integer, public, parameter :: ccs_split_type_low_high = -2
 
   integer(ccs_int), public, parameter :: ccs_string_len = 128
 
   integer, parameter, public :: L2 = 2 !< L2 norm. Used to check residuals levels
   integer, parameter, public :: Linfty = 0 !< L infinity norm. Used to check residuals levels
-  
+
   character(len=ccs_string_len), public, parameter :: default_solver = "gmres"             !< Default solver name to use when not specified per equation
   character(len=ccs_string_len), public, parameter :: default_precon = "bjacobi"           !< Default preconditioner name to use when not specified per equation
   character(len=ccs_string_len), public, parameter :: default_pressure_solver = "cg"       !< Default solver name to use for the pressure correction equation when not specified in the config file

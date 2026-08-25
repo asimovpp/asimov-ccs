@@ -29,7 +29,7 @@ program scalar_transport
   type(fluid) :: flow_fields
 
   type(ccs_options) :: run_options
-  
+
   ! Launch MPI
   call initialise_parallel_environment(par_env)
   call profiler_init()
@@ -41,21 +41,21 @@ program scalar_transport
 
   call profiler_begin_region('Total initialisation')
 
-  if (is_root(par_env)) write(log_unit_out,*) "Starting ", run_options%paths%case_name, " case!"
+  if (is_root(par_env)) write (log_unit_out, *) "Starting ", run_options%paths%case_name, " case!"
 
   call initialise_mesh(par_env, shared_env, run_options)
 
   ! Initialise fields
-  if (is_root(par_env)) write(log_unit_out,*) "Initialise fields"
+  if (is_root(par_env)) write (log_unit_out, *) "Initialise fields"
 
   call initialise_fields(par_env, run_options, flow_fields)
 
   ! Initialise velocity field
-  if (is_root(par_env)) write(log_unit_out,*) "Initialise flow field"
+  if (is_root(par_env)) write (log_unit_out, *) "Initialise flow field"
   call initialise_flow(par_env, run_options, flow_fields, get_init_flow, get_init_mass_flux)
 
   ! Solve using SIMPLE algorithm
-  if (is_root(par_env)) write(log_unit_out,*) "Start scalar solver"
+  if (is_root(par_env)) write (log_unit_out, *) "Start scalar solver"
 
   call profiler_end_region('Total initialisation')
 
@@ -108,13 +108,13 @@ contains
     else
       init_val = init_val
     end if
-    
+
   end subroutine get_init_flow
 
   pure subroutine get_init_mass_flux(loc_f, init_val)
 
     use constants, only: pi
-    
+
     use types, only: face_locator
 
     type(face_locator), intent(in) :: loc_f
@@ -128,7 +128,7 @@ contains
     real(ccs_real), dimension(3) :: x
     real(ccs_real), dimension(2) :: r
     real(ccs_real) :: L, c
-    
+
     L = run_options%mesh%domain_size
     c = L / 2
 
@@ -154,7 +154,7 @@ contains
           theta = pi - theta
         else
           theta = theta + pi
-        endif
+        end if
       end if
 
       v(1) = -sin(theta)
@@ -174,9 +174,9 @@ contains
 
     ! All cases must define this, but if they don't require case-specific processing then simply
     ! make a no-op (use associate to silence unused variable compiler warnings)
-    associate(foo => par_env, bar => flow_fields)
+    associate (foo => par_env, bar => flow_fields)
     end associate
-    
+
   end subroutine postproc_scalar
 
   !> Case-specific source terms
@@ -188,10 +188,10 @@ contains
     class(field), intent(in) :: phi !< Field being transported
     class(ccs_vector), intent(inout) :: R !< Work vector (for evaluating linear/implicit sources)
     class(ccs_vector), intent(inout) :: S !< Work vector (for evaluating fixed/explicit sources)
-    
+
     ! Dummy implementation - just zeros the sources, see sero_sources for example implementation
     call zero_sources(flow, phi, R, S)
-    
+
   end subroutine eval_sources
 
 end program scalar_transport
