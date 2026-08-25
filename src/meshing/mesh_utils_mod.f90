@@ -3115,8 +3115,10 @@ contains
     avg_global = total_global / real(mesh%topo%global_num_cells, ccs_real)
 
     if (is_root(par_env)) then
-      write(log_unit_out,*) "* Average surface integral: ", avg_global
-      write(log_unit_out,*) "* Max cell surface integral / average surface integral: ", max_global / avg_global
+      write(log_unit_out,*) "* Total cell surface integral: ", total_global
+      write(log_unit_out,*) "* Average cell surface integral: ", avg_global
+      write(log_unit_out,*) "* Max cell surface integral: ", max_global
+      write(log_unit_out,*) "* Max cell surface integral / average cell surface integral: ", max_global / avg_global
     end if
 
   end subroutine report_mesh_surface_integral
