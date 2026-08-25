@@ -228,6 +228,7 @@ module types
     integer :: res_norm = -1                                 !< Norm to use for checking residuals levels
     real(ccs_real) :: res_target = huge(0.0_ccs_real)            !< The target residuals under which the iterative solve is considered converged
     real(ccs_real) :: relaxation_factor = huge(0.0_ccs_real)     !< Relaxation factor
+    real(ccs_real) :: grad_relaxation_factor = huge(0.0_ccs_real)     !< Relaxation factor for the gradient update
   end type
 
   type, public, extends(field) :: upwind_field
