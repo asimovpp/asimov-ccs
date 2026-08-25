@@ -3079,6 +3079,7 @@ contains
     max_local = 0.0_ccs_real
 
     call set_topo_object(mesh%topo)
+    call set_geo_object(mesh%geo)
     call get_local_num_cells(n_cells)
 
     ! Compute the surface integral for each cell owned by this rank.
@@ -3101,6 +3102,7 @@ contains
     end do
 
     call nullify_topo_object()
+    call nullify_geo_object()
 
     ! Reductions to get global mesh diagnostics
     select type (par_env)
