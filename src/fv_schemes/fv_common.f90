@@ -616,7 +616,7 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
 
     do i = 1, nfields
       call compute_gradients(fields(i)%ptr, gradients)
-      call set_gradients(fields(i)%ptr, gradients)
+      call set_gradients(fields(i)%ptr, fields(i)%ptr%solver_parameters%grad_relaxation_factor, gradients)
       call start_gradient_halo(fields(i)%ptr)
     end do
 
@@ -651,8 +651,9 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
 
   end subroutine compute_gradients
 
-  subroutine set_gradients(phi, gradients)
+  subroutine set_gradients(phi, relaxation_factor, gradients)
     class(field), intent(inout) :: phi
+    real(ccs_real), intent(in) :: relaxation_factor
     real(ccs_real), dimension(:, :), intent(in) :: gradients
 
     real(ccs_real), dimension(:), pointer :: x_gradient_data
@@ -670,9 +671,9 @@ b = 2.0_ccs_real * (phi%x_gradients_ro(index_p) * dx(1) + phi%y_gradients_ro(ind
     !$omp parallel do default(shared) schedule(static) &
     !$omp private(i)
     do i = 1, local_num_cells
-      x_gradient_data(i) = gradients(i, 1)
-      y_gradient_data(i) = gradients(i, 2)
-      z_gradient_data(i) = gradients(i, 3)
+      x_gradient_data(i) = relaxation_factor * gradients(i, 1) + (1-relaxation_factor)*x_gradient_data(i) 
+      y_gradient_data(i) = relaxation_factor * gradients(i, 2) + (1-relaxation_factor)*y_gradient_data(i) 
+      z_gradient_data(i) = relaxation_factor * gradients(i, 3) + (1-relaxation_factor)*z_gradient_data(i) 
     end do
     !$omp end parallel do
 

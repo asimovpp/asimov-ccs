@@ -323,6 +323,8 @@ contains
     character(len=:), allocatable :: precon_name
     real(ccs_real) :: res_target
     real(ccs_real) :: relaxation
+    real(ccs_real) :: global_grad_relaxation
+    real(ccs_real) :: grad_relaxation
     logical :: val_present
     character(len=:), allocatable :: variable
     character(len=ccs_string_len) :: var
@@ -334,6 +336,13 @@ contains
       call get_value(dict, "n_variables", n_var)
 
       allocate (solver_parameters(n_var))
+
+      call get_value(dict, "grad_relaxation", grad_relaxation, value_present=val_present, required=.false.)
+      if (val_present) then
+        global_grad_relaxation = grad_relaxation
+      else
+        global_grad_relaxation = 1.0_ccs_real
+      end if
 
       select type (dict)
       type is (type_dictionary)
@@ -356,6 +365,13 @@ contains
           call get_value(dict_var, 'relaxation', relaxation, value_present=val_present, required=.false.)
           if (val_present) then
             solver_parameters(i)%relaxation_factor = relaxation
+          end if
+
+          call get_value(dict_var, "grad_relaxation", grad_relaxation, value_present=val_present, required=.false.)
+          if (val_present) then
+            solver_parameters(i)%grad_relaxation_factor = grad_relaxation
+          else
+            solver_parameters(i)%grad_relaxation_factor = global_grad_relaxation
           end if
 
           call get_value(dict_var, 'target_residual', res_target, value_present=val_present, required=.false.)

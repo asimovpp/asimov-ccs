@@ -74,6 +74,7 @@ post:
 variables:
   store_residuals: false
   enable_cell_corrections: false
+  # grad_relaxation: 0.7
   n_variables: 5
   variable_1:
     name: u
@@ -99,6 +100,7 @@ variables:
     # norm_residual: L2|Linfty
     # solver_name: cg
     # precon_name: gamg
+    # grad_relaxation: 0.7
   variable_5:
     name: p_prime
     type: central
