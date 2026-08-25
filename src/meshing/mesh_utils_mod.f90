@@ -645,7 +645,7 @@ contains
       call create_shared_array(shared_env, [ndim, all_max_faces, sum_local_num_cells], mesh%geo%x_f, mesh%geo%x_f_window)
       call create_shared_array(shared_env, [ndim, all_max_faces, sum_local_num_cells], mesh%geo%face_normals, mesh%geo%face_normals_window) 
       call create_shared_array(shared_env, [all_max_faces, sum_local_num_cells], mesh%geo%face_areas, mesh%geo%face_areas_window)
- call create_shared_array(shared_env, [ndim, vert_per_cell, sum_local_num_cells], mesh%geo%vert_coords, mesh%geo%vert_coords_window)
+      call create_shared_array(shared_env, [ndim, vert_per_cell, sum_local_num_cells], mesh%geo%vert_coords, mesh%geo%vert_coords_window)
 
       ! Procs fill local data
       call sync(shared_env)
@@ -1184,7 +1184,7 @@ contains
       call create_shared_array(shared_env, [ndim, all_max_faces, sum_local_num_cells], mesh%geo%face_normals, mesh%geo%face_normals_window) ! Currently hardcoded as a 2D mesh.
       call create_shared_array(shared_env, sum_total_num_cells, mesh%geo%volumes, mesh%geo%volumes_window)
       call create_shared_array(shared_env, [all_max_faces, sum_local_num_cells], mesh%geo%face_areas, mesh%geo%face_areas_window)
- call create_shared_array(shared_env, [ndim, vert_per_cell, sum_local_num_cells], mesh%geo%vert_coords, mesh%geo%vert_coords_window)
+      call create_shared_array(shared_env, [ndim, vert_per_cell, sum_local_num_cells], mesh%geo%vert_coords, mesh%geo%vert_coords_window)
 
       mesh%geo%h = side_length / real(cps, ccs_real)
       if (is_root(shared_env)) then
@@ -1881,7 +1881,7 @@ contains
       call create_shared_array(shared_env, [ndim, all_max_faces, sum_local_num_cells], mesh%geo%face_normals, mesh%geo%face_normals_window) ! Currently hardcoded as a 2D mesh.
       call create_shared_array(shared_env, sum_total_num_cells, mesh%geo%volumes, mesh%geo%volumes_window)
       call create_shared_array(shared_env, [all_max_faces, sum_local_num_cells], mesh%geo%face_areas, mesh%geo%face_areas_window)
- call create_shared_array(shared_env, [ndim, vert_per_cell, sum_local_num_cells], mesh%geo%vert_coords, mesh%geo%vert_coords_window)
+      call create_shared_array(shared_env, [ndim, vert_per_cell, sum_local_num_cells], mesh%geo%vert_coords, mesh%geo%vert_coords_window)
 
       mesh%geo%h = side_length / real(nx, ccs_real) !< @note Assumes cube @endnote
       if (is_root(shared_env)) then
@@ -2620,7 +2620,7 @@ contains
       end if
     end associate
 
-write (log_unit_out, *) par_env%proc_id, "############################# End Print Geometry ########################################"
+    write (log_unit_out, *) par_env%proc_id, "############################# End Print Geometry ########################################"
 
   end subroutine print_geo
 
@@ -2745,7 +2745,7 @@ write (log_unit_out, *) par_env%proc_id, "############################# End Prin
       write (log_unit_out, *) par_env%proc_id, "nb_indices            : UNALLOCATED"
     end if
 
-write (log_unit_out, *) par_env%proc_id, "############################# End Print Topology ########################################"
+    write (log_unit_out, *) par_env%proc_id, "############################# End Print Topology ########################################"
 
   end subroutine print_topo
 
