@@ -3062,7 +3062,7 @@ contains
     use kinds, only: CCS_MPI_PRECISION
 
     class(parallel_environment), intent(in) :: par_env
-    type(ccs_mesh), intent(in) :: mesh
+    type(ccs_mesh), intent(inout) :: mesh
 
     type(face_locator) :: loc_f
     real(ccs_real), dimension(ndim) :: cell_integral
