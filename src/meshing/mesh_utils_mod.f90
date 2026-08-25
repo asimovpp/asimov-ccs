@@ -30,7 +30,7 @@ module mesh_utils
                      create_cell_locator, create_neighbour_locator, create_face_locator, create_vert_locator, &
                      set_face_index, get_boundary_status, get_local_status, &
                      get_centre, set_centre, &
-                     set_area, set_normal, get_face_normal, &
+                     set_area, set_normal, get_face_normal, get_face_area, &
                      set_total_num_cells, get_total_num_cells, &
                      get_local_num_cells, set_local_num_cells, set_face_interpolation, &
                      get_global_num_cells, set_global_num_cells, &
@@ -108,7 +108,6 @@ module mesh_utils
   public :: print_geo
   public :: build_adjacency_matrix
   public :: test_mesh_internal_neighbours
-  public :: report_mesh_surface_integral
 
 contains
 
@@ -180,6 +179,11 @@ contains
 
     mesh%bnd_names = run_options%mesh%bnd_names
     call check_mesh_bnd_names(par_env, mesh)
+
+    ! Compute the mesh surface integral if the mesh was read from an input file
+    call profiler_begin_region("Compute mesh surface integral")
+    call report_mesh_surface_integral(par_env, mesh)
+    call profiler_end_region("Compute mesh surface integral")
 
   end subroutine read_mesh
 
@@ -3056,11 +3060,9 @@ contains
 
   subroutine report_mesh_surface_integral(par_env, mesh)
     use kinds, only: CCS_MPI_PRECISION
-    use logging, only: log_unit_out
-    use meshing, only: create_face_locator, get_face_area, get_face_normal, get_local_num_cells
 
-    class(parallel_environment), allocatable, intent(in) :: par_env
-    type(ccs_mesh), intent(inout) :: mesh          !< The mesh
+    class(parallel_environment), intent(in) :: par_env
+    type(ccs_mesh), intent(in) :: mesh
 
     type(face_locator) :: loc_f
     real(ccs_real), dimension(ndim) :: cell_integral

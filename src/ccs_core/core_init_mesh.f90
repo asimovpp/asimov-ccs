@@ -4,7 +4,7 @@ submodule(core) core_init_mesh
   use utils, only: exit_print
   use ccs_base, only: mesh
   use parallel, only: is_root
-  use mesh_utils, only: build_mesh, build_square_mesh, read_mesh, report_mesh_surface_integral
+  use mesh_utils, only: build_mesh, build_square_mesh, read_mesh
   use meshing, only: set_mesh_object
   use profiler, only: profiler_begin_region, profiler_end_region
   use logging, only: log_unit_out
@@ -50,12 +50,6 @@ contains
       call set_mesh_object(mesh)
       call profiler_end_region("Mesh read time")
 
-      ! Compute the mesh surface integral if the mesh was read from an input file
-      if (run_options%mesh%init_mesh_type == read_input_mesh) then
-        call profiler_begin_region("Compute mesh surface integral")
-        call report_mesh_surface_integral(par_env, mesh)
-        call profiler_end_region("Compute mesh surface integral")
-      end if
 
       if (is_root(par_env)) then
         if ((run_options%mesh%init_mesh_type == build_mesh_2d) .or. &
