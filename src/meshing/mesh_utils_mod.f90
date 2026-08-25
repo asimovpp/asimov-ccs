@@ -3112,7 +3112,7 @@ contains
       call error_abort("invalid parallel environment")
     end select
 
-    avg_global = total_global / real(mesh%topo%global_num_cells)
+    avg_global = total_global / real(mesh%topo%global_num_cells, ccs_real)
 
     if (is_root(par_env)) then
       write(log_unit_out,*) "* Average surface integral: ", avg_global
