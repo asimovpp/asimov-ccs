@@ -44,7 +44,7 @@ module mesh_utils
                      set_local_index, &
                      set_global_index, &
                      set_mesh_generated, set_mesh_object, nullify_mesh_object, &
-                     set_topo_object, nullify_topo_object
+                     set_topo_object, nullify_topo_object, nullify_geo_object, set_geo_object
   use bc_constants
   use reordering, only: reorder_cells, print_bandwidth
   use logging, only: log_unit_out
