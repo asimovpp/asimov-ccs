@@ -3116,11 +3116,7 @@ contains
 
     if (is_root(par_env)) then
       write(log_unit_out,*) "* Average surface integral: ", avg_global
-      if (avg_global > 0.0_ccs_real) then
-        write(log_unit_out,*) "* Max cell surface integral / average surface integral: ", max_global / avg_global
-      else
-        write(log_unit_out,*) "* Max cell surface integral / average surface integral: ", 0.0_ccs_real
-      end if
+      write(log_unit_out,*) "* Max cell surface integral / average surface integral: ", max_global / avg_global
     end if
 
   end subroutine report_mesh_surface_integral
