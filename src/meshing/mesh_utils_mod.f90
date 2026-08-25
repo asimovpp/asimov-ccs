@@ -44,7 +44,7 @@ module mesh_utils
                      set_local_index, &
                      set_global_index, &
                      set_mesh_generated, set_mesh_object, nullify_mesh_object, &
-                     set_topo_object, nullify_topo_object, nullify_geo_object, set_geo_object
+                     set_topo_object, nullify_topo_object
   use bc_constants
   use reordering, only: reorder_cells, print_bandwidth
   use logging, only: log_unit_out
@@ -3078,8 +3078,7 @@ contains
     total_local = 0.0_ccs_real
     max_local = 0.0_ccs_real
 
-    call set_topo_object(mesh%topo)
-    call set_geo_object(mesh%geo)
+    call set_mesh_object(mesh)
     call get_local_num_cells(n_cells)
 
     ! Compute the surface integral for each cell owned by this rank.
@@ -3101,8 +3100,7 @@ contains
 
     end do
 
-    call nullify_topo_object()
-    call nullify_geo_object()
+    call nullify_mesh_object()
 
     ! Reductions to get global mesh diagnostics
     select type (par_env)
