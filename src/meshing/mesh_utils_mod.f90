@@ -3068,7 +3068,7 @@ contains
     real(ccs_real), dimension(ndim) :: normal
     real(ccs_real) :: cell_integral
     real(ccs_real) :: area
-    real(ccs_real) :: total_local
+    real(ccs_real) :: total_local, total_global
     real(ccs_real) :: avg_local, avg_global
     real(ccs_real) :: max_local, max_global
     integer(ccs_int) :: n_cells
@@ -3099,7 +3099,6 @@ contains
 
     end do
 
-    avg_local = total_local / real(n_cells, kind=ccs_int)
     avg_global = 0.0_ccs_real
 
     call nullify_mesh_object()
@@ -3107,11 +3106,13 @@ contains
     ! Reductions to get global mesh diagnostics
     select type (par_env)
     type is (parallel_environment_mpi)
-      call MPI_Allreduce(avg_local, avg_global, 1, CCS_MPI_PRECISION, MPI_SUM, par_env%comm, ierr)
+      call MPI_Allreduce(total_local, total_global, 1, CCS_MPI_PRECISION, MPI_SUM, par_env%comm, ierr)
       call MPI_Allreduce(max_local, max_global, 1, CCS_MPI_PRECISION, MPI_MAX, par_env%comm, ierr)
     class default
       call error_abort("invalid parallel environment")
     end select
+
+    avg_global = total_global / real(mesh%topo%global_num_cells)
 
     if (is_root(par_env)) then
       write(log_unit_out,*) "* Average surface integral: ", avg_global
