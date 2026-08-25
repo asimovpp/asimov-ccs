@@ -3065,10 +3065,9 @@ contains
     type(ccs_mesh), intent(inout) :: mesh
 
     type(face_locator) :: loc_f
-    real(ccs_real), dimension(ndim) :: cell_integral
     real(ccs_real), dimension(ndim) :: normal
+    real(ccs_real) :: cell_integral
     real(ccs_real) :: area
-    real(ccs_real) :: cell_norm
     real(ccs_real) :: total_local
     real(ccs_real) :: avg_local, avg_global
     real(ccs_real) :: max_local, max_global
@@ -3084,20 +3083,19 @@ contains
 
     ! Compute the surface integral for each cell owned by this rank.
     do i = 1, n_cells
-      cell_integral(:) = 0.0_ccs_real
+      cell_integral = 0.0_ccs_real
 
       do j = 1, mesh%topo%num_nb(i)
         call create_face_locator(i, j, loc_f)
         call get_face_area(loc_f, area)
         call get_face_normal(loc_f, normal)
 
-        cell_integral(:) = cell_integral(:) + normal(:) * area
+        cell_integral = cell_integral + sum(normal(:)) * area
       end do
 
       ! Reduce the vector residual to a scalar magnitude for reporting.
-      cell_norm = norm2(cell_integral)
-      total_local = total_local + cell_norm
-      max_local = max(max_local, cell_norm)
+      total_local = total_local + cell_integral
+      max_local = max(max_local, cell_integral)
 
     end do
 
