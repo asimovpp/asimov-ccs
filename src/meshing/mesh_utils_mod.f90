@@ -3092,7 +3092,7 @@ contains
         cell_integral = cell_integral + sum(normal(:)) * area
       end do
 
-      ! Reduce the vector residual to a scalar magnitude for reporting.
+      ! Accumulate stats
       total_local = total_local + cell_integral
       max_local = max(max_local, cell_integral)
 
