@@ -2445,14 +2445,13 @@ contains
     real(ccs_real), dimension(ndim) :: x_f ! face centre array
     real(ccs_real), dimension(ndim) :: normal ! face normal
 
-    ! MW START: add face interpolation diagnostics
     integer(ccs_int) :: index_f
     integer(ccs_int) :: global_p, global_nb
     integer(ccs_int) :: natural_p, natural_nb
     integer(ccs_int) :: global_f
     integer :: rank, ierr
+
     call MPI_Comm_rank(MPI_COMM_WORLD, rank, ierr)
-    ! MW END: add face interpolation diagnostics
     
     if (allocated(mesh%geo%face_interpol)) then
       deallocate (mesh%geo%face_interpol)
@@ -2487,7 +2486,7 @@ contains
           ! This is equivalent (via Thales' theorem) to getting the ratio between f'P over PN where f' is the point on the face intersecting NP
           interpol_factor = dot_product(normal, x_f - x_p) / abs(dot_product(normal, x_f - x_p) - dot_product(normal, x_f - x_nb))
 
-          ! MW START: add face interpolation diagnostics
+          ! Face interpolation diagnostics
           if (interpol_factor < 0.0_ccs_real .or. interpol_factor > 1.0_ccs_real) then
             call get_local_index(loc_f, index_f)
             call get_global_index(loc_p, global_p)
@@ -2510,7 +2509,7 @@ contains
             write (log_unit_out, *) "x_face:", x_f
             write (log_unit_out, *) "interpolation factor:", interpol_factor
           end if
-          ! MW END: add face interpolation diagnostics
+          ! End face interpolation diagnostics
 
           ! inverse interpol factor as it is relative to x_p
           ! the closer x_f is to x_p, the higher the interpol_factor
@@ -2528,7 +2527,7 @@ contains
     if (minval(mesh%geo%face_interpol) < 0.0_ccs_real .or. &
         maxval(mesh%geo%face_interpol) > 1.0_ccs_real) then
 
-       ! MW START: add face interpolation diagnostics
+       ! Face interpolation diagnostics
        do index_f = 1, num_faces
           if (mesh%geo%face_interpol(index_f) < 0.0_ccs_real .or. &
                mesh%geo%face_interpol(index_f) > 1.0_ccs_real) then
@@ -2538,7 +2537,7 @@ contains
           end if
        end do
        flush (log_unit_out)
-       ! MW END: add face interpolation diagnostics
+       ! End face interpolation diagnostics
 
        call error_abort("Face interpolation out of bound.")
     end if
