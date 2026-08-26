@@ -50,6 +50,7 @@ contains
       call set_mesh_object(mesh)
       call profiler_end_region("Mesh read time")
 
+
       if (is_root(par_env)) then
         if ((run_options%mesh%init_mesh_type == build_mesh_2d) .or. &
             (run_options%mesh%init_mesh_type == build_mesh_3d)) then

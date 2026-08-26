@@ -30,7 +30,7 @@ module mesh_utils
                      create_cell_locator, create_neighbour_locator, create_face_locator, create_vert_locator, &
                      set_face_index, get_boundary_status, get_local_status, &
                      get_centre, set_centre, &
-                     set_area, set_normal, get_face_normal, &
+                     set_area, set_normal, get_face_normal, get_face_area, &
                      set_total_num_cells, get_total_num_cells, &
                      get_local_num_cells, set_local_num_cells, set_face_interpolation, &
                      get_global_num_cells, set_global_num_cells, &
@@ -179,6 +179,11 @@ contains
 
     mesh%bnd_names = run_options%mesh%bnd_names
     call check_mesh_bnd_names(par_env, mesh)
+
+    ! Compute the mesh surface integral if the mesh was read from an input file
+    call profiler_begin_region("Compute mesh surface integral")
+    call report_mesh_surface_integral(par_env, mesh)
+    call profiler_end_region("Compute mesh surface integral")
 
   end subroutine read_mesh
 
@@ -2432,6 +2437,7 @@ contains
     integer(ccs_int) :: nnb
     integer(ccs_int) :: local_num_cells
     integer(ccs_int) :: num_faces
+
     logical :: is_boundary
 
     real(ccs_real), dimension(ndim) :: x_p ! cell centre array
@@ -2439,6 +2445,14 @@ contains
     real(ccs_real), dimension(ndim) :: x_f ! face centre array
     real(ccs_real), dimension(ndim) :: normal ! face normal
 
+    integer(ccs_int) :: index_f
+    integer(ccs_int) :: global_p, global_nb
+    integer(ccs_int) :: natural_p, natural_nb
+    integer(ccs_int) :: global_f
+    integer :: rank, ierr
+
+    call MPI_Comm_rank(MPI_COMM_WORLD, rank, ierr)
+    
     if (allocated(mesh%geo%face_interpol)) then
       deallocate (mesh%geo%face_interpol)
     end if
@@ -2472,9 +2486,30 @@ contains
           ! This is equivalent (via Thales' theorem) to getting the ratio between f'P over PN where f' is the point on the face intersecting NP
           interpol_factor = dot_product(normal, x_f - x_p) / abs(dot_product(normal, x_f - x_p) - dot_product(normal, x_f - x_nb))
 
-          if (interpol_factor > 1) then
-            call dprint("invalid interpol factor " // str(interpol_factor))
+          ! Face interpolation diagnostics
+          if (interpol_factor < 0.0_ccs_real .or. interpol_factor > 1.0_ccs_real) then
+            call get_local_index(loc_f, index_f)
+            call get_global_index(loc_p, global_p)
+            call get_global_index(loc_nb, global_nb)
+            call get_natural_index(loc_p, natural_p)
+            call get_natural_index(loc_nb, natural_nb)
+
+            global_f = -1_ccs_int
+            if (associated(mesh%topo%global_face_indices)) then
+              global_f = mesh%topo%global_face_indices(j, natural_p)
+            end if
+
+            write (log_unit_out, *) "FACE INTERPOLATION DIAGNOSTIC"
+            write (log_unit_out, *) "rank:", rank
+            write (log_unit_out, *) "face slot/local/global:", j, index_f, global_f
+            write (log_unit_out, *) "cell local/global/natural:", index_p, global_p, natural_p
+            write (log_unit_out, *) "neighbour local/global/natural:", index_nb, global_nb, natural_nb
+            write (log_unit_out, *) "x_cell:", x_p
+            write (log_unit_out, *) "x_neighbour:", x_nb
+            write (log_unit_out, *) "x_face:", x_f
+            write (log_unit_out, *) "interpolation factor:", interpol_factor
           end if
+          ! End face interpolation diagnostics
 
           ! inverse interpol factor as it is relative to x_p
           ! the closer x_f is to x_p, the higher the interpol_factor
@@ -2491,7 +2526,20 @@ contains
 
     if (minval(mesh%geo%face_interpol) < 0.0_ccs_real .or. &
         maxval(mesh%geo%face_interpol) > 1.0_ccs_real) then
-      call error_abort("Face interpolation out of bound.")
+
+       ! Face interpolation diagnostics
+       do index_f = 1, num_faces
+          if (mesh%geo%face_interpol(index_f) < 0.0_ccs_real .or. &
+               mesh%geo%face_interpol(index_f) > 1.0_ccs_real) then
+             write (log_unit_out, *) &
+                  "Invalid stored face: rank/local face/value:", &
+                  rank, index_f, mesh%geo%face_interpol(index_f)
+          end if
+       end do
+       flush (log_unit_out)
+       ! End face interpolation diagnostics
+
+       call error_abort("Face interpolation out of bound.")
     end if
 
   end subroutine
@@ -3008,5 +3056,70 @@ contains
     end associate
 
   end subroutine test_mesh_internal_neighbours
+
+  subroutine report_mesh_surface_integral(par_env, mesh)
+    use kinds, only: CCS_MPI_PRECISION
+
+    class(parallel_environment), intent(in) :: par_env
+    type(ccs_mesh), intent(inout) :: mesh
+
+    type(face_locator) :: loc_f
+    real(ccs_real), dimension(ndim) :: normal
+    real(ccs_real) :: cell_integral
+    real(ccs_real) :: area
+    real(ccs_real) :: total_local, total_global
+    real(ccs_real) :: avg_global
+    real(ccs_real) :: max_local, max_global
+    integer(ccs_int) :: n_cells
+    integer(ccs_int) :: i, j
+    integer :: ierr
+
+    total_local = 0.0_ccs_real
+    max_local = 0.0_ccs_real
+
+    call set_mesh_object(mesh)
+    call get_local_num_cells(n_cells)
+
+    ! Compute the surface integral for each cell owned by this rank.
+    do i = 1, n_cells
+      cell_integral = 0.0_ccs_real
+
+      do j = 1, mesh%topo%num_nb(i)
+        call create_face_locator(i, j, loc_f)
+        call get_face_area(loc_f, area)
+        call get_face_normal(loc_f, normal)
+
+        cell_integral = cell_integral + sum(normal(:)) * area
+      end do
+
+      ! Accumulate stats
+      total_local = total_local + cell_integral
+      max_local = max(max_local, cell_integral)
+
+    end do
+
+    avg_global = 0.0_ccs_real
+
+    call nullify_mesh_object()
+
+    ! Reductions to get global mesh diagnostics
+    select type (par_env)
+    type is (parallel_environment_mpi)
+      call MPI_Allreduce(total_local, total_global, 1, CCS_MPI_PRECISION, MPI_SUM, par_env%comm, ierr)
+      call MPI_Allreduce(max_local, max_global, 1, CCS_MPI_PRECISION, MPI_MAX, par_env%comm, ierr)
+    class default
+      call error_abort("invalid parallel environment")
+    end select
+
+    avg_global = total_global / real(mesh%topo%global_num_cells, ccs_real)
+
+    if (is_root(par_env)) then
+      write(log_unit_out,*) "* Total cell surface integral: ", total_global
+      write(log_unit_out,*) "* Average cell surface integral: ", avg_global
+      write(log_unit_out,*) "* Max cell surface integral: ", max_global
+      write(log_unit_out,*) "* Max cell surface integral / average cell surface integral: ", max_global / avg_global
+    end if
+
+  end subroutine report_mesh_surface_integral
 
 end module mesh_utils
