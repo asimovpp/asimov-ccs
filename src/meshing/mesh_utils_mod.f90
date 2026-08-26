@@ -3069,7 +3069,7 @@ contains
     real(ccs_real) :: cell_integral
     real(ccs_real) :: area
     real(ccs_real) :: total_local, total_global
-    real(ccs_real) :: avg_local, avg_global
+    real(ccs_real) :: avg_global
     real(ccs_real) :: max_local, max_global
     integer(ccs_int) :: n_cells
     integer(ccs_int) :: i, j
