@@ -482,12 +482,12 @@ contains
     call set_solver_method(u%solver_parameters%solver_name, lin_solver)
     call set_solver_precon(u%solver_parameters%precon_name, lin_solver)
 
+    ! Compute residual
+    call compute_residuals(flow, M, u, vec, res, residuals)
+
     ! Solve the linear system
     call dprint("GV: solve u")
     call solve(lin_solver)
-
-    ! Compute residual
-    call compute_residuals(flow, M, u, vec, res, residuals)
 
     ! Clean up
     deallocate (lin_solver)
