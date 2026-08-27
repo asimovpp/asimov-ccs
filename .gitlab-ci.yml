@@ -11,11 +11,6 @@
     - source setup_gitlab_runner_env
     - source ${GNU_SETUP} 32bit
 
-.setup_intel:
-  before_script:
-    - source setup_gitlab_runner_env
-    - source ${INTEL_SETUP} 32bit
-
 .setup_intelx:
   before_script:
     - source setup_gitlab_runner_env
@@ -68,29 +63,6 @@ test_gnu:
   extends: [.general_setup, .setup_gnu, .test_common]
   script:
     - HOME=${CI_HOME} CMP=gnu BUILD=debug make tests
-
-#-----------------------------------------------------------------------------#
-
-debug_build_intel:
-  extends: [.general_setup, .setup_intel]
-  script:
-    - HOME=${CI_HOME} CMP=intel BUILD=debug make all
-  allow_failure: true
-
-build_intel:
-  extends: [.general_setup, .setup_intel]
-  script:
-    - HOME=${CI_HOME} CMP=intel make obj
-  artifacts:
-    paths: [obj/]
-
-test_intel:
-  needs: 
-    - job: debug_build_intel
-      artifacts: true
-  extends: [.general_setup, .setup_intel, .test_common]
-  script:
-    - HOME=${CI_HOME} CMP=intel BUILD=debug make tests
 
 #-----------------------------------------------------------------------------#
 
