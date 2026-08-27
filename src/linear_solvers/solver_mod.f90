@@ -14,6 +14,7 @@ module solver
   private
 
   public :: create_solver
+  public :: destroy_solver
   public :: solve
   public :: initialise_equation_system
   public :: set_equation_system
@@ -29,6 +30,11 @@ module solver
       type(equation_system), intent(in) :: linear_system !< Data structure containing
       !< equation system to be solved.
       class(linear_solver), allocatable, intent(inout) :: solver !< The linear solver returned allocated.
+    end subroutine
+
+    !> Interface to destroy a linear solver object.
+    module subroutine destroy_solver(solver)
+      class(linear_solver), intent(inout) :: solver !< The linear solver object.
     end subroutine
 
     !> Interface to solve the linear system in a solver.
