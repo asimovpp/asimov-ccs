@@ -10,11 +10,11 @@ submodule(pv_coupling) pv_coupling_simple
                    linear_solver, vector_values, cell_locator, ccs_residuals, &
                    face_locator, neighbour_locator, matrix_values, matrix_values_spec, field_ptr
   use fv, only: compute_fluxes, calc_mass_flux, calc_mass_flux_bc, update_gradient
-  use vec, only: create_vector, vec_reciprocal, scale_vec, &
+  use vec, only: create_vector, destroy_vector, vec_reciprocal, scale_vec, &
                  get_vector_data, get_vector_data_readonly, restore_vector_data, restore_vector_data_readonly, &
                  create_vector_values, zero_vector, vec_aypx, &
                  vec_sum, vec_shift
-  use mat, only: create_matrix, set_nnz, get_matrix_diagonal, set_matrix_values_spec_nrows, &
+  use mat, only: create_matrix, destroy_matrix, set_nnz, get_matrix_diagonal, set_matrix_values_spec_nrows, &
                  set_matrix_values_spec_ncols, create_matrix_values, &
                  check_operator_symmetry
   use utils, only: update, initialise, finalise, set_size, set_values, &
@@ -22,7 +22,7 @@ submodule(pv_coupling) pv_coupling_simple
                    str, exit_print, debug_print
   use fields, only: count_fields, get_field_idx, get_field, get_is_field_solved
 
-  use solver, only: create_solver, solve, set_equation_system, axpy, set_solver_method, set_solver_precon
+  use solver, only: create_solver, destroy_solver, solve, set_equation_system, axpy, set_solver_method, set_solver_precon
   use constants, only: add_mode, insert_mode, ndim
   use meshing, only: get_face_area, get_global_index, get_local_index, count_neighbours, &
                      get_boundary_status, get_face_normal, create_neighbour_locator, create_face_locator, &
@@ -252,12 +252,48 @@ contains
 
     end do outerloop
 
-    deallocate (lin_solverP)
+    if (allocated(lin_solverP)) then
+      call destroy_solver(lin_solverP)
+      deallocate (lin_solverP)
+    end if
 
     ! Free up memory
-    deallocate (invAu)
-    deallocate (invAv)
-    deallocate (invAw)
+    if (allocated(M)) then
+      call destroy_matrix(M)
+      deallocate (M)
+    end if
+    if (allocated(source)) then
+      call destroy_vector(source)
+      deallocate (source)
+    end if
+    if (allocated(invA)) then
+      call destroy_vector(invA)
+      deallocate (invA)
+    end if
+    if (allocated(workvec)) then
+      call destroy_vector(workvec)
+      deallocate (workvec)
+    end if
+    if (allocated(sourcevec)) then
+      call destroy_vector(sourcevec)
+      deallocate (sourcevec)
+    end if
+    if (allocated(res)) then
+      call destroy_vector(res)
+      deallocate (res)
+    end if
+    if (allocated(invAu)) then
+      call destroy_vector(invAu)
+      deallocate (invAu)
+    end if
+    if (allocated(invAv)) then
+      call destroy_vector(invAv)
+      deallocate (invAv)
+    end if
+    if (allocated(invAw)) then
+      call destroy_vector(invAw)
+      deallocate (invAw)
+    end if
 
     nullify (u, v, w, p, p_prime, mf, viscosity, density)
 
@@ -490,7 +526,10 @@ contains
     call solve(lin_solver)
 
     ! Clean up
-    deallocate (lin_solver)
+    if (allocated(lin_solver)) then
+      call destroy_solver(lin_solver)
+      deallocate (lin_solver)
+    end if
 
   end subroutine calculate_velocity_component
 
