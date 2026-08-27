@@ -204,13 +204,13 @@ profile_gnu:
       - opt_info.txt
   allow_failure: true
 
-profile_intel:
+profile_intelx:
   needs: 
-    - job: build_intel
+    - job: build_intelx
       artifacts: false
-  extends: [.general_setup, .setup_intel]
+  extends: [.general_setup, .setup_intelx]
   script:
-    - HOME=${CI_HOME} CMP=intel PROFILE=yes make all
+    - HOME=${CI_HOME} CMP=intelx PROFILE=yes make all
   artifacts:
     paths:
       - obj/*.html
