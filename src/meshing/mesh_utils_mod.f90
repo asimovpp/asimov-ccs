@@ -2932,8 +2932,6 @@ contains
       call dprint("mesh%bnd_names deallocated.")
     end if
 
-    mesh = ccs_mesh()
-
   end subroutine destroy_mesh_storage
 
   subroutine mesh_partition_reorder(par_env, shared_env, run_options, mesh)
