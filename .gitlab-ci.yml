@@ -79,13 +79,13 @@ build_intelx:
   artifacts:
     paths: [obj/]
 
-# test_intelx:
-#  needs: 
-#    - job: debug_build_intelx
-#      artifacts: true
-#  extends: [.general_setup, .setup_intelx, .test_common]
-#  script:
-#    - HOME=${CI_HOME} CMP=intelx BUILD=debug make tests
+test_intelx:
+  needs: 
+    - job: debug_build_intelx
+      artifacts: true
+  extends: [.general_setup, .setup_intelx, .test_common]
+  script:
+    - HOME=${CI_HOME} CMP=intelx BUILD=debug make tests
 
 #-----------------------------------------------------------------------------#
 debug_build_cray:
