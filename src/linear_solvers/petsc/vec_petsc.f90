@@ -9,7 +9,7 @@ submodule(vec) vec_petsc
 #include <petscversion.h>
 
   use kinds, only: ccs_err
-  use petsctypes, only: vector_petsc
+  use petsctypes, only: vector_petsc, destroy_vector_petsc
   use parallel_types_mpi, only: parallel_environment_mpi
   use constants, only: cell, face
   use petsc, only: ADD_VALUES, INSERT_VALUES, SCATTER_FORWARD
@@ -107,6 +107,20 @@ contains
     end select
 
   end subroutine
+
+  !> Destroy a PETSc-backed vector.
+  module subroutine destroy_vector(v)
+
+    class(ccs_vector), intent(inout) :: v
+
+    select type (v)
+    type is (vector_petsc)
+      call destroy_vector_petsc(v)
+    class default
+      call error_abort("Unknown vector type.")
+    end select
+
+  end subroutine destroy_vector
 
   !> Sets values in a PETSc vector
   module subroutine set_vector_values(val_dat, v)
