@@ -85,7 +85,7 @@ contains
   !> Destroy a PETSc-backed solver.
   module subroutine destroy_solver(solver)
 
-    class(linear_solver), intent(inout) :: solver
+    class(linear_solver), allocatable, intent(inout) :: solver
 
     if (.not. allocated(solver)) then
       return

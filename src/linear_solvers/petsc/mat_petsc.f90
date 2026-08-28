@@ -102,7 +102,7 @@ contains
   !> Destroy a PETSc-backed matrix.
   module subroutine destroy_matrix(M)
 
-    class(ccs_matrix), intent(inout) :: M
+    class(ccs_matrix), allocatable, intent(inout) :: M
 
     if (.not. allocated(M)) then
       return

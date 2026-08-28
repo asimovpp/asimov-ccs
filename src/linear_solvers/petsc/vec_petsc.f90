@@ -111,7 +111,7 @@ contains
   !> Destroy a PETSc-backed vector.
   module subroutine destroy_vector(v)
 
-    class(ccs_vector), intent(inout) :: v
+    class(ccs_vector), allocatable, intent(inout) :: v
 
     if(.not. allocated(v)) then
       return
@@ -123,7 +123,7 @@ contains
         call error_abort("Unknown vector type.")
       end select
     end if
-     
+
   end subroutine destroy_vector
 
   !> Sets values in a PETSc vector
