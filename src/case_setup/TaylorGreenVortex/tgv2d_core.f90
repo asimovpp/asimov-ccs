@@ -11,7 +11,7 @@ module tgv2d_core
   use types, only: fluid, field, ccs_mesh
   use parallel, only: is_root
   use parallel_types, only: parallel_environment
-  use meshing, only: get_global_num_cells, set_mesh_object, nullify_mesh_object
+  use meshing, only: get_global_num_cells, set_mesh_object
   use utils, only: exit_print, calc_kinetic_energy, calc_enstrophy, &
                    reset_outputlist_counter
   use fields, only: get_field, dealloc_fluid_fields
@@ -94,7 +94,7 @@ contains
     call reset_outputlist_counter()
     call reset_io_visualisation()
     call dealloc_fluid_fields(flow_fields)
-    call nullify_mesh_object()
+    call finalise_mesh(par_env, owns_shared_arrays=.not. present(input_mesh))
 
   end subroutine run_tgv2d
 
@@ -298,4 +298,3 @@ contains
   end subroutine eval_sources
 
 end module tgv2d_core
-

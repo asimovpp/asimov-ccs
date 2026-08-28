@@ -19,6 +19,7 @@ module core
   public :: initialise_flow
   public :: configure_parallelism
   public :: initialise_mesh
+  public :: finalise_mesh
   public :: initialise_fields
   public :: run_solver
   public :: ccs_options
@@ -153,6 +154,14 @@ module core
       class(parallel_environment), intent(in), allocatable :: shared_env !< The split (shared) parallel environment
       type(ccs_options), intent(in) :: run_options
     end subroutine initialise_mesh
+
+    !v Subroutine to finalise the mesh.
+    !
+    ! This is responsible for deallocating storage owned by the module mesh.
+    module subroutine finalise_mesh(par_env, owns_shared_arrays)
+      class(parallel_environment), intent(in), allocatable :: par_env !< The parallel environment
+      logical, intent(in), optional :: owns_shared_arrays             !< Whether to destroy MPI shared arrays
+    end subroutine finalise_mesh
 
     !v Subroutine to initialise fields
     !

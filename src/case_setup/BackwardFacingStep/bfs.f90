@@ -15,7 +15,6 @@ program bfs
   use parallel_types, only: parallel_environment
   use fields, only: get_field, dealloc_fluid_fields
   use boundary_conditions, only: set_bc_profile
-  use meshing, only: nullify_mesh_object
   use profiler, only: profiler_init, profiler_shutdown, profiler_begin_region, profiler_end_region
   use logging, only: log_unit_out
 
@@ -73,7 +72,7 @@ program bfs
   call profiler_shutdown(par_env)
 
   call dealloc_fluid_fields(flow_fields)
-  call nullify_mesh_object()
+  call finalise_mesh(par_env)
   ! Finalise MPI
   call cleanup_parallel_environment(par_env)
 
