@@ -793,6 +793,15 @@ contains
     call scale_vec(-1.0_ccs_real, vec)
     call update(vec)
 
+    call zero_vector(p_prime%x_gradients)
+    call update(p_prime%x_gradients)
+    call zero_vector(p_prime%y_gradients)
+    call update(p_prime%y_gradients)
+    call zero_vector(p_prime%z_gradients)
+    call update(p_prime%z_gradients)
+    call zero_vector(p_prime%values)
+    call update(p_prime%values)
+
     call update_gradient(p_prime)
 
     call create_vector_values(1_ccs_int, vec_values)
