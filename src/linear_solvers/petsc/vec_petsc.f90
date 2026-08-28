@@ -113,13 +113,17 @@ contains
 
     class(ccs_vector), intent(inout) :: v
 
-    select type (v)
-    type is (vector_petsc)
-      call destroy_vector_petsc(v)
-    class default
-      call error_abort("Unknown vector type.")
-    end select
-
+    if(.not. allocated(v)) then
+      return
+    else
+      select type (v)
+      type is (vector_petsc)
+        call destroy_vector_petsc(v)
+      class default
+        call error_abort("Unknown vector type.")
+      end select
+    end if
+     
   end subroutine destroy_vector
 
   !> Sets values in a PETSc vector

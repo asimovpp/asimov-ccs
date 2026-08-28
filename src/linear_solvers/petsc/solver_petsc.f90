@@ -87,12 +87,16 @@ contains
 
     class(linear_solver), intent(inout) :: solver
 
-    select type (solver)
-    type is (linear_solver_petsc)
-      call destroy_linear_solver_petsc(solver)
-    class default
-      call error_abort("Unknown solver type")
-    end select
+    if (.not. allocated(solver)) then
+      return
+    else
+      select type (solver)
+      type is (linear_solver_petsc)
+        call destroy_linear_solver_petsc(solver)
+      class default
+        call error_abort("Unknown solver type")
+      end select
+    end if
 
   end subroutine destroy_solver
 

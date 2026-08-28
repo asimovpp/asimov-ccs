@@ -104,12 +104,16 @@ contains
 
     class(ccs_matrix), intent(inout) :: M
 
-    select type (M)
-    type is (matrix_petsc)
-      call destroy_matrix_petsc(M)
-    class default
-      call error_abort("Unsupported matrix type")
-    end select
+    if (.not. allocated(M)) then
+      return
+    else
+      select type (M)
+      type is (matrix_petsc)
+        call destroy_matrix_petsc(M)
+      class default
+        call error_abort("Unsupported matrix type")
+      end select
+  end if
 
   end subroutine destroy_matrix
 

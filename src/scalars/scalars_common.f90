@@ -129,26 +129,16 @@ contains
       call transport_scalar(par_env, flow, eval_sources, M, rhs, D, source, phi, res, residuals)
     end do
 
-    if (allocated(M)) then
-      call destroy_matrix(M)
-      deallocate (M)
-    end if
-    if (allocated(rhs)) then
-      call destroy_vector(rhs)
-      deallocate (rhs)
-    end if
-    if (allocated(D)) then
-      call destroy_vector(D)
-      deallocate (D)
-    end if
-    if (allocated(source)) then
-      call destroy_vector(source)
-      deallocate (source)
-    end if
-    if (allocated(res)) then
-      call destroy_vector(res)
-      deallocate (res)
-    end if
+    call destroy_matrix(M)
+    deallocate (M)
+    call destroy_vector(rhs)
+    deallocate (rhs)
+    call destroy_vector(D)
+    deallocate (D)
+    call destroy_vector(source)
+    deallocate (source)
+    call destroy_vector(res)
+    deallocate (res)
 
   end subroutine update_scalars
 
@@ -224,10 +214,8 @@ contains
 
     call update_gradient(phi)
 
-    if (allocated(lin_solver)) then
-      call destroy_solver(lin_solver)
-      deallocate (lin_solver)
-    end if
+    call destroy_solver(lin_solver)
+    deallocate (lin_solver)
 
   end subroutine transport_scalar
 

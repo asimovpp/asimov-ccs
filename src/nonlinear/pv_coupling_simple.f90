@@ -252,48 +252,28 @@ contains
 
     end do outerloop
 
-    if (allocated(lin_solverP)) then
-      call destroy_solver(lin_solverP)
-      deallocate (lin_solverP)
-    end if
+    call destroy_solver(lin_solverP)
+    deallocate (lin_solverP)
 
     ! Free up memory
-    if (allocated(M)) then
-      call destroy_matrix(M)
-      deallocate (M)
-    end if
-    if (allocated(source)) then
-      call destroy_vector(source)
-      deallocate (source)
-    end if
-    if (allocated(invA)) then
-      call destroy_vector(invA)
-      deallocate (invA)
-    end if
-    if (allocated(workvec)) then
-      call destroy_vector(workvec)
-      deallocate (workvec)
-    end if
-    if (allocated(sourcevec)) then
-      call destroy_vector(sourcevec)
-      deallocate (sourcevec)
-    end if
-    if (allocated(res)) then
-      call destroy_vector(res)
-      deallocate (res)
-    end if
-    if (allocated(invAu)) then
-      call destroy_vector(invAu)
-      deallocate (invAu)
-    end if
-    if (allocated(invAv)) then
-      call destroy_vector(invAv)
-      deallocate (invAv)
-    end if
-    if (allocated(invAw)) then
-      call destroy_vector(invAw)
-      deallocate (invAw)
-    end if
+    call destroy_matrix(M)
+    deallocate (M)
+    call destroy_vector(source)
+    deallocate (source)
+    call destroy_vector(invA)
+    deallocate (invA)
+    call destroy_vector(workvec)
+    deallocate (workvec)
+    call destroy_vector(sourcevec)
+    deallocate (sourcevec)
+    call destroy_vector(res)
+    deallocate (res)
+    call destroy_vector(invAu)
+    deallocate (invAu)
+    call destroy_vector(invAv)
+    deallocate (invAv)
+    call destroy_vector(invAw)
+    deallocate (invAw)
 
     nullify (u, v, w, p, p_prime, mf, viscosity, density)
 
@@ -526,10 +506,8 @@ contains
     call solve(lin_solver)
 
     ! Clean up
-    if (allocated(lin_solver)) then
-      call destroy_solver(lin_solver)
-      deallocate (lin_solver)
-    end if
+    call destroy_solver(lin_solver)
+    deallocate (lin_solver)
 
   end subroutine calculate_velocity_component
 
