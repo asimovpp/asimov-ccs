@@ -85,18 +85,14 @@ contains
   !> Destroy a PETSc-backed solver.
   module subroutine destroy_solver(solver)
 
-    class(linear_solver), allocatable, intent(inout) :: solver
+    class(linear_solver), intent(inout) :: solver
 
-    if (.not. allocated(solver)) then
-      return
-    else
-      select type (solver)
-      type is (linear_solver_petsc)
-        call destroy_linear_solver_petsc(solver)
-      class default
-        call error_abort("Unknown solver type")
-      end select
-    end if
+    select type (solver)
+    type is (linear_solver_petsc)
+      call destroy_linear_solver_petsc(solver)
+    class default
+      call error_abort("Unknown solver type")
+    end select
 
   end subroutine destroy_solver
 

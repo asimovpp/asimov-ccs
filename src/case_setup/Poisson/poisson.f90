@@ -243,16 +243,26 @@ program poisson
   end if
 
   ! Clean up
-  call destroy_solver(poisson_solver)
-  deallocate (poisson_solver)
-  call destroy_vector(u)
-  deallocate (u)
-  call destroy_vector(b)
-  deallocate (b)
-  call destroy_vector(u_exact)
-  deallocate (u_exact)
-  call destroy_matrix(M)
-  deallocate (M)
+  if (allocated(poisson_solver)) then
+    call destroy_solver(poisson_solver)
+    deallocate (poisson_solver)
+  end if
+  if (allocated(u)) then
+    call destroy_vector(u)
+    deallocate (u)
+  end if
+  if (allocated(b)) then
+    call destroy_vector(b)
+    deallocate (b)
+  end if
+  if (allocated(u_exact)) then
+    call destroy_vector(u_exact)
+    deallocate (u_exact)
+  end if
+  if (allocated(M)) then
+    call destroy_matrix(M)
+    deallocate (M)
+  end if
 
   call profiler_end_region('Total elapsed time')
   call profiler_shutdown(par_env)

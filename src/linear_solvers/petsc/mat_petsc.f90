@@ -102,18 +102,14 @@ contains
   !> Destroy a PETSc-backed matrix.
   module subroutine destroy_matrix(M)
 
-    class(ccs_matrix), allocatable, intent(inout) :: M
+    class(ccs_matrix), intent(inout) :: M
 
-    if (.not. allocated(M)) then
-      return
-    else
-      select type (M)
-      type is (matrix_petsc)
-        call destroy_matrix_petsc(M)
-      class default
-        call error_abort("Unsupported matrix type")
-      end select
-  end if
+    select type (M)
+    type is (matrix_petsc)
+      call destroy_matrix_petsc(M)
+    class default
+      call error_abort("Unsupported matrix type")
+    end select
 
   end subroutine destroy_matrix
 

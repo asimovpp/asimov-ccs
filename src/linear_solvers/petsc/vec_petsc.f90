@@ -111,18 +111,14 @@ contains
   !> Destroy a PETSc-backed vector.
   module subroutine destroy_vector(v)
 
-    class(ccs_vector), allocatable, intent(inout) :: v
+    class(ccs_vector), intent(inout) :: v
 
-    if(.not. allocated(v)) then
-      return
-    else
-      select type (v)
-      type is (vector_petsc)
-        call destroy_vector_petsc(v)
-      class default
-        call error_abort("Unknown vector type.")
-      end select
-    end if
+    select type (v)
+    type is (vector_petsc)
+      call destroy_vector_petsc(v)
+    class default
+      call error_abort("Unknown vector type.")
+    end select
 
   end subroutine destroy_vector
 
