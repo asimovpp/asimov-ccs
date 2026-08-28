@@ -54,6 +54,18 @@ module petsctypes
   end type linear_solver_petsc
 
   interface
+    module subroutine destroy_vector_petsc(v)
+      type(vector_petsc), intent(inout) :: v
+    end subroutine destroy_vector_petsc
+
+    module subroutine free_vector_petsc(v)
+      type(vector_petsc), intent(inout) :: v !< the vector to be destroyed.
+    end subroutine
+
+    module subroutine destroy_matrix_petsc(M)
+      type(matrix_petsc), intent(inout) :: M
+    end subroutine destroy_matrix_petsc
+
     module subroutine free_vector_petsc(v)
       type(vector_petsc), intent(inout) :: v
     end subroutine
@@ -65,7 +77,6 @@ module petsctypes
     module subroutine free_linear_solver_petsc(solver)
       type(linear_solver_petsc), intent(inout) :: solver
     end subroutine
-
   end interface
 
 contains
