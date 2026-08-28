@@ -98,6 +98,7 @@ module mesh_utils
   public :: build_square_topology
   public :: build_mesh
   public :: read_mesh
+  public :: destroy_mesh_storage
   public :: global_start
   public :: local_count
   public :: count_mesh_faces
@@ -2829,6 +2830,109 @@ contains
       call dprint("mesh%topo%bnd_rid deallocated.")
     end if
   end subroutine cleanup_topo
+
+  subroutine destroy_mesh_storage(par_env, mesh, owns_shared_arrays)
+
+    use partitioning, only: cleanup_partitioner_data
+
+    type(ccs_mesh), target, intent(inout) :: mesh   !< The mesh
+    class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
+    logical, intent(in), optional :: owns_shared_arrays !< Whether this mesh owns its shared arrays
+
+    logical :: owns_shared
+
+    owns_shared = .true.
+    if (present(owns_shared_arrays)) owns_shared = owns_shared_arrays
+
+    call cleanup_partitioner_data(mesh)
+
+    if (owns_shared) then
+      call cleanup_topo(par_env, mesh)
+
+      if (associated(mesh%geo%face_areas)) then
+        call destroy_shared_array(par_env, mesh%geo%face_areas, mesh%geo%face_areas_window)
+        call dprint("mesh%geo%face_areas deallocated.")
+      end if
+
+      if (associated(mesh%geo%volumes)) then
+        call destroy_shared_array(par_env, mesh%geo%volumes, mesh%geo%volumes_window)
+        call dprint("mesh%geo%volumes deallocated.")
+      end if
+
+      if (associated(mesh%geo%x_p)) then
+        call destroy_shared_array(par_env, mesh%geo%x_p, mesh%geo%x_p_window)
+        call dprint("mesh%geo%x_p deallocated.")
+      end if
+
+      if (associated(mesh%geo%x_f)) then
+        call destroy_shared_array(par_env, mesh%geo%x_f, mesh%geo%x_f_window)
+        call dprint("mesh%geo%x_f deallocated.")
+      end if
+
+      if (associated(mesh%geo%face_normals)) then
+        call destroy_shared_array(par_env, mesh%geo%face_normals, mesh%geo%face_normals_window)
+        call dprint("mesh%geo%face_normals deallocated.")
+      end if
+
+      if (associated(mesh%geo%vert_coords)) then
+        call destroy_shared_array(par_env, mesh%geo%vert_coords, mesh%geo%vert_coords_window)
+        call dprint("mesh%geo%vert_coords deallocated.")
+      end if
+    else
+      nullify (mesh%topo%global_face_indices)
+      nullify (mesh%topo%global_vertex_indices)
+      nullify (mesh%topo%face_cell1)
+      nullify (mesh%topo%face_cell2)
+      nullify (mesh%topo%bnd_rid)
+      nullify (mesh%geo%face_areas)
+      nullify (mesh%geo%volumes)
+      nullify (mesh%geo%x_p)
+      nullify (mesh%geo%x_f)
+      nullify (mesh%geo%face_normals)
+      nullify (mesh%geo%vert_coords)
+    end if
+
+    if (allocated(mesh%topo%natural_indices)) then
+      deallocate (mesh%topo%natural_indices)
+      call dprint("mesh%topo%natural_indices deallocated.")
+    end if
+
+    if (allocated(mesh%topo%global_indices)) then
+      deallocate (mesh%topo%global_indices)
+      call dprint("mesh%topo%global_indices deallocated.")
+    end if
+
+    if (allocated(mesh%topo%loc_global_vertex_indices)) then
+      deallocate (mesh%topo%loc_global_vertex_indices)
+      call dprint("mesh%topo%loc_global_vertex_indices deallocated.")
+    end if
+
+    if (allocated(mesh%topo%face_indices)) then
+      deallocate (mesh%topo%face_indices)
+      call dprint("mesh%topo%face_indices deallocated.")
+    end if
+
+    if (allocated(mesh%topo%nb_indices)) then
+      deallocate (mesh%topo%nb_indices)
+      call dprint("mesh%topo%nb_indices deallocated.")
+    end if
+
+    if (allocated(mesh%topo%num_nb)) then
+      deallocate (mesh%topo%num_nb)
+      call dprint("mesh%topo%num_nb deallocated.")
+    end if
+
+    if (allocated(mesh%geo%face_interpol)) then
+      deallocate (mesh%geo%face_interpol)
+      call dprint("mesh%geo%face_interpol deallocated.")
+    end if
+
+    if (allocated(mesh%bnd_names)) then
+      deallocate (mesh%bnd_names)
+      call dprint("mesh%bnd_names deallocated.")
+    end if
+
+  end subroutine destroy_mesh_storage
 
   subroutine mesh_partition_reorder(par_env, shared_env, run_options, mesh)
 

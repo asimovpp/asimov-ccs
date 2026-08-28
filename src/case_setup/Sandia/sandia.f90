@@ -4,7 +4,6 @@ program sandia
 
   use core
   use constants, only: ndim
-  use meshing, only: nullify_mesh_object
   use kinds, only: ccs_real
   use types, only: fluid
   use parallel, only: initialise_parallel_environment, &
@@ -64,7 +63,7 @@ program sandia
   call profiler_shutdown(par_env)
 
   call dealloc_fluid_fields(flow_fields)
-  call nullify_mesh_object()
+  call finalise_mesh(par_env)
 
   ! Finalise MPI
   call cleanup_parallel_environment(par_env)

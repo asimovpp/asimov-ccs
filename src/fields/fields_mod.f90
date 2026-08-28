@@ -14,7 +14,7 @@ module fields
   use utils, only: update, get_scheme_name, debug_print, exit_print
   use parallel, only: is_root
   use boundary_conditions, only: read_bc_config, allocate_bc_arrays
-  use vec, only: create_vector, get_vector_data_readonly
+  use vec, only: create_vector, get_vector_data_readonly, restore_vector_data_readonly
   use timestepping, only: initialise_old_values
   use error_codes
   use logging, only: log_unit_out
@@ -317,9 +317,41 @@ contains
 
   end subroutine get_field_byname
 
-  ! Deallocates fluid arrays
+  ! Deallocates fluid fields
   subroutine dealloc_fluid_fields(flow)
     type(fluid), intent(inout) :: flow  !< The fluid structure to deallocate
+
+    integer(ccs_int) :: i
+
+    if (.not. allocated(flow%fields)) return
+
+    do i = 1, size(flow%fields)
+      if (associated(flow%fields(i)%ptr)) then
+        associate (phi => flow%fields(i)%ptr)
+          if (allocated(phi%values) .and. associated(phi%values_ro)) then
+            call restore_vector_data_readonly(phi%values, phi%values_ro)
+            nullify (phi%values_ro)
+          end if
+
+          if (allocated(phi%x_gradients) .and. associated(phi%x_gradients_ro)) then
+            call restore_vector_data_readonly(phi%x_gradients, phi%x_gradients_ro)
+            nullify (phi%x_gradients_ro)
+          end if
+
+          if (allocated(phi%y_gradients) .and. associated(phi%y_gradients_ro)) then
+            call restore_vector_data_readonly(phi%y_gradients, phi%y_gradients_ro)
+            nullify (phi%y_gradients_ro)
+          end if
+
+          if (allocated(phi%z_gradients) .and. associated(phi%z_gradients_ro)) then
+            call restore_vector_data_readonly(phi%z_gradients, phi%z_gradients_ro)
+            nullify (phi%z_gradients_ro)
+          end if
+        end associate
+
+        deallocate (flow%fields(i)%ptr)
+      end if
+    end do
 
     deallocate (flow%fields)
   end subroutine dealloc_fluid_fields

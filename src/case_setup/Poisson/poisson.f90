@@ -266,6 +266,7 @@ program poisson
 
   call profiler_end_region('Total elapsed time')
   call profiler_shutdown(par_env)
+  call finalise_mesh(par_env)
   call cleanup_parallel_environment(par_env)
 
 contains
