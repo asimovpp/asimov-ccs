@@ -175,6 +175,13 @@ module parallel
       integer, intent(inout) :: window
     end subroutine
 
+    !> Destroy an real 3D MPI shared memory array
+    module subroutine destroy_shared_array_real_3D(shared_env, array, window)
+      class(parallel_environment), intent(in) :: shared_env
+      real(ccs_real), pointer, dimension(:, :, :), intent(inout) :: array
+      integer, intent(inout) :: window
+    end subroutine
+
     !> Test whether current rank is root of communicator
     module function is_root(par_env) result(isroot)
       class(parallel_environment), intent(in) :: par_env
@@ -219,6 +226,7 @@ module parallel
     module procedure destroy_shared_array_real_1D
     module procedure destroy_shared_array_int_2D
     module procedure destroy_shared_array_real_2D
+    module procedure destroy_shared_array_real_3D
   end interface
 
   interface allreduce

@@ -447,6 +447,24 @@ contains
 
   end subroutine
 
+  module subroutine destroy_shared_array_real_3D(shared_env, array, window)
+    class(parallel_environment), intent(in) :: shared_env
+    real(ccs_real), pointer, dimension(:, :, :), intent(inout) :: array
+    integer, intent(inout) :: window
+
+    integer(ccs_err) :: ierr
+
+    ! Keeping shared_env as argument to more clearly decrate this function as MPI shared memory related
+    associate (foo => shared_env)
+    end associate
+
+    call mpi_win_free(window, ierr)
+    call error_handling(ierr, "mpi", shared_env)
+
+    nullify (array)
+
+  end subroutine
+
   !> Synchronise the parallel environment
   module subroutine sync(par_env)
 

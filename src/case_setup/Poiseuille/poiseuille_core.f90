@@ -17,7 +17,7 @@ module poiseuille_core
   use fields, only: get_field, dealloc_fluid_fields
   use boundary_conditions, only: set_bc_profile
   use timestepping, only: reset_timestepping
-  use meshing, only: get_total_num_cells, set_mesh_object, get_global_num_cells, nullify_mesh_object, get_local_num_cells
+  use meshing, only: get_total_num_cells, set_mesh_object, get_global_num_cells, get_local_num_cells
   use io_visualisation, only: reset_io_visualisation
   use utils, only: str, exit_print, reset_outputlist_counter
   use profiler, only: profiler_begin_region, profiler_end_region
@@ -97,7 +97,7 @@ contains
     call reset_outputlist_counter()
     call reset_io_visualisation()
     call dealloc_fluid_fields(flow_fields)
-    call nullify_mesh_object()
+    call finalise_mesh(par_env, owns_shared_arrays=.not. present(input_mesh))
 
   end subroutine
 

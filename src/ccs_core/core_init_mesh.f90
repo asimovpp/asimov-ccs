@@ -4,8 +4,8 @@ submodule(core) core_init_mesh
   use utils, only: exit_print
   use ccs_base, only: mesh
   use parallel, only: is_root
-  use mesh_utils, only: build_mesh, build_square_mesh, read_mesh
-  use meshing, only: set_mesh_object
+  use mesh_utils, only: build_mesh, build_square_mesh, read_mesh, destroy_mesh_storage
+  use meshing, only: set_mesh_object, nullify_mesh_object
   use profiler, only: profiler_begin_region, profiler_end_region
   use logging, only: log_unit_out
 
@@ -65,5 +65,14 @@ contains
     call profiler_end_region('Mesh initialisation')
 
   end subroutine initialise_mesh
+
+  module subroutine finalise_mesh(par_env, owns_shared_arrays)
+    class(parallel_environment), intent(in), allocatable :: par_env !< The parallel environment
+    logical, intent(in), optional :: owns_shared_arrays             !< Whether to destroy MPI shared arrays
+
+    call destroy_mesh_storage(par_env, mesh, owns_shared_arrays)
+    call nullify_mesh_object()
+
+  end subroutine finalise_mesh
 
 end submodule core_init_mesh

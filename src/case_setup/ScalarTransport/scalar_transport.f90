@@ -16,7 +16,7 @@ program scalar_transport
                       is_root
   use parallel_types, only: parallel_environment
   use meshing, only: get_centre, &
-                     get_boundary_status, get_face_normal, nullify_mesh_object
+                     get_boundary_status, get_face_normal
   use fields, only: dealloc_fluid_fields
   use profiler, only: profiler_init, profiler_shutdown, profiler_begin_region, profiler_end_region
   use logging, only: log_unit_out
@@ -69,7 +69,7 @@ program scalar_transport
   call dealloc_fluid_fields(flow_fields)
 
   ! Finalise MPI
-  call nullify_mesh_object()
+  call finalise_mesh(par_env)
   call cleanup_parallel_environment(par_env)
 
 contains

@@ -13,9 +13,9 @@ submodule(scalars) scalars_common
   use fv, only: compute_fluxes, update_gradient
   use timestepping, only: update_old_values, get_current_step, apply_timestep
 
-  use vec, only: create_vector
-  use mat, only: create_matrix, set_nnz
-  use solver, only: create_solver, solve, set_equation_system, set_solver_method, set_solver_precon
+  use vec, only: create_vector, destroy_vector
+  use mat, only: create_matrix, destroy_matrix, set_nnz
+  use solver, only: create_solver, destroy_solver, solve, set_equation_system, set_solver_method, set_solver_precon
 
   use meshing, only: get_max_faces
   use utils, only: update, initialise, finalise, set_size, debug_print, zero
@@ -129,6 +129,27 @@ contains
       call transport_scalar(par_env, flow, eval_sources, M, rhs, D, source, phi, res, residuals)
     end do
 
+    if (allocated(M)) then
+      call destroy_matrix(M)
+      deallocate (M)
+    end if
+    if (allocated(rhs)) then
+      call destroy_vector(rhs)
+      deallocate (rhs)
+    end if
+    if (allocated(D)) then
+      call destroy_vector(D)
+      deallocate (D)
+    end if
+    if (allocated(source)) then
+      call destroy_vector(source)
+      deallocate (source)
+    end if
+    if (allocated(res)) then
+      call destroy_vector(res)
+      deallocate (res)
+    end if
+
   end subroutine update_scalars
 
   !> Subroutine to transport a scalar field.
@@ -203,7 +224,10 @@ contains
 
     call update_gradient(phi)
 
-    deallocate (lin_solver)
+    if (allocated(lin_solver)) then
+      call destroy_solver(lin_solver)
+      deallocate (lin_solver)
+    end if
 
   end subroutine transport_scalar
 

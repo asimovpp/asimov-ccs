@@ -11,11 +11,6 @@
     - source setup_gitlab_runner_env
     - source ${GNU_SETUP} 32bit
 
-.setup_intel:
-  before_script:
-    - source setup_gitlab_runner_env
-    - source ${INTEL_SETUP} 32bit
-
 .setup_intelx:
   before_script:
     - source setup_gitlab_runner_env
@@ -71,29 +66,6 @@ test_gnu:
 
 #-----------------------------------------------------------------------------#
 
-debug_build_intel:
-  extends: [.general_setup, .setup_intel]
-  script:
-    - HOME=${CI_HOME} CMP=intel BUILD=debug make all
-  allow_failure: true
-
-build_intel:
-  extends: [.general_setup, .setup_intel]
-  script:
-    - HOME=${CI_HOME} CMP=intel make obj
-  artifacts:
-    paths: [obj/]
-
-test_intel:
-  needs: 
-    - job: debug_build_intel
-      artifacts: true
-  extends: [.general_setup, .setup_intel, .test_common]
-  script:
-    - HOME=${CI_HOME} CMP=intel BUILD=debug make tests
-
-#-----------------------------------------------------------------------------#
-
 debug_build_intelx:
   extends: [.general_setup, .setup_intelx]
   script:
@@ -107,13 +79,13 @@ build_intelx:
   artifacts:
     paths: [obj/]
 
-# test_intelx:
-#  needs: 
-#    - job: debug_build_intelx
-#      artifacts: true
-#  extends: [.general_setup, .setup_intelx, .test_common]
-#  script:
-#    - HOME=${CI_HOME} CMP=intelx BUILD=debug make tests
+test_intelx:
+  needs: 
+    - job: debug_build_intelx
+      artifacts: true
+  extends: [.general_setup, .setup_intelx, .test_common]
+  script:
+    - HOME=${CI_HOME} CMP=intelx BUILD=debug make tests
 
 #-----------------------------------------------------------------------------#
 debug_build_cray:
@@ -232,13 +204,13 @@ profile_gnu:
       - opt_info.txt
   allow_failure: true
 
-profile_intel:
+profile_intelx:
   needs: 
-    - job: build_intel
+    - job: build_intelx
       artifacts: false
-  extends: [.general_setup, .setup_intel]
+  extends: [.general_setup, .setup_intelx]
   script:
-    - HOME=${CI_HOME} CMP=intel PROFILE=yes make all
+    - HOME=${CI_HOME} CMP=intelx PROFILE=yes make all
   artifacts:
     paths:
       - obj/*.html

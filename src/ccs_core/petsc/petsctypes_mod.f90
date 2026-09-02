@@ -19,6 +19,10 @@ module petsctypes
 
   private
 
+  public :: destroy_vector_petsc
+  public :: destroy_matrix_petsc
+  public :: destroy_linear_solver_petsc
+
   !> Implements the vector class backed by a PETSc vector
   type, public, extends(ccs_vector) :: vector_petsc
     type(tVec) :: v                            !< The PETSc vector
@@ -50,6 +54,19 @@ module petsctypes
   end type linear_solver_petsc
 
   interface
+
+    module subroutine destroy_vector_petsc(v)
+      type(vector_petsc), intent(inout) :: v
+    end subroutine destroy_vector_petsc
+
+    module subroutine destroy_matrix_petsc(M)
+      type(matrix_petsc), intent(inout) :: M
+    end subroutine destroy_matrix_petsc
+
+    module subroutine destroy_linear_solver_petsc(solver)
+      type(linear_solver_petsc), intent(inout) :: solver
+    end subroutine destroy_linear_solver_petsc
+
     module subroutine free_vector_petsc(v)
       type(vector_petsc), intent(inout) :: v
     end subroutine
@@ -66,6 +83,22 @@ module petsctypes
 
 contains
 
+  !> Explicitly release a PETSc-backed vector.
+  module subroutine destroy_vector_petsc(v)
+
+    use petscvec, only: VecDestroy
+
+    type(vector_petsc), intent(inout) :: v
+
+    integer(ccs_err) :: ierr
+
+    if (v%allocated) then
+      call VecDestroy(v%v, ierr)
+      v%allocated = .false.
+    end if
+
+  end subroutine destroy_vector_petsc
+
   !v Destroys a PETSc-backed vector.
   !
   !  Destructor called by deallocating a vector_petsc - confirms the PETSc vector object is
@@ -73,20 +106,27 @@ contains
   !  the allocated flag to .false. to prevent double free's.
   module subroutine free_vector_petsc(v)
 
-    use petscvec, only: VecDestroy
-
     type(vector_petsc), intent(inout) :: v !< the vector to be destroyed.
 
-    integer(ccs_err) :: ierr ! Error code
-
-    if (v%allocated) then
-      call VecDestroy(v%v, ierr)
-      v%allocated = .false.
-    else
-      call error_abort("WARNING: attempted double free of vector")
-    end if
+    call destroy_vector_petsc(v)
 
   end subroutine
+
+  !> Explicitly release a PETSc-backed matrix.
+  module subroutine destroy_matrix_petsc(M)
+
+    use petscmat, only: MatDestroy
+
+    type(matrix_petsc), intent(inout) :: M
+
+    integer(ccs_err) :: ierr
+
+    if (M%allocated) then
+      call MatDestroy(M%M, ierr)
+      M%allocated = .false.
+    end if
+
+  end subroutine destroy_matrix_petsc
 
   !v Destroys a PETSc-backed matrix.
   !
@@ -95,20 +135,27 @@ contains
   !  the allocated flag to .false. to prevent double free's.
   module subroutine free_matrix_petsc(M)
 
-    use petscmat, only: MatDestroy
-
     type(matrix_petsc), intent(inout) :: M !< the matrix to be destroyed.
 
-    integer(ccs_err) :: ierr ! Error code
-
-    if (M%allocated) then
-      call MatDestroy(M%M, ierr)
-      M%allocated = .false.
-    else
-      call error_abort("WARNING: attempted double free of matrix")
-    end if
+    call destroy_matrix_petsc(M)
 
   end subroutine
+
+  !> Explicitly release a PETSc-backed linear solver.
+  module subroutine destroy_linear_solver_petsc(solver)
+
+    use petscksp, only: KSPDestroy
+
+    type(linear_solver_petsc), intent(inout) :: solver
+
+    integer(ccs_err) :: ierr
+
+    if (solver%allocated) then
+      call KSPDestroy(solver%KSP, ierr)
+      solver%allocated = .false.
+    end if
+
+  end subroutine destroy_linear_solver_petsc
 
   !v Destroys a PETSc-backed linear solver.
   !
@@ -118,18 +165,9 @@ contains
   !  free's.
   module subroutine free_linear_solver_petsc(solver)
 
-    use petscksp, only: KSPDestroy
-
     type(linear_solver_petsc), intent(inout) :: solver !< the linear solver to be destroyed.
 
-    integer(ccs_err) :: ierr ! Error code
-
-    if (solver%allocated) then
-      call KSPDestroy(solver%KSP, ierr)
-      solver%allocated = .false.
-    else
-      call error_abort("WARNING: attempted double free of linear solver")
-    end if
+    call destroy_linear_solver_petsc(solver)
 
   end subroutine
 

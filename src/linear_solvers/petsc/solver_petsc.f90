@@ -8,7 +8,7 @@ submodule(solver) solver_petsc
 #include <petscversion.h>
 
   use kinds, only: ccs_err
-  use petsctypes, only: linear_solver_petsc, matrix_petsc, vector_petsc
+  use petsctypes, only: linear_solver_petsc, matrix_petsc, vector_petsc, destroy_linear_solver_petsc
   use parallel_types_mpi, only: parallel_environment_mpi
   use utils, only: update, exit_print
   use logging, only: log_unit_out
@@ -81,6 +81,20 @@ contains
     end select
 
   end subroutine
+
+  !> Destroy a PETSc-backed solver.
+  module subroutine destroy_solver(solver)
+
+    class(linear_solver), intent(inout) :: solver
+
+    select type (solver)
+    type is (linear_solver_petsc)
+      call destroy_linear_solver_petsc(solver)
+    class default
+      call error_abort("Unknown solver type")
+    end select
+
+  end subroutine destroy_solver
 
   !> Solve the linear system in a PETSc solver.
   module subroutine solve(solver)

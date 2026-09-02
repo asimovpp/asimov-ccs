@@ -3,7 +3,7 @@ submodule(mat) mat_petsc
 #include <petscversion.h>
 
   use kinds, only: ccs_err
-  use petsctypes, only: matrix_petsc, vector_petsc
+  use petsctypes, only: matrix_petsc, vector_petsc, destroy_matrix_petsc
   use parallel_types_mpi, only: parallel_environment_mpi
   use parallel, only: is_root
   use petscmat, only: MatAssemblyBegin, MatAssemblyEnd, MAT_FLUSH_ASSEMBLY
@@ -86,6 +86,20 @@ contains
     end select
 
   end subroutine
+
+  !> Destroy a PETSc-backed matrix.
+  module subroutine destroy_matrix(M)
+
+    class(ccs_matrix), intent(inout) :: M
+
+    select type (M)
+    type is (matrix_petsc)
+      call destroy_matrix_petsc(M)
+    class default
+      call error_abort("Unsupported matrix type")
+    end select
+
+  end subroutine destroy_matrix
 
   module subroutine finalise_matrix(M)
 

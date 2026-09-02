@@ -12,6 +12,7 @@ module mat
   private
 
   public :: create_matrix
+  public :: destroy_matrix
   public :: finalise_matrix
   public :: get_info_matrix
   public :: set_matrix_values
@@ -47,6 +48,11 @@ module mat
       !< how the matrix should be allocated
       class(ccs_matrix), allocatable, intent(out) :: M !< the matrix object
       character(len=*), optional, intent(in) :: name !< name of the matrix object
+    end subroutine
+
+    !> Interface to destroy a matrix object.
+    module subroutine destroy_matrix(M)
+      class(ccs_matrix), intent(inout) :: M
     end subroutine
 
     module subroutine finalise_matrix(M)

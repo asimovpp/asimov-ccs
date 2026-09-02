@@ -141,11 +141,11 @@ program poisson
                    neighbour_locator, vector_values, matrix_values, matrix_values_spec
   use meshing, only: create_cell_locator, create_face_locator, create_neighbour_locator, get_local_num_cells
   use meshing, only: nullify_mesh_object
-  use vec, only: create_vector
-  use mat, only: create_matrix, set_nnz, create_matrix_values, set_matrix_values_spec_nrows, &
+  use vec, only: create_vector, destroy_vector
+  use mat, only: create_matrix, destroy_matrix, set_nnz, create_matrix_values, set_matrix_values_spec_nrows, &
                  set_matrix_values_spec_ncols
   use solver, only: create_solver, solve, set_equation_system, axpy, norm, &
-                    set_solver_method, set_solver_precon
+                    destroy_solver, set_solver_method, set_solver_precon
   use utils, only: update, begin_update, end_update, finalise, initialise, &
                    set_size, &
                    set_values, clear_entries, set_values, set_row, set_col, set_entry, set_mode
@@ -243,14 +243,30 @@ program poisson
   end if
 
   ! Clean up
-  deallocate (u)
-  deallocate (b)
-  deallocate (u_exact)
-  deallocate (M)
-  deallocate (poisson_solver)
+  if (allocated(poisson_solver)) then
+    call destroy_solver(poisson_solver)
+    deallocate (poisson_solver)
+  end if
+  if (allocated(u)) then
+    call destroy_vector(u)
+    deallocate (u)
+  end if
+  if (allocated(b)) then
+    call destroy_vector(b)
+    deallocate (b)
+  end if
+  if (allocated(u_exact)) then
+    call destroy_vector(u_exact)
+    deallocate (u_exact)
+  end if
+  if (allocated(M)) then
+    call destroy_matrix(M)
+    deallocate (M)
+  end if
 
   call profiler_end_region('Total elapsed time')
   call profiler_shutdown(par_env)
+  call finalise_mesh(par_env)
   call cleanup_parallel_environment(par_env)
 
 contains

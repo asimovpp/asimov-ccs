@@ -13,6 +13,7 @@ module vec
   private
 
   public :: create_vector
+  public :: destroy_vector
   public :: set_vector_values
   public :: clear_vector_values_entries
   public :: set_vector_values_entry
@@ -52,6 +53,11 @@ module vec
       class(ccs_vector), allocatable, intent(out) :: v !< The vector returned allocated,
       !< but (potentially) uninitialised.
       character(len=*), optional, intent(in) :: name !< Name of the vector object
+    end subroutine
+
+    !> Interface to destroy a vector object.
+    module subroutine destroy_vector(v)
+      class(ccs_vector), intent(inout) :: v !< The vector to destroy.
     end subroutine
 
     !> Interface to set values in a vector.
