@@ -33,6 +33,7 @@ module read_config
   public :: get_store_residuals
   public :: get_enable_cell_corrections
   public :: get_solver_eq_parameters
+  public :: get_parhip_options
 
   interface get_value
     module procedure get_integer_value
@@ -80,6 +81,12 @@ module read_config
       logical, intent(out), optional :: value_present           !< Indicates whether the key-value pair is present in the dictionary
       logical, intent(in), optional :: required                   !< Flag indicating whether result is required. Absence implies not required.
     end subroutine
+
+    !v Get options specific to the ParHIP partitioner
+    module subroutine get_parhip_options(config_file, imbalance)
+      class(*), pointer, intent(in) :: config_file
+      real(ccs_real), intent(inout) :: imbalance
+    end subroutine get_parhip_options
 
     !v Get the name of the test case
     !

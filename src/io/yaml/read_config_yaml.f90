@@ -168,6 +168,35 @@ contains
 
   end subroutine get_logical_value
 
+  !v Get options specific to the ParHIP partitioner
+  module subroutine get_parhip_options(config_file, imbalance)
+    class(*), pointer, intent(in) :: config_file
+    real(ccs_real), intent(inout) :: imbalance
+
+    class(*), pointer :: partitioning_dict
+    class(*), pointer :: parhip_dict
+    type(type_error), allocatable :: io_err
+    real(ccs_real) :: configured_imbalance
+    logical :: value_present
+
+    select type (config_file)
+    type is (type_dictionary)
+      partitioning_dict => config_file%get_dictionary("partitioning", required=.false., error=io_err)
+      if (allocated(io_err)) return
+
+      parhip_dict => partitioning_dict%get_dictionary("parhip", required=.false., error=io_err)
+      if (allocated(io_err)) return
+
+      configured_imbalance = imbalance
+      call get_value(parhip_dict, "imbalance", configured_imbalance, value_present, required=.false.)
+      if (value_present) imbalance = configured_imbalance
+
+    class default
+      call error_abort("Unknown type")
+    end select
+
+  end subroutine get_parhip_options
+
   !v Get the name of the test case
   !
   !  Get the case name for the configuration file and store it in a string.
