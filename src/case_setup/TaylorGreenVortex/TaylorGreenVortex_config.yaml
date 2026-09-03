@@ -39,6 +39,11 @@ compute_partqual : false
 # Compute matrix bandwidth (true/false)
 compute_bwidth : false
 
+# Partitioning options
+partitioning:
+  parhip:
+    imbalance: 0.04 # default is 0.03
+
 ### VALUES BELOW THIS POINT ARE NOT CURRENTLY USED
 
 #reference_numbers:
