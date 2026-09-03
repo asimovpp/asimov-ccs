@@ -104,8 +104,8 @@ contains
 
     ! Values mostly hardcoded for now
     imbalance = real(partitioning_opt%parhip%imbalance, c_double)
+    mode = int(partitioning_opt%parhip%mode, c_int)
     seed = 2022       ! "Random" seed
-    mode = 4          ! FASTSOCIAL
     suppress = 0      ! Do not suppress the output
     edgecuts = -1     ! XXX: silence unused variable warning
 

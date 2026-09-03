@@ -84,6 +84,7 @@ module core
   !v Options specific to the ParHIP partitioner
   type :: parhip_options
     real(ccs_real) :: imbalance = 0.03_ccs_real
+    integer(ccs_int) :: mode = 4_ccs_int
   end type parhip_options
 
   !v Options for mesh partitioning

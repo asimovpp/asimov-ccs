@@ -89,7 +89,9 @@ contains
     call get_solver_options(config_file, run_options%solve)
     call get_io_options(config_file, run_options%io)
     call get_mesh_options(config_file, run_options%mesh)
-    call get_parhip_options(config_file, run_options%partitioning%parhip%imbalance)
+    call get_parhip_options(config_file, &
+                            run_options%partitioning%parhip%imbalance, &
+                            run_options%partitioning%parhip%mode)
 
   end subroutine
 

@@ -83,9 +83,10 @@ module read_config
     end subroutine
 
     !v Get options specific to the ParHIP partitioner
-    module subroutine get_parhip_options(config_file, imbalance)
+    module subroutine get_parhip_options(config_file, imbalance, mode)
       class(*), pointer, intent(in) :: config_file
       real(ccs_real), intent(inout) :: imbalance
+      integer(ccs_int), intent(inout) :: mode
     end subroutine get_parhip_options
 
     !v Get the name of the test case
