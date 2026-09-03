@@ -108,6 +108,10 @@ contains
     integer(c_int32_t), dimension(:), allocatable :: local_partition
     integer(c_int) :: comm
 
+    ! ParHIP-specific options do not affect ParMETIS.
+    associate (unused => partitioning_opt)
+    end associate
+
     ! Values mostly hardcoded for now
     wgtflag = 0 ! No weights
     numflag = 0 ! Use C-style indexing for now
