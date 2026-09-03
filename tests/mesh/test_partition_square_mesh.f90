@@ -11,6 +11,7 @@ program test_partition_square_mesh
   use testing_lib
   use partitioning, only: compute_partitioner_input, &
                           partition_kway, compute_connectivity
+  use core, only: partitioning_options
   use kinds, only: ccs_int, ccs_long
   use types, only: topology, graph_connectivity, cell_locator
   use mesh_utils, only: build_square_topology
@@ -24,6 +25,7 @@ program test_partition_square_mesh
   implicit none
 
   integer :: n
+  type(partitioning_options) :: partitioning_opt
 
   integer, parameter :: topo_idx_type = kind(mesh%topo%graph_conn%adjncy(1))
 
@@ -44,7 +46,7 @@ program test_partition_square_mesh
   print *, "Adjacency index array: ", mesh%topo%graph_conn%xadj
 
   !call partition_stride(par_env, mesh)
-  call partition_kway(par_env, mesh)
+  call partition_kway(par_env, mesh, partitioning_opt)
   call sync(shared_env)
   call check_topology("mid")
 
