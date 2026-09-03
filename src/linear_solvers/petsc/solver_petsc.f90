@@ -144,11 +144,7 @@ contains
   !> Interface to set the primary method of a linear solver
   module subroutine set_solver_method(method_name, solver)
 
-#if PETSC_VERSION_GE(3,23,0)
     use petscksp, only: KSPSetType, KSPGetType, KSPSetFromOptions, KSPSetOptionsPrefix
-#else
-    use petscksp, only: KSPSetType, KSPSetFromOptions
-#endif
     ! Arguments
     character(len=*), intent(in) :: method_name   !< String naming the linear solver to be used.
     class(linear_solver), intent(inout) :: solver !< The linear solver object
@@ -167,14 +163,10 @@ contains
           call error_abort("ERROR: setting solver method failed, " // trim(method_name) // " solver likely unsupported.")
         end if
 
-#if PETSC_VERSION_GE(3,23,0)
         call KSPGetType(ksp, petsc_method_name, ierr)
         if (trim(petsc_method_name) /= trim(method_name)) then
           call error_abort("ERROR: petsc solver method (" // trim(petsc_method_name) // ") doesn't match requested method (" //  trim(method_name) // ")")
         end if
-#else
-        petsc_method_name = ""
-#endif
 
         if (allocated(solver%linear_system%name)) then
           call KSPSetOptionsPrefix(ksp, solver%linear_system%name // ':', ierr)
@@ -191,13 +183,8 @@ contains
   !> Interface to set the preconditioner of a linear solver
   module subroutine set_solver_precon(precon_name, solver)
 
-#if PETSC_VERSION_GE(3,23,0)
     use petscksp, only: KSPGetPC, tPC, PCSetType, PCGetType, PCSetReusePreconditioner, PCSetFromOptions, &
                         PCSetOptionsPrefix, KSPSetOptionsPrefix
-#else
-    use petscksp, only: KSPGetPC
-    use petscpc, only: tPC, PCSetType, PCSetReusePreconditioner, PCSetFromOptions
-#endif
 
     use petsc, only: PETSC_TRUE
 
@@ -222,14 +209,10 @@ contains
          call error_abort("ERROR: setting preconditioner method failed, " // trim(precon_name) // " preconditioner likely unsupported.")
         end if
 
-#if PETSC_VERSION_GE(3,23,0)
         call PCGetType(pc, petsc_precon_name, ierr)
         if (trim(petsc_precon_name) /= trim(precon_name)) then
           call error_abort("ERROR: petsc precon method (" // trim(petsc_precon_name) // ") doesn't match requested precon (" //  trim(precon_name) // ")")
         end if
-#else
-        petsc_precon_name = ""
-#endif
 
         call PCSetReusePreconditioner(pc, PETSC_TRUE, ierr)
 

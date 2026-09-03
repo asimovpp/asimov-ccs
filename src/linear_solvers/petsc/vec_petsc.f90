@@ -25,13 +25,8 @@ contains
   module subroutine create_vector(vec_properties, v, name)
 
     use petsc, only: PETSC_DECIDE, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE
-#if PETSC_VERSION_GE(3,23,0)
     use petscvec, only: VecCreateGhost, VecSetSizes, VecSetFromOptions, VecSet, VecSetOption, &
                         VecCreate, VecSetOptionsPrefix
-#else
-    use petscvec, only: VecCreateGhost, VecSetSizes, VecSetFromOptions, VecSet, VecSetOption, &
-                        VecCreate
-#endif
     use meshing, only: get_local_num_cells, get_halo_num_cells, get_num_faces
 
     type(vector_spec), intent(in) :: vec_properties     !< the data describing how the vector should be created.
@@ -125,22 +120,14 @@ contains
   !> Sets values in a PETSc vector
   module subroutine set_vector_values(val_dat, v)
 
-#if PETSC_VERSION_GE(3,23,0)
     use petsc, only: VecSetValues, eInsertMode
-#else
-    use petsc, only: VecSetValues
-#endif
     use constants, only: insert_mode, add_mode
 
     class(*), intent(in) :: val_dat         !< contains the values, their indices and the mode to use for setting them.
     class(ccs_vector), intent(inout) :: v   !< the PETSc vector.
 
     integer(ccs_int) :: n    ! Number of elements to add
-#if PETSC_VERSION_GE(3,23,0)
     type(eInsertMode) :: mode ! Append or insert mode
-#else
-    integer(ccs_int) :: mode ! Append or insert mode
-#endif
     integer(ccs_err) :: ierr ! Error code
 
     select type (v)
@@ -482,11 +469,7 @@ contains
 
   !> Gets the data in a given vector with possibility to overwrite the data.
   module subroutine get_vector_data(vec, array)
-#if PETSC_VERSION_GE(3,23,0)
     use petscvec, only: VecGhostGetLocalForm, VecGetArray
-#else
-    use petscvec, only: VecGhostGetLocalForm, VecGetArrayF90
-#endif
     class(ccs_vector), intent(inout) :: vec !< the vector to get data from
     real(ccs_real), dimension(:), pointer, intent(out) :: array !< an array to store the data in
     integer :: ierr
@@ -503,17 +486,9 @@ contains
 
       if (vec%ghosted) then
         call VecGhostGetLocalForm(vec%v, vec%v_local, ierr)
-#if PETSC_VERSION_GE(3,23,0)
         call VecGetArray(vec%v_local, array, ierr)
-#else
-        call VecGetArrayF90(vec%v_local, array, ierr)
-#endif
       else
-#if PETSC_VERSION_GE(3,23,0)
         call VecGetArray(vec%v, array, ierr)
-#else
-        call VecGetArrayF90(vec%v, array, ierr)
-#endif
       end if
 
       vec%checked_out = .true.
@@ -524,11 +499,7 @@ contains
 
   !> Resets the vector data if required for further processing
   module subroutine restore_vector_data(vec, array)
-#if PETSC_VERSION_GE(3,23,0)
     use petscvec, only: VecRestoreArray, VecGhostRestoreLocalForm
-#else
-    use petscvec, only: VecRestoreArrayF90, VecGhostRestoreLocalForm
-#endif
     class(ccs_vector), intent(inout) :: vec !< the vector to reset
     real(ccs_real), dimension(:), pointer, intent(in) :: array !< the array containing the data to restore
 
@@ -541,18 +512,10 @@ contains
       end if
 
       if (vec%ghosted) then
-#if PETSC_VERSION_GE(3,23,0)
         call VecRestoreArray(vec%v_local, array, ierr)
-#else
-        call VecRestoreArrayF90(vec%v_local, array, ierr)
-#endif
         call VecGhostRestoreLocalForm(vec%v, vec%v_local, ierr)
       else
-#if PETSC_VERSION_GE(3,23,0)
         call VecRestoreArray(vec%v, array, ierr)
-#else
-        call VecRestoreArrayF90(vec%v, array, ierr)
-#endif
       end if
 
       vec%checked_out = .false.
@@ -564,11 +527,7 @@ contains
 
   !> Gets the data in a given vector with readonly access.
   module subroutine get_vector_data_readonly(vec, array)
-#if PETSC_VERSION_GE(3,23,0)
     use petscvec, only: VecGhostGetLocalForm, VecGetArrayRead
-#else
-    use petscvec, only: VecGhostGetLocalForm, VecGetArrayReadF90
-#endif
     class(ccs_vector), intent(inout) :: vec !< the vector to get data from
     real(ccs_real), dimension(:), pointer, intent(out) :: array !< an array to store the data in
     integer :: ierr
@@ -577,17 +536,9 @@ contains
     type is (vector_petsc)
       if (vec%ghosted) then
         call VecGhostGetLocalForm(vec%v, vec%v_local, ierr)
-#if PETSC_VERSION_GE(3,23,0)
         call VecGetArrayRead(vec%v_local, array, ierr)
-#else
-        call VecGetArrayReadF90(vec%v_local, array, ierr)
-#endif
       else
-#if PETSC_VERSION_GE(3,23,0)
         call VecGetArrayRead(vec%v, array, ierr)
-#else
-        call VecGetArrayReadF90(vec%v, array, ierr)
-#endif
       end if
     class default
       call error_abort('Invalid vector type.')
@@ -596,11 +547,7 @@ contains
 
   !> Resets the vector data with readonly access.
   module subroutine restore_vector_data_readonly(vec, array)
-#if PETSC_VERSION_GE(3,23,0)
     use petscvec, only: VecRestoreArrayRead, VecGhostRestoreLocalForm
-#else
-    use petscvec, only: VecRestoreArrayReadF90, VecGhostRestoreLocalForm
-#endif
     class(ccs_vector), intent(inout) :: vec !< the vector to reset
     real(ccs_real), dimension(:), pointer, intent(in) :: array !< the array containing the data to restore
 
@@ -609,18 +556,10 @@ contains
     select type (vec)
     type is (vector_petsc)
       if (vec%ghosted) then
-#if PETSC_VERSION_GE(3,23,0)
         call VecRestoreArrayRead(vec%v_local, array, ierr)
-#else
-        call VecRestoreArrayReadF90(vec%v_local, array, ierr)
-#endif
         call VecGhostRestoreLocalForm(vec%v, vec%v_local, ierr)
       else
-#if PETSC_VERSION_GE(3,23,0)
         call VecRestoreArrayRead(vec%v, array, ierr)
-#else
-        call VecRestoreArrayReadF90(vec%v, array, ierr)
-#endif
       end if
     class default
       call error_abort('Invalid vector type.')
@@ -706,11 +645,7 @@ contains
     use petsc, only: PETSC_DECIDE
     use petscvec, only: tVec, VecCreate, VecSetSizes, VecSetFromOptions, &
                         VecSetValues, VecAssemblyBegin, VecAssemblyEnd, &
-#if PETSC_VERSION_GE(3,23,0)
                         VecGetArrayRead, VecRestoreArrayRead, &
-#else
-                        VecGetArrayReadF90, VecRestoreArrayReadF90, &
-#endif
                         VecDestroy
 
     class(parallel_environment), intent(in) :: par_env
@@ -742,17 +677,9 @@ contains
     call VecAssemblyBegin(vec_tmp, ierr)
     call VecAssemblyEnd(vec_tmp, ierr)
 
-#if PETSC_VERSION_GE(3,23,0)
     call VecGetArrayRead(vec_tmp, data_tmp, ierr)
-#else
-    call VecGetArrayReadF90(vec_tmp, data_tmp, ierr)
-#endif
     data_to(1:nlocal_out) = data_tmp(1:nlocal_out)
-#if PETSC_VERSION_GE(3,23,0)
     call VecRestoreArrayRead(vec_tmp, data_tmp, ierr)
-#else
-    call VecRestoreArrayReadF90(vec_tmp, data_tmp, ierr)
-#endif
     call VecDestroy(vec_tmp, ierr)
 
   end subroutine reorder_data_vec
