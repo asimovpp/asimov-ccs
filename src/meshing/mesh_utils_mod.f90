@@ -2952,7 +2952,7 @@ contains
 
     if (par_env%num_procs > 1) then
       call profiler_begin_region("Kway partitioning")
-      call partition_kway(par_env, mesh)
+      call partition_kway(par_env, mesh, run_options%partitioning)
       call profiler_end_region("Kway partitioning")
     else
       call profiler_begin_region("Strided partitioning")

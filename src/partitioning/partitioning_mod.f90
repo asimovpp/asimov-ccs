@@ -4,7 +4,7 @@
 
 module partitioning
 
-  use core, only: ccs_options
+  use core, only: ccs_options, partitioning_options
   use kinds, only: ccs_int, ccs_long
   use types, only: ccs_mesh, topology, graph_connectivity
   use parallel_types, only: parallel_environment
@@ -31,17 +31,20 @@ module partitioning
   interface
 
     !v Partition the mesh
-    module subroutine partition_kway_mesh(par_env, mesh)
+    module subroutine partition_kway_mesh(par_env, mesh, partitioning_opt)
       class(parallel_environment), allocatable, target, intent(in) :: par_env    !< The global parallel environment
       type(ccs_mesh), target, intent(inout) :: mesh                              !< The mesh for which to compute the partition
+      type(partitioning_options), intent(in) :: partitioning_opt                 !< Partitioning configuration
     end subroutine partition_kway_mesh
-    module subroutine partition_kway_topo(par_env, topo)
+    module subroutine partition_kway_topo(par_env, topo, partitioning_opt)
       class(parallel_environment), allocatable, target, intent(in) :: par_env    !< The global parallel environment
       type(topology), target, intent(inout) :: topo                              !< The topo for which to compute the partition
+      type(partitioning_options), intent(in) :: partitioning_opt                 !< Partitioning configuration
     end subroutine partition_kway_topo
-    module subroutine partition_kway_graph_conn(par_env, graph_conn)
+    module subroutine partition_kway_graph_conn(par_env, graph_conn, partitioning_opt)
       class(parallel_environment), allocatable, target, intent(in) :: par_env    !< The global parallel environment
       type(graph_connectivity), target, intent(inout) :: graph_conn              !< The graph_conn for which to compute the partition
+      type(partitioning_options), intent(in) :: partitioning_opt                 !< Partitioning configuration
     end subroutine partition_kway_graph_conn
 
     !v Compute the input arrays for the partitioner

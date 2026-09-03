@@ -41,12 +41,13 @@ contains
   ! The graph can be weighted or unweighted.
   !
   ! High-level interface operating on the mesh object.
-  module subroutine partition_kway_mesh(par_env, mesh)
+  module subroutine partition_kway_mesh(par_env, mesh, partitioning_opt)
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env    !< The global parallel environment
     type(ccs_mesh), target, intent(inout) :: mesh                              !< The mesh for which to compute the parition
+    type(partitioning_options), intent(in) :: partitioning_opt                 !< Partitioning configuration
 
-    call partition_kway_topo(par_env, mesh%topo)
+    call partition_kway_topo(par_env, mesh%topo, partitioning_opt)
 
   end subroutine partition_kway_mesh
 
@@ -56,12 +57,13 @@ contains
   ! The graph can be weighted or unweighted.
   !
   ! High-level interface operating on the topology object.
-  module subroutine partition_kway_topo(par_env, topo)
+  module subroutine partition_kway_topo(par_env, topo, partitioning_opt)
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env    !< The global parallel environment
     type(topology), target, intent(inout) :: topo                              !< The mesh topology for which to compute the parition
+    type(partitioning_options), intent(in) :: partitioning_opt                 !< Partitioning configuration
 
-    call partition_kway_graph_conn(par_env, topo%graph_conn)
+    call partition_kway_graph_conn(par_env, topo%graph_conn, partitioning_opt)
 
   end subroutine partition_kway_topo
 
@@ -71,13 +73,14 @@ contains
   ! The graph can be weighted or unweighted.
   !
   ! Performs the partitioning on the graph connectivity object.
-  module subroutine partition_kway_graph_conn(par_env, graph_conn)
+  module subroutine partition_kway_graph_conn(par_env, graph_conn, partitioning_opt)
 
     use mpi
     use iso_c_binding
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env    !< The global parallel environment
     type(graph_connectivity), target, intent(inout) :: graph_conn              !< The graph connectivity for which to compute the parition
+    type(partitioning_options), intent(in) :: partitioning_opt                 !< Partitioning configuration
 
     ! Local variables
     integer(ccs_int) :: local_part_size
@@ -99,8 +102,8 @@ contains
     integer(c_long), dimension(:), allocatable :: local_partition
     integer(c_int) :: comm
 
-    ! Values hardcoded for now
-    imbalance = 0.03  ! Desired balance - 0.03 = 3%
+    ! Values mostly hardcoded for now
+    imbalance = real(partitioning_opt%parhip%imbalance, c_double)
     seed = 2022       ! "Random" seed
     mode = 4          ! FASTSOCIAL
     suppress = 0      ! Do not suppress the output
