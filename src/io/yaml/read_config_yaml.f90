@@ -183,11 +183,13 @@ contains
     type is (type_dictionary)
       partitioning_dict => config_file%get_dictionary("partitioning", required=.false., error=io_err)
       if (allocated(io_err)) return
+      if (.not. associated(partitioning_dict)) return
 
       select type (partitioning_dict)
       type is (type_dictionary)
         parhip_dict => partitioning_dict%get_dictionary("parhip", required=.false., error=io_err)
         if (allocated(io_err)) return
+        if (.not. associated(parhip_dict)) return
 
         configured_imbalance = imbalance
         call get_value(parhip_dict, "imbalance", configured_imbalance, value_present, required=.false.)
