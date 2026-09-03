@@ -184,12 +184,18 @@ contains
       partitioning_dict => config_file%get_dictionary("partitioning", required=.false., error=io_err)
       if (allocated(io_err)) return
 
-      parhip_dict => partitioning_dict%get_dictionary("parhip", required=.false., error=io_err)
-      if (allocated(io_err)) return
+      select type (partitioning_dict)
+      type is (type_dictionary)
+        parhip_dict => partitioning_dict%get_dictionary("parhip", required=.false., error=io_err)
+        if (allocated(io_err)) return
 
-      configured_imbalance = imbalance
-      call get_value(parhip_dict, "imbalance", configured_imbalance, value_present, required=.false.)
-      if (value_present) imbalance = configured_imbalance
+        configured_imbalance = imbalance
+        call get_value(parhip_dict, "imbalance", configured_imbalance, value_present, required=.false.)
+        if (value_present) imbalance = configured_imbalance
+
+      class default
+        call error_abort("Unknown type")
+      end select
 
     class default
       call error_abort("Unknown type")
