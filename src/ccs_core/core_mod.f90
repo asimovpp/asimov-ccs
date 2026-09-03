@@ -23,6 +23,7 @@ module core
   public :: initialise_fields
   public :: run_solver
   public :: ccs_options
+  public :: partitioning_options
 
   integer(ccs_int), parameter :: mesh_null = 0
   integer(ccs_int), parameter, public :: read_input_mesh = 1
@@ -80,6 +81,16 @@ module core
     integer :: split_type = huge(0_ccs_int)
   end type parallel_options
 
+  !v Options specific to the ParHIP partitioner
+  type :: parhip_options
+    real(ccs_real) :: imbalance = 0.03_ccs_real
+  end type parhip_options
+
+  !v Options for mesh partitioning
+  type :: partitioning_options
+    type(parhip_options) :: parhip
+  end type partitioning_options
+
   !v Reference values for the problem
   type :: ref_vals
     real(ccs_real) :: p_ref = huge(0.0_ccs_real)    !< reference pressure
@@ -100,6 +111,7 @@ module core
     type(variable_options) :: variables
     type(solver_options) :: solve
     type(parallel_options) :: parallel
+    type(partitioning_options) :: partitioning
     type(ref_vals) :: reference_values
   end type ccs_options
 

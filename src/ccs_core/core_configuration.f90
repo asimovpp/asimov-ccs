@@ -6,7 +6,8 @@ submodule(core) core_configuration
                          get_variables, &
                          get_output_type, &
                          get_reference_number, &
-                         get_boundary_names, get_solver_eq_parameters
+                         get_boundary_names, get_solver_eq_parameters, &
+                         get_parhip_options
   use utils, only: exit_print
   use logging, only: log_unit_out
 
@@ -88,6 +89,7 @@ contains
     call get_solver_options(config_file, run_options%solve)
     call get_io_options(config_file, run_options%io)
     call get_mesh_options(config_file, run_options%mesh)
+    call get_parhip_options(config_file, run_options%partitioning%parhip%imbalance)
 
   end subroutine
 
