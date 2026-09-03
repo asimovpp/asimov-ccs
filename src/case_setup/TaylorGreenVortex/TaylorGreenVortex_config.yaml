@@ -42,7 +42,11 @@ compute_bwidth : false
 # Partitioning options
 partitioning:
   parhip:
-    imbalance: 0.04 # default is 0.03
+    imbalance: 0.03 # default is 0.03 - for larger meshes or core counts, it may be necessary 
+                    # to increase this value to avoid partitioning failure. To large a value
+                    # for small meshes/core counts may also result in failure. The default value 
+                    # of 0.03 is a good starting point for most cases.
+    mode: 4 # ULTRAFASTMESH = 0, FASTMESH = 1, ECOMESH = 2, ULTRAFASTSOCIAL = 3, FASTSOCIAL = 4, ECOSOCIAL = 5
 
 ### VALUES BELOW THIS POINT ARE NOT CURRENTLY USED
 
