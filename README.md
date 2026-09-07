@@ -71,6 +71,15 @@ mpirun -n 4 /path/to/ccs_app --ccs_case CaseName --ccs_in /path/to/case/dir/
 ```
 where `/path/to/case/dir/` contains the configuration file `CaseName_config.yaml`.
 
+When using ParHIP, the permitted amount of imbalance and the partitioning algorithm can optionally be configured in the runtime file:
+```
+partitioning:
+  parhip:
+    imbalance: 0.05 # 5% imbalance
+    mode: 4 # ULTRAFASTMESH = 0, FASTMESH = 1, ECOMESH = 2, ULTRAFASTSOCIAL = 3, FASTSOCIAL = 4, ECOSOCIAL = 5
+```
+If omitted, `imbalance` defaults to `0.03` (3%) and `mode` defaults to `4`. These settings apply only to ParHIP and do not alter the ParMETIS configuration.
+
 `ccs_app` accepts a number of runtime command line arguments, see `ccs_app --ccs_help` for details. 
 If built with PETSc, the normal PETSc command line arguments can be passed to `ccs_app` as well, in particular if you observe stagnating residuals being printed to `stdout` you might want to try tighter tolerances for the linear solvers by passing `-ksp_atol` and `-ksp_rtol` at runtime, e.g.
 ```

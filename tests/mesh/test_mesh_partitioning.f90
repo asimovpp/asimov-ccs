@@ -141,6 +141,7 @@ program test_mesh_partitioning
 
   use testing_lib
   use partitioning, only: partition_kway
+  use core, only: partitioning_options
   use kinds, only: ccs_int, ccs_long
   use types, only: ccs_mesh, topology, graph_connectivity
 
@@ -150,6 +151,7 @@ program test_mesh_partitioning
 
   integer(ccs_long) :: global_num_cells
   type(graph_connectivity) :: graph_conn
+  type(partitioning_options) :: partitioning_opt
 
   call init()
 
@@ -157,7 +159,7 @@ program test_mesh_partitioning
 
   ! Partition
   call get_global_num_cells(graph_conn, global_num_cells)
-  call partition_kway(par_env, graph_conn)
+  call partition_kway(par_env, graph_conn, partitioning_opt)
   call sync(shared_env)
 
   ! Check mesh after partitioning

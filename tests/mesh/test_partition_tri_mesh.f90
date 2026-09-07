@@ -11,6 +11,7 @@ program test_partition_tri_mesh
   use testing_lib
   use partitioning, only: compute_partitioner_input, &
                           partition_kway, compute_connectivity
+  use core, only: partitioning_options
   use kinds, only: ccs_int, ccs_long
   use types, only: topology, graph_connectivity
   use meshing, only: get_local_num_cells, set_local_num_cells, &
@@ -33,6 +34,7 @@ program test_partition_tri_mesh
   ! Topology grid size
   integer, parameter :: nrows = 3
   integer, parameter :: ncols = 5
+  type(partitioning_options) :: partitioning_opt
 
   call init()
   call initialise_test()
@@ -48,7 +50,7 @@ program test_partition_tri_mesh
   ! Run test to check we agree
   call check_topology("mid")
 
-  call partition_kway(par_env, mesh)
+  call partition_kway(par_env, mesh, partitioning_opt)
   call sync(shared_env)
 
   !if (is_root(par_env)) then
