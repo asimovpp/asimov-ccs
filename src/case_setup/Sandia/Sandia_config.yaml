@@ -28,7 +28,7 @@ target_residual: 1.0e-10
 write_frequency: 20
 
 # Fluid properties
-viscocity : 1.0e-3
+viscosity : 1.0e-3
 
 # Report partition quality (true/false)
 compute_partqual : false

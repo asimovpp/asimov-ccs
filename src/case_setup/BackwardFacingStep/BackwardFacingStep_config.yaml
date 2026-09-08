@@ -29,7 +29,7 @@ target_residual: 1.0e-10
 write_frequency: 50
 
 # Fluid properties
-viscocity : 1.0e-3
+viscosity : 1.0e-3
 
 ### VALUES BELOW THIS POINT ARE NOT CURRENTLY USED
 
