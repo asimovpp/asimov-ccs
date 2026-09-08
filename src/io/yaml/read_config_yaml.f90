@@ -288,6 +288,10 @@ contains
     class(*), pointer :: dict
     type(type_error), allocatable :: io_err
 
+    real(ccs_real) :: val
+    integer :: val_int
+    logical :: val_present
+
     select type (config_file)
     type is (type_dictionary)
 
@@ -296,42 +300,74 @@ contains
 
         ! Pressure
         if (present(p_ref)) then
-          call get_value(dict, "pressure", p_ref, required=.false.)
+          val_present = .false.
+          call get_value(dict, "pressure", val, value_present=val_present, required=.false.)
+          if (val_present) then
+            p_ref = val
+          end if
         end if
 
         ! Pressure_total
         if (present(p_total)) then
-          call get_value(dict, "pressure_total", p_total, required=.false.)
+          val_present = .false.
+          call get_value(dict, "pressure_total", val, value_present=val_present, required=.false.)
+          if (val_present) then
+            p_total = val
+          end if
         end if
 
         ! Temperature
         if (present(temp_ref)) then
-          call get_value(dict, "temperature", temp_ref, required=.false.)
+          val_present = .false.
+          call get_value(dict, "temperature", val, value_present=val_present, required=.false.)
+          if (val_present) then
+            temp_ref = val
+          end if
         end if
 
         ! Density
         if (present(dens_ref)) then
-          call get_value(dict, "density", dens_ref, required=.false.)
+          val_present = .false.
+          call get_value(dict, "density", val, value_present=val_present, required=.false.)
+          if (val_present) then
+            dens_ref = val
+          end if
         end if
 
         ! Viscosity
         if (present(visc_ref)) then
-          call get_value(dict, "viscosity", visc_ref, required=.false.)
+          val_present = .false.
+          call get_value(dict, "viscosity", val, value_present=val_present, required=.false.)
+          if (val_present) then
+            visc_ref = val
+          end if
         end if
 
         ! Velocity
         if (present(velo_ref)) then
-          call get_value(dict, "velocity", velo_ref, required=.false.)
+          val_present = .false.
+          call get_value(dict, "velocity", val, value_present=val_present, required=.false.)
+          if (val_present) then
+            velo_ref = val
+          end if
         end if
 
         ! Length
         if (present(len_ref)) then
-          call get_value(dict, "length", len_ref, required=.false.)
+          val_present = .false.
+          call get_value(dict, "length", val, value_present=val_present, required=.false.)
+          if (val_present) then
+            len_ref = val
+          end if
         end if
 
         ! Pref_at_cell
         if (present(pref_at_cell)) then
-          call get_value(dict, "pref_at_cell", pref_at_cell, required=.false.)
+          val_present = .false.
+          call get_value(dict, "pref_at_cell", val_int, value_present=val_present, required=.false.)
+          if (val_present) then
+            pref_at_cell = val_int
+          end if
         end if
       end if
 

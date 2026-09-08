@@ -49,7 +49,7 @@ contains
     call profiler_begin_region('Flow initialisation')
 
     if (.not. run_options%variables%restart) then
-      call initialise_cell_values(flow_fields, get_init_flow)
+      call initialise_cell_values(flow_fields, get_init_flow, run_options)
       call initialise_mass_flux(flow_fields, get_init_mass_flux)
     else
       call read_solution(par_env, run_options%paths%case_path, mesh, flow_fields)
@@ -61,10 +61,11 @@ contains
 
   !v Initialise the cell centred values by calling the user-supplied initialisation per cell-centred
   !  field on each cell.
-  subroutine initialise_cell_values(flow_fields, get_init_flow)
+  subroutine initialise_cell_values(flow_fields, get_init_flow, run_options)
 
     ! Arguments
     type(fluid), intent(inout) :: flow_fields !< The flow
+    type(ccs_options), intent(in) :: run_options
 
     interface
       !> User-supplied subroutine to set field values at cell centres
@@ -103,7 +104,7 @@ contains
       do index_p = 1, n_local
         call create_cell_locator(index_p, loc_p)
 
-        call get_init_default(current_field%name, init_val)
+        call get_init_default(current_field%name, run_options, init_val)
         call get_init_flow(loc_p, current_field%name, init_val)
         field_data(index_p) = init_val
       end do
@@ -119,16 +120,17 @@ contains
   end subroutine initialise_cell_values
 
   !> Utility subroutine to set "sensible" default values
-  pure subroutine get_init_default(field_name, init_val)
+  pure subroutine get_init_default(field_name, run_options, init_val)
 
     character(len=*), intent(in) :: field_name
+    type(ccs_options), intent(in) :: run_options
     real(ccs_real), intent(out) :: init_val
 
     select case (field_name)
     case ("density")
-      init_val = 1.0_ccs_real ! Zero density will cause solver failure!
+      init_val = run_options%reference_values%dens_ref
     case ("viscosity")
-      init_val = 1.0e-2_ccs_real
+      init_val = run_options%reference_values%visc_ref
     case default
       init_val = 0.0_ccs_real
     end select

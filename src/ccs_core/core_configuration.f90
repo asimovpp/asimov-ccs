@@ -209,8 +209,8 @@ contains
     reference_values%p_ref = 0.0
     reference_values%p_total = 1.01325e5_ccs_real ! 1 Atmosphere
     reference_values%temp_ref = 293.15_ccs_real   ! 20C (in Kelvin)
-    reference_values%dens_ref = 1.19_ccs_real     ! Air @ STP
-    reference_values%visc_ref = 1.0e-5_ccs_real   ! Air @ STP
+    reference_values%dens_ref = 1.0_ccs_real ! To match old hardcoded default; 1.19_ccs_real     ! Air @ STP
+    reference_values%visc_ref = 1.0e-2_ccs_real ! To match old hardcoded default; 1.0e-5_ccs_real   ! Air @ STP
     reference_values%velo_ref = 1.0_ccs_real
     reference_values%len_ref = 1.0_ccs_real
     reference_values%pref_at_cell = -1 ! To be ignored
