@@ -473,6 +473,7 @@ contains
             write (log_unit_out, *) "  Residuals norm: Linfty"
           end select
           write (log_unit_out, '(A, F4.2)') "   Relaxation factor: ", phi%solver_parameters%relaxation_factor
+          write (log_unit_out, '(A, F4.2)') "   Gradient relaxation factor: ", phi%solver_parameters%grad_relaxation_factor
           write (log_unit_out, *) "  Solver: ", phi%solver_parameters%solver_name
           write (log_unit_out, *) "  Preconditioner: ", phi%solver_parameters%precon_name
         end if
