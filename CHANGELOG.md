@@ -8,7 +8,7 @@
 - Added non-time-accurate restart and steady-to-unsteady restart support.
 - Added user-defined fixed and linearised source terms for momentum and scalar-transport equations.
 - Added variable-density and variable-viscosity fields, including runtime configuration of reference properties.
-- Added the Sandia flow case.
+- Added initial version of Sandia flow case.
 - Added Z-order space-filling-curve and no-reordering options.
 - Added runtime reporting of partition quality and matrix bandwidth, plus configurable ParHIP imbalance and partitioning mode.
 - Added per-variable configuration of linear solvers, preconditioners, relaxation factors, gradient relaxation, residual targets and L2/L-infinity residual norms.
