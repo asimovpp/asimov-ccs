@@ -12,6 +12,7 @@ module mat
   private
 
   public :: create_matrix
+  public :: destroy_matrix
   public :: finalise_matrix
   public :: get_info_matrix
   public :: set_matrix_values
@@ -37,6 +38,7 @@ module mat
   public :: set_matrix_diagonal
   public :: add_matrix_diagonal
   public :: zero_matrix
+  public :: check_operator_symmetry
 
   interface
 
@@ -46,6 +48,11 @@ module mat
       !< how the matrix should be allocated
       class(ccs_matrix), allocatable, intent(out) :: M !< the matrix object
       character(len=*), optional, intent(in) :: name !< name of the matrix object
+    end subroutine
+
+    !> Interface to destroy a matrix object.
+    module subroutine destroy_matrix(M)
+      class(ccs_matrix), intent(inout) :: M
     end subroutine
 
     module subroutine finalise_matrix(M)
@@ -65,7 +72,7 @@ module mat
     end subroutine
 
     !> Clear working set of values to begin new working set.
-    module subroutine clear_matrix_values_entries(val_dat)
+    pure module subroutine clear_matrix_values_entries(val_dat)
 
       ! Arguments
       type(matrix_values), intent(inout) :: val_dat !< Working set object
@@ -74,7 +81,7 @@ module mat
 
     !v Store a coefficient in the current working set at the current row,col coordinate, using the
     !  current storage mode.
-    module subroutine set_matrix_values_entry(val, val_dat)
+    pure module subroutine set_matrix_values_entry(val, val_dat)
 
       ! Arguments
       real(ccs_real), intent(in) :: val             !< The coefficient value
@@ -83,7 +90,7 @@ module mat
     end subroutine set_matrix_values_entry
 
     !> Set the storage mode.
-    module subroutine set_matrix_values_mode(mode, val_dat)
+    pure module subroutine set_matrix_values_mode(mode, val_dat)
 
       ! Arguments
       integer(ccs_int), intent(in) :: mode          !< The storage mode
@@ -96,18 +103,18 @@ module mat
     !  Sets the current row in the matrix value object, the implementation of this is
     !  backend-dependent as it should immediately convert to the correct indexing
     !  (whether that's 0, 1 or X-based) as used by the backend.
-    module subroutine set_matrix_values_row(row, val_dat)
+    pure module subroutine set_matrix_values_row(row, val_dat)
       integer(ccs_int), intent(in) :: row           !< the row
       type(matrix_values), intent(inout) :: val_dat !< the matrix values object
     end subroutine set_matrix_values_row
 
-    module subroutine set_matrix_values_col(col, val_dat)
+    pure module subroutine set_matrix_values_col(col, val_dat)
       integer(ccs_int), intent(in) :: col
       type(matrix_values), intent(inout) :: val_dat
     end subroutine set_matrix_values_col
 
     !> Set number of rows in working set specifier
-    module subroutine set_matrix_values_spec_nrows(nrows, val_spec)
+    pure module subroutine set_matrix_values_spec_nrows(nrows, val_spec)
 
       ! Arguments
       integer(ccs_int), intent(in) :: nrows               !< Number of rows to be used in the working set
@@ -116,7 +123,7 @@ module mat
     end subroutine set_matrix_values_spec_nrows
 
     !> Set number of columns in working set specifier
-    module subroutine set_matrix_values_spec_ncols(ncols, val_spec)
+    pure module subroutine set_matrix_values_spec_ncols(ncols, val_spec)
 
       ! Arguments
       integer(ccs_int), intent(in) :: ncols               !< Number of columns to be used in the working set
@@ -125,7 +132,7 @@ module mat
     end subroutine set_matrix_values_spec_ncols
 
     !> Interface to create a matrix values object.
-    module subroutine create_matrix_values(val_spec, val_dat)
+    pure module subroutine create_matrix_values(val_spec, val_dat)
       type(matrix_values_spec), intent(in) :: val_spec !< how many rows will be set?
       type(matrix_values), intent(out) :: val_dat      !< the matrix values object
     end subroutine create_matrix_values
@@ -186,7 +193,7 @@ module mat
     end subroutine
 
     !> Constructor for default matrix values
-    module subroutine initialise_matrix(mat_properties)
+    pure module subroutine initialise_matrix(mat_properties)
       type(matrix_spec), intent(inout) :: mat_properties !< the initialised matrix values
     end subroutine initialise_matrix
 
@@ -198,7 +205,7 @@ module mat
     end subroutine
 
     !> Setter for matrix number of non-zeros
-    module subroutine set_nnz(nnz, mat_properties)
+    pure module subroutine set_nnz(nnz, mat_properties)
       integer(ccs_int), intent(in) :: nnz                !< the number of non-zeros
       type(matrix_spec), intent(inout) :: mat_properties !< the matrix data object
     end subroutine
@@ -219,10 +226,16 @@ module mat
       class(ccs_vector), intent(in) :: D      !< the vector containing matrix diagonal elements
       class(ccs_matrix), intent(inout) :: M   !< the matrix
     end subroutine add_matrix_diagonal
-    
+
     module subroutine zero_matrix(M)
       class(ccs_matrix), intent(inout) :: M
     end subroutine zero_matrix
+
+    !> Checks that the operator is numerically symmetric
+    module subroutine check_operator_symmetry(M)
+      class(ccs_matrix), intent(in) :: M
+    end subroutine check_operator_symmetry
+
   end interface
 
 end module mat

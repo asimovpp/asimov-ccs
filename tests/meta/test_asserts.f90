@@ -16,7 +16,9 @@ program test_asserts
   character(len=1024) :: outmsg
   integer :: i
 
-  integer, parameter :: n_tests = 18
+  integer, parameter :: n_tests = 23
+  real(ccs_real), parameter :: rtol = 1.0e-6_ccs_real
+  real(ccs_real), parameter :: atol = 0.0_ccs_real
 
   logical, dimension(n_tests) :: res
 
@@ -57,6 +59,16 @@ program test_asserts
   call assert_ge(vec_a(3), 23, "int value too small", res(17))
   call assert_ge(rvec_a(3), 23.0_ccs_real, "real value too small", res(18))
 
+  call assert_close(1.0_ccs_real, 1.0_ccs_real, rtol, atol, "close reals are not equal", res(19))
+  call assert_close(1.0_ccs_real + 0.5e-6_ccs_real, 1.0_ccs_real, rtol, atol, &
+                    "relative tolerance was not applied", res(20))
+  call assert_close(0.5_ccs_real * epsilon(1.0_ccs_real), 0.0_ccs_real, rtol, atol, &
+                    "epsilon floor was not applied", res(21))
+  call assert_close(1.0e-12_ccs_real, 1.0e-12_ccs_real, rtol, atol, &
+                    "small close reals are not equal", res(22))
+  call assert_close([1.0_ccs_real, 2.0_ccs_real], [1.0_ccs_real, 2.0_ccs_real], rtol, atol, &
+                    "close real vectors are not equal", res(23))
+
   if (.not. all(res)) then
     outmsg = ""
     do i = 1, n_tests
@@ -92,6 +104,18 @@ program test_asserts
 
   call assert_ge(vec_a(2), 23, "int value too small", res(17))
   call assert_ge(rvec_a(2), 23.0_ccs_real, "real value too small", res(18))
+
+  call assert_close(1.0_ccs_real + 2.0e-6_ccs_real, 1.0_ccs_real, rtol, atol, &
+                    "close reals should not be equal", res(19))
+  call assert_close([1.0_ccs_real, 2.0_ccs_real + 3.0e-6_ccs_real], &
+                    [1.0_ccs_real, 2.0_ccs_real], rtol, atol, &
+                    "close real vectors should not be equal", res(20))
+  call assert_close(1.0_ccs_real, 1.0e-12_ccs_real, rtol, atol, &
+                    "large received value should not be close to a small expected value", res(21))
+  call assert_close(8.0e-7_ccs_real, 1.0e-12_ccs_real, rtol, atol, &
+                    "unit-scaled tolerance should not mask a small expected value", res(22))
+  call assert_close(2.0_ccs_real * epsilon(1.0_ccs_real), 0.0_ccs_real, rtol, atol, &
+                    "epsilon floor should not mask a larger difference", res(23))
 
   if (.not. all(.not. res)) then
     outmsg = ""

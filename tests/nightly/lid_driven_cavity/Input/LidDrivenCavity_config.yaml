@@ -1,6 +1,8 @@
 ---
 title: LidDrivenCavity
 
+mesh: 2d
+
 #  number of iterations
 iterations: 1000
 
@@ -9,12 +11,6 @@ iterations: 1000
 cps: 16
 # domain size
 L: 1.0
-
-relaxation_factor:
-  u: 0.9
-  v: 0.9
-  w: 0.9
-  p: 0.1
 
 target_residual: 1.0e-10
 
@@ -49,27 +45,36 @@ target_residual: 1.0e-10
 #output:
 #  every: 1000
 
-#post:
-#  type: center
-#  variables: [u, v, w, p]
+post:
+  type: center
+  variables: [u, v, w, p]
 
 variables:
   n_variables: 4
   variable_1:
     name: u
     type: central
+    solve: on
+    relaxation: 0.9
   variable_2:
     name: v
     type: upwind
+    solve: on
+    relaxation: 0.9
   variable_3:
     name: w
     type: upwind
+    solve: on
+    relaxation: 0.9
   variable_4:
     name: p
     type: central
+    solve: on
+    relaxation: 0.1
   variable_5:
     name: p_prime
     type: central
+    solve: off
 
 boundaries:
   n_boundaries: 6

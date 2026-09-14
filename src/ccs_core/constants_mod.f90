@@ -4,11 +4,14 @@
 
 module constants
 
-  use kinds, only: ccs_int
+  use kinds, only: ccs_int, ccs_real
 
   implicit none
 
   private
+
+  ! Mathematical constants
+  real(ccs_real), public, parameter :: pi = 4 * atan(1.0_ccs_real)
 
   ! Constants to control setting values in objects
   integer(ccs_int), public, parameter :: add_mode = 1    !< Add to existing value
@@ -37,19 +40,20 @@ module constants
   integer, public, parameter :: cell_centred_gamma = 3 !< Indicates cell centred variable (gamma scheme)
   integer, public, parameter :: cell_centred_linear_upwind = 4 !< Indicates cell centred variable (linear upwind scheme)
 
-  ! field names
-  integer(ccs_int), public, parameter :: field_u = 0
-  integer(ccs_int), public, parameter :: field_v = 1
-  integer(ccs_int), public, parameter :: field_w = 2
-  integer(ccs_int), public, parameter :: field_p = 3
-  integer(ccs_int), public, parameter :: field_p_prime = 4
-  integer(ccs_int), public, parameter :: field_mf = 5
-
   ! Constants for splitting mpi communicator
   integer, public, parameter :: ccs_split_type_shared = 0
   integer, public, parameter :: ccs_split_undefined = -1 ! Our own splits need to be negative so as to not conflict with any possible colouring used
-  integer, public, parameter :: ccs_split_type_low_high = -2 
+  integer, public, parameter :: ccs_split_type_low_high = -2
 
   integer(ccs_int), public, parameter :: ccs_string_len = 128
+
+  integer, parameter, public :: L2 = 2 !< L2 norm. Used to check residuals levels
+  integer, parameter, public :: Linfty = 0 !< L infinity norm. Used to check residuals levels
+
+  character(len=ccs_string_len), public, parameter :: default_solver = "gmres"             !< Default solver name to use when not specified per equation
+  character(len=ccs_string_len), public, parameter :: default_precon = "bjacobi"           !< Default preconditioner name to use when not specified per equation
+  character(len=ccs_string_len), public, parameter :: default_pressure_solver = "cg"       !< Default solver name to use for the pressure correction equation when not specified in the config file
+  character(len=ccs_string_len), public, parameter :: default_pressure_precon = "gamg"     !< Default preconditioner name to use for the pressure correction equation when not specified in the config file
+  integer, public, parameter :: default_res_norm = L2                                      !< Default norm to use for the residuals when not specified per equation in the config file
 
 end module constants

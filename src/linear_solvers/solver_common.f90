@@ -5,7 +5,7 @@ submodule(solver) solver_common
 contains
 
   !> Constructor for default linear system
-  module subroutine initialise_equation_system(lin_sys)
+  pure module subroutine initialise_equation_system(lin_sys)
     type(equation_system), intent(inout) :: lin_sys
 
     lin_sys%solution => null()

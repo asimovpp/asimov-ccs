@@ -1,7 +1,9 @@
 program test_compute_bc_values
 #include "ccs_macros.inc"
 
+  use ccs_base, only: bnd_names_default
   use testing_lib
+  use core
   use kinds, only: ccs_real, ccs_int
   use types, only: field, central_field, face_locator, cell_locator, neighbour_locator, vector_spec
   use utils, only: debug_print, exit_print, str, update, set_size, initialise
@@ -12,7 +14,8 @@ program test_compute_bc_values
   use meshing, only: get_local_index, create_cell_locator, count_neighbours, create_neighbour_locator, &
                      get_boundary_status, create_face_locator, get_face_normal, get_local_num_cells
   use mesh_utils, only: build_square_mesh
-  use vec, only: create_vector, set_vector_location, get_vector_data, restore_vector_data
+  use vec, only: create_vector, set_vector_location, get_vector_data, restore_vector_data, get_vector_data_readonly
+  use meshing, only: set_mesh_object, nullify_mesh_object
 
   implicit none
 
@@ -23,26 +26,31 @@ program test_compute_bc_values
   type(face_locator) :: loc_f
   type(cell_locator) :: loc_p
   type(neighbour_locator) :: loc_nb
-  type(ccs_mesh) :: mesh
   real(ccs_real), dimension(ndim) :: face_normal
   logical :: is_boundary
 
   integer(ccs_int) :: index_p
 
+  type(ccs_options) :: run_options
+  
   call init()
 
-  mesh = build_square_mesh(par_env, shared_env, cps, 1.0_ccs_real)
+  run_options%mesh%bnd_names = bnd_names_default(1:4)
+  run_options%mesh%cps = cps
+  run_options%mesh%domain_size = 1.0_ccs_real
+  mesh = build_square_mesh(par_env, shared_env, run_options)
+  call set_mesh_object(mesh)
 
   ! set locations
   index_p = 0
-  call get_local_num_cells(mesh, local_num_cells)
+  call get_local_num_cells(local_num_cells)
   do k = 1, local_num_cells
-    call create_cell_locator(mesh, k, loc_p)
+    call create_cell_locator(k, loc_p)
     call count_neighbours(loc_p, nnb)
     do j = 1, nnb
       call create_neighbour_locator(loc_p, j, loc_nb)
       call get_boundary_status(loc_nb, is_boundary)
-      call create_face_locator(mesh, k, j, loc_f)
+      call create_face_locator(k, j, loc_f)
       call get_face_normal(loc_f, face_normal)
       if (is_boundary .and. all(face_normal .eq. (/0, -1, 0/))) then
         index_p = k
@@ -63,6 +71,7 @@ program test_compute_bc_values
     call dprint("done")
   end if
 
+  call nullify_mesh_object()
   call fin()
 
 contains
@@ -89,6 +98,7 @@ contains
     call update(dirichlet_field%values)
     call allocate_bc_arrays(n_boundaries, dirichlet_field%bcs)
     call create_vector(vec_properties, dirichlet_field%values)
+    call get_vector_data_readonly(dirichlet_field%values, dirichlet_field%values_ro)
     dirichlet_field%bcs%bc_types = bc_type_dirichlet
     dirichlet_field%bcs%values = expected_bc_value
     dirichlet_field%bcs%ids = (/(j, j=1, n_boundaries)/)
@@ -119,6 +129,7 @@ contains
     allocate (central_field :: neumann_field)
     call create_vector(vec_properties, neumann_field%values)
     call update(neumann_field%values)
+    call get_vector_data_readonly(neumann_field%values, neumann_field%values_ro)
     call allocate_bc_arrays(n_boundaries, neumann_field%bcs)
     neumann_field%bcs%bc_types = bc_type_neumann
     neumann_field%bcs%values = 0.0_ccs_real
@@ -152,41 +163,43 @@ contains
     integer(ccs_int), parameter :: n_boundaries = 4
     real(ccs_real), dimension(ndim) :: face_norm
 
-    associate (mesh => loc_f%mesh)
-      call initialise(vec_properties)
-      call set_vector_location(cell, vec_properties)
-      call set_size(par_env, mesh, vec_properties)
-      allocate (central_field :: extrapolated_field)
-      call create_vector(vec_properties, extrapolated_field%values)
-      call create_vector(vec_properties, extrapolated_field%x_gradients)
-      call create_vector(vec_properties, extrapolated_field%y_gradients)
-      call create_vector(vec_properties, extrapolated_field%z_gradients)
-      call update(extrapolated_field%values)
-      call update(extrapolated_field%x_gradients)
-      call update(extrapolated_field%y_gradients)
-      call update(extrapolated_field%z_gradients)
-      call allocate_bc_arrays(n_boundaries, extrapolated_field%bcs)
-      extrapolated_field%bcs%bc_types = bc_type_extrapolate
-      extrapolated_field%bcs%ids = (/(j, j=1, n_boundaries)/)
+    call initialise(vec_properties)
+    call set_vector_location(cell, vec_properties)
+    call set_size(par_env, mesh, vec_properties)
+    allocate (central_field :: extrapolated_field)
+    call create_vector(vec_properties, extrapolated_field%values)
+    call create_vector(vec_properties, extrapolated_field%x_gradients)
+    call create_vector(vec_properties, extrapolated_field%y_gradients)
+    call create_vector(vec_properties, extrapolated_field%z_gradients)
+    call update(extrapolated_field%values)
+    call update(extrapolated_field%x_gradients)
+    call update(extrapolated_field%y_gradients)
+    call update(extrapolated_field%z_gradients)
+    call get_vector_data_readonly(extrapolated_field%values, extrapolated_field%values_ro)
+    call get_vector_data_readonly(extrapolated_field%x_gradients, extrapolated_field%x_gradients_ro)
+    call get_vector_data_readonly(extrapolated_field%y_gradients, extrapolated_field%y_gradients_ro)
+    call get_vector_data_readonly(extrapolated_field%z_gradients, extrapolated_field%z_gradients_ro)
+    call allocate_bc_arrays(n_boundaries, extrapolated_field%bcs)
+    extrapolated_field%bcs%bc_types = bc_type_extrapolate
+    extrapolated_field%bcs%ids = (/(j, j=1, n_boundaries)/)
 
-      call get_face_normal(loc_f, face_norm)
+    call get_face_normal(loc_f, face_norm)
 
-      call get_vector_data(extrapolated_field%values, extrapolated_field_data)
-      call get_vector_data(extrapolated_field%y_gradients, y_gradient_data)
-      y_gradient_data = 1.0_ccs_real / cps
-      do j = 1, local_num_cells
-        extrapolated_field_data(j) = j / cps
-      end do
-      expected_bc_value = extrapolated_field_data(index_p) - 0.5_ccs_real / cps * y_gradient_data(index_p)
-      call restore_vector_data(extrapolated_field%values, extrapolated_field_data)
+    call get_vector_data(extrapolated_field%values, extrapolated_field_data)
+    call get_vector_data(extrapolated_field%y_gradients, y_gradient_data)
+    y_gradient_data = 1.0_ccs_real / cps
+    do j = 1, local_num_cells
+      extrapolated_field_data(j) = j / cps
+    end do
+    expected_bc_value = extrapolated_field_data(index_p) - 0.5_ccs_real / cps * y_gradient_data(index_p)
+    call restore_vector_data(extrapolated_field%values, extrapolated_field_data)
 
-      call restore_vector_data(extrapolated_field%y_gradients, y_gradient_data)
+    call restore_vector_data(extrapolated_field%y_gradients, y_gradient_data)
 
-      call compute_boundary_values(extrapolated_field, component, loc_p, loc_f, face_norm, bc_val)
+    call compute_boundary_values(extrapolated_field, component, loc_p, loc_f, face_norm, bc_val)
 
-      call assert_eq(bc_val, expected_bc_value, "bc values do not match received")
-      call dprint("done extrapolated test")
-    end associate
+    call assert_eq(bc_val, expected_bc_value, "bc values do not match received")
+    call dprint("done extrapolated test")
   end subroutine check_extrapolated_bc
 
   ! ! Checks whether symmetric bcs are being computed correctly

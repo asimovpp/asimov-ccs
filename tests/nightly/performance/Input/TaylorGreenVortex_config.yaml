@@ -1,6 +1,11 @@
 ---
 title: TaylorGreenVortex
 
+# restart capability
+restart: false 
+
+# unstaedy state
+unsteady: true
 #  number of timesteps
 steps: 5
 #  number of iterations
@@ -8,17 +13,12 @@ iterations: 10
 # time step size
 dt: 1.0e-2
 
+mesh: 3d
 # Square/cubic mesh generation parameters
 # cells per side
 cps: 90
 # domain size
 L: 3.1415926535
-
-relaxation_factor:
-  u: 0.9
-  v: 0.9
-  w: 0.9
-  p: 0.1
 
 target_residual: 1.0e-10
 
@@ -56,27 +56,36 @@ viscocity : 1.0e-3
 #  v: 1.0
 #  w: 1.0
 
-#post:
-#  type: center
-#  variables: [u, v, w, p]
+post:
+  type: center
+  variables: [u, v, w, p]
 
 variables:
   n_variables: 5
   variable_1:
     name: u
     type: central
+    solve: on
+    relaxation: 0.9
   variable_2:
     name: v
     type: central
+    solve: on
+    relaxation: 0.9
   variable_3:
     name: w
     type: central
+    solve: on
+    relaxation: 0.9
   variable_4:
     name: p
     type: central
+    solve: on
+    relaxation: 0.1
   variable_5:
     name: p_prime
     type: central
+    solve: off
 
 boundaries:
   n_boundaries: 6

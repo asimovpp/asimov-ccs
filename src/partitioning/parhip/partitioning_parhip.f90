@@ -1,13 +1,14 @@
 submodule(partitioning) partitioning_parhip
 #include "ccs_macros.inc"
 
-  use kinds, only: ccs_int, ccs_real, ccs_long
+  use kinds, only: ccs_int, ccs_long
+  use types, only: topology, graph_connectivity
   use utils, only: str, debug_print
   use parallel_types_mpi, only: parallel_environment_mpi
-  use meshing, only: set_local_num_cells, get_local_num_cells, get_global_num_cells, &
-                     get_max_faces
+  use meshing, only: get_global_num_cells
   use parallel, only: is_root, is_valid, create_shared_array, destroy_shared_array, sync
- 
+  use logging, only: log_unit_out
+
   implicit none
 
   interface
@@ -38,23 +39,54 @@ contains
   !
   ! Use ParHIP library to compute a k-way vertex separator given a k-way partition of the graph.
   ! The graph can be weighted or unweighted.
-  module subroutine partition_kway(par_env, shared_env, roots_env, mesh)
+  !
+  ! High-level interface operating on the mesh object.
+  module subroutine partition_kway_mesh(par_env, mesh, partitioning_opt)
+
+    class(parallel_environment), allocatable, target, intent(in) :: par_env    !< The global parallel environment
+    type(ccs_mesh), target, intent(inout) :: mesh                              !< The mesh for which to compute the parition
+    type(partitioning_options), intent(in) :: partitioning_opt                 !< Partitioning configuration
+
+    call partition_kway_topo(par_env, mesh%topo, partitioning_opt)
+
+  end subroutine partition_kway_mesh
+
+  !v Partition the mesh
+  !
+  ! Use ParHIP library to compute a k-way vertex separator given a k-way partition of the graph.
+  ! The graph can be weighted or unweighted.
+  !
+  ! High-level interface operating on the topology object.
+  module subroutine partition_kway_topo(par_env, topo, partitioning_opt)
+
+    class(parallel_environment), allocatable, target, intent(in) :: par_env    !< The global parallel environment
+    type(topology), target, intent(inout) :: topo                              !< The mesh topology for which to compute the parition
+    type(partitioning_options), intent(in) :: partitioning_opt                 !< Partitioning configuration
+
+    call partition_kway_graph_conn(par_env, topo%graph_conn, partitioning_opt)
+
+  end subroutine partition_kway_topo
+
+  !v Partition the mesh
+  !
+  ! Use ParHIP library to compute a k-way vertex separator given a k-way partition of the graph.
+  ! The graph can be weighted or unweighted.
+  !
+  ! Performs the partitioning on the graph connectivity object.
+  module subroutine partition_kway_graph_conn(par_env, graph_conn, partitioning_opt)
 
     use mpi
     use iso_c_binding
 
     class(parallel_environment), allocatable, target, intent(in) :: par_env    !< The global parallel environment
-    class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared parallel environment
-    class(parallel_environment), allocatable, target, intent(in) :: roots_env  !< The roots of shared memory parallel environment
-    type(ccs_mesh), target, intent(inout) :: mesh                              !< The mesh for which to compute the parition
+    type(graph_connectivity), target, intent(inout) :: graph_conn              !< The graph connectivity for which to compute the parition
+    type(partitioning_options), intent(in) :: partitioning_opt                 !< Partitioning configuration
 
     ! Local variables
-    integer(ccs_long), dimension(:), pointer :: tmp_partition
-    integer :: tmp_partition_window
     integer(ccs_int) :: local_part_size
     integer(ccs_int) :: irank
-    integer(ccs_int) :: ierr
-    integer(ccs_int) :: i
+
+    integer(ccs_long) :: global_num_cells
 
     integer(c_long), dimension(:), allocatable :: vtxdist
     integer(c_long), dimension(:), allocatable :: xadj
@@ -70,28 +102,28 @@ contains
     integer(c_long), dimension(:), allocatable :: local_partition
     integer(c_int) :: comm
 
-    integer(ccs_int) :: global_num_cells
-
-    ! Values hardcoded for now
-    imbalance = 0.03  ! Desired balance - 0.03 = 3%
+    ! Values mostly hardcoded for now
+    imbalance = real(partitioning_opt%parhip%imbalance, c_double)
+    mode = int(partitioning_opt%parhip%mode, c_int)
     seed = 2022       ! "Random" seed
-    mode = 4          ! FASTSOCIAL
     suppress = 0      ! Do not suppress the output
     edgecuts = -1     ! XXX: silence unused variable warning
-
-    call get_global_num_cells(mesh, global_num_cells)
 
     irank = par_env%proc_id ! Current rank
     num_procs = par_env%num_procs
 
-    ! ParHIP needs 0-indexing - shift array contents by -1
-    allocate(vtxdist, mold=mesh%topo%vtxdist)
-    vtxdist = mesh%topo%vtxdist - 1
-    xadj = mesh%topo%xadj - 1
-    adjncy = mesh%topo%adjncy - 1
+    ! vtxdist should contain the (initial) global cell partition - the final element is global cell
+    ! count + 1
+    global_num_cells = graph_conn%vtxdist(num_procs + 1) - 1
 
-    adjwgt = mesh%topo%adjwgt
-    vwgt = mesh%topo%vwgt
+    ! ParHIP needs 0-indexing - shift array contents by -1
+    allocate (vtxdist, mold=graph_conn%vtxdist)
+    vtxdist = graph_conn%vtxdist - 1
+    xadj = graph_conn%xadj - 1
+    adjncy = graph_conn%adjncy - 1
+
+    adjwgt = graph_conn%adjwgt
+    vwgt = graph_conn%vwgt
 
     ! Set weights to 1
     adjwgt = 1_ccs_long
@@ -99,7 +131,7 @@ contains
 
     ! Number of elements in local partition array
     ! Needed for gathering loca partitions into global partition array
-    local_part_size = size(mesh%topo%local_partition)
+    local_part_size = size(graph_conn%local_partition)
 
     allocate (local_partition(local_part_size))
 
@@ -107,47 +139,25 @@ contains
     select type (par_env)
     type is (parallel_environment_mpi)
 
+      if (is_root(par_env)) then
+        write (log_unit_out, *) "Partitioning with ParHIP"
+      end if
+
       comm = par_env%comm
 
       call partition_parhipkway(vtxdist, xadj, adjncy, vwgt, adjwgt, &
                                 num_procs, imbalance, suppress, &
                                 seed, mode, edgecuts, local_partition, comm)
 
-      mesh%topo%local_partition(:) = local_partition(:)
-
-      call create_shared_array(shared_env, global_num_cells, tmp_partition, tmp_partition_window)
-
-      if (is_root(shared_env)) then
-        tmp_partition(:) = 0
-      end if
-      call sync(shared_env)
-
-      do i = 1, local_part_size
-        tmp_partition(i + vtxdist(irank + 1)) = mesh%topo%local_partition(i)
-      end do
-      call sync(shared_env)
-
-      if (is_valid(roots_env)) then
-        select type (roots_env)
-        type is (parallel_environment_mpi)
-            call MPI_AllReduce(tmp_partition, mesh%topo%global_partition, global_num_cells, &
-                              MPI_LONG, MPI_SUM, roots_env%comm, ierr)
-        class default
-          print *, "ERROR: Unknown parallel environment!"
-        end select
-      end if
+      graph_conn%local_partition(:) = local_partition(:)
 
     class default
-      print *, "ERROR: Unknown parallel environment!"
+      write (log_unit_out, *) "ERROR: Unknown parallel environment!"
     end select
 
     call dprint("Number of edgecuts: " // str(edgecuts))
 
-    call sync(shared_env)
-
-    call destroy_shared_array(shared_env, tmp_partition, tmp_partition_window)
-
-  end subroutine partition_kway
+  end subroutine partition_kway_graph_conn
 
   !v Compute the input arrays for the partitioner
   !

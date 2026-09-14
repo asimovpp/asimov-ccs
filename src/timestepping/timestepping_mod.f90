@@ -3,8 +3,9 @@
 !  Provides the interface for timestepping methods.
 module timestepping
 
+  use transient_kernels, only: transient_kernel
   use kinds, only: ccs_real, ccs_int
-  use types, only: field, ccs_mesh, ccs_vector, ccs_matrix, vector_spec
+  use types, only: field, ccs_vector, ccs_matrix, vector_spec
 
   implicit none
 
@@ -22,11 +23,11 @@ module timestepping
   public :: finalise_timestep
   public :: reset_timestepping
   public :: get_theoretical_order
+  public :: timestepping_is_active
 
   interface
     !> Apply one timestep correction
-    module subroutine apply_timestep(mesh, phi, diag, M, b)
-      type(ccs_mesh), intent(in) :: mesh !< mesh object
+    module subroutine apply_timestep(phi, diag, M, b)
       class(field), intent(inout) :: phi !< flow variable
       class(ccs_vector), intent(inout) :: diag !< preallocated vector with the same size as M diagonal
       class(ccs_matrix), intent(inout) :: M !< equation system
@@ -42,7 +43,7 @@ module timestepping
     end subroutine reset_timestepping
 
     !> Returns the expected theoretical order of the method
-    module subroutine get_theoretical_order(order)
+    pure module subroutine get_theoretical_order(order)
       real(ccs_real), intent(out) :: order
     end subroutine
 
@@ -57,12 +58,12 @@ module timestepping
     end function
 
     !> Get the current (time)step, i.e. an integer
-    module subroutine get_current_step(step)
+    pure module subroutine get_current_step(step)
       integer(ccs_int), intent(out) :: step
     end subroutine
 
     !> Get the current time
-    module subroutine get_current_time(time)
+    pure module subroutine get_current_time(time)
       real(ccs_real), intent(out) :: time
     end subroutine
 
@@ -87,7 +88,7 @@ module timestepping
     end subroutine
 
     !> Check whether timestepping is active
-    module function timestepping_is_active() result(active)
+    pure module function timestepping_is_active() result(active)
       logical :: active
     end function
 
@@ -110,28 +111,9 @@ module timestepping
       class(field), intent(inout) :: x
     end subroutine
 
-    !> Apply first order timestep correction
-    module subroutine apply_timestep_first_order(mesh, phi, diag, M, b)
-      type(ccs_mesh), intent(in) :: mesh !< mesh object
-      class(field), intent(inout) :: phi !< flow variable
-      class(ccs_vector), intent(inout) :: diag !< preallocated vector with the same size as M diagonal
-      class(ccs_matrix), intent(inout) :: M !< equation system
-      class(ccs_vector), intent(inout) :: b !< rhs vector
-    end subroutine
-
-    !> Apply second order timestep correction
-    module subroutine apply_timestep_second_order(mesh, phi, diag, M, b)
-      type(ccs_mesh), intent(in) :: mesh !< mesh object
-      class(field), intent(inout) :: phi !< flow variable
-      class(ccs_vector), intent(inout) :: diag !< preallocated vector with the same size as M diagonal
-      class(ccs_matrix), intent(inout) :: M !< equation system
-      class(ccs_vector), intent(inout) :: b !< rhs vector
-    end subroutine
-
-    !> Apply mixed order timestep correction (theta scheme)
-    module subroutine apply_timestep_theta(mesh, theta, phi, diag, M, b)
-      type(ccs_mesh), intent(in) :: mesh !< mesh object
-      real(ccs_real), intent(in) :: theta !< timestepping scheme mixing factor
+    !> Apply time scheme from kernel
+    module subroutine apply_timestep_kernel(transient, phi, diag, M, b)
+      class(transient_kernel), intent(inout) :: transient ! The transient kernel
       class(field), intent(inout) :: phi !< flow variable
       class(ccs_vector), intent(inout) :: diag !< preallocated vector with the same size as M diagonal
       class(ccs_matrix), intent(inout) :: M !< equation system

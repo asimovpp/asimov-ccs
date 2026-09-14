@@ -5,7 +5,7 @@
 module read_config
 
   use kinds, only: ccs_real, ccs_int
-  use types, only: bc_config, field
+  use types, only: field, solver_params
   use constants, only: ccs_string_len
 
   implicit none
@@ -29,7 +29,11 @@ module read_config
   public :: get_variable_types
   public :: get_bc_field
   public :: get_boundary_count
+  public :: get_boundary_names
   public :: get_store_residuals
+  public :: get_enable_cell_corrections
+  public :: get_solver_eq_parameters
+  public :: get_parhip_options
 
   interface get_value
     module procedure get_integer_value
@@ -41,10 +45,12 @@ module read_config
   interface
 
     !> Gets the integer value associated with the keyword from dict
-    module subroutine get_integer_value(dict, keyword, int_val)
+    module subroutine get_integer_value(dict, keyword, int_val, value_present, required)
       class(*), pointer, intent(in) :: dict     !< The dictionary
       character(len=*), intent(in) :: keyword   !< The key
-      integer, intent(out) :: int_val           !< The corresponding value
+      integer, intent(inout) :: int_val           !< The corresponding value
+      logical, intent(out), optional :: value_present !< Indicates whether the key-value pair is present in the dictionary
+      logical, intent(in), optional :: required         !< Flag indicating whether the value is required. Absence implies not required
     end subroutine
 
     !v Gets the real value specified by the keyword from the dictionary. Returns a flag indicating
@@ -53,8 +59,8 @@ module read_config
     module subroutine get_real_value(dict, keyword, real_val, value_present, required)
       class(*), pointer, intent(in) :: dict            !< The dictionary to read from
       character(len=*), intent(in) :: keyword          !< The key to read
-      real(ccs_real), intent(out) :: real_val          !< The value read from the dictionary
-      logical, intent(inout), optional :: value_present !< Indicates whether the key-value pair is present in the dictionary
+      real(ccs_real), intent(inout) :: real_val          !< The value read from the dictionary
+      logical, intent(out), optional :: value_present !< Indicates whether the key-value pair is present in the dictionary
       logical, intent(in), optional :: required         !< Flag indicating whether the value is required. Absence implies not required
     end subroutine
 
@@ -62,8 +68,8 @@ module read_config
     module subroutine get_string_value(dict, keyword, string_val, value_present, required)
       class(*), pointer, intent(in) :: dict                       !< The dictionary
       character(len=*), intent(in) :: keyword                     !< The key
-      character(len=:), allocatable, intent(inout) :: string_val  !< The corresponding value
-      logical, intent(inout), optional :: value_present           !< Indicates whether the key-value pair is present in the dictionary
+      character(len=:), allocatable, intent(out) :: string_val  !< The corresponding value
+      logical, intent(out), optional :: value_present           !< Indicates whether the key-value pair is present in the dictionary
       logical, optional, intent(in) :: required                   !< Flag indicating whether result is required. Absence implies not required.
     end subroutine
 
@@ -72,9 +78,16 @@ module read_config
       class(*), pointer, intent(in) :: dict                       !< The dictionary
       character(len=*), intent(in) :: keyword                     !< The key
       logical, intent(inout) :: logical_val !< The corresponding value
-      logical, intent(inout), optional :: value_present           !< Indicates whether the key-value pair is present in the dictionary
-      logical, optional, intent(in) :: required                   !< Flag indicating whether result is required. Absence implies not required.
+      logical, intent(out), optional :: value_present           !< Indicates whether the key-value pair is present in the dictionary
+      logical, intent(in), optional :: required                   !< Flag indicating whether result is required. Absence implies not required.
     end subroutine
+
+    !v Get options specific to the ParHIP partitioner
+    module subroutine get_parhip_options(config_file, imbalance, mode)
+      class(*), pointer, intent(in) :: config_file
+      real(ccs_real), intent(inout) :: imbalance
+      integer(ccs_int), intent(inout) :: mode
+    end subroutine get_parhip_options
 
     !v Get the name of the test case
     !
@@ -120,15 +133,10 @@ module read_config
     !
     !  By default, all variables will be solved. Using this
     !  "solve" keyword, the user can specifically request that
-    !  certain variables will not be solved by setting in to "off"
-    !
-    !  @todo extend list of variables
-    module subroutine get_solve(config_file, u_sol, v_sol, w_sol, p_sol)
+    !  certain variables will not be solved by setting it to "off"
+    module subroutine get_solve(config_file, solved_variables)
       class(*), pointer, intent(in) :: config_file                      !< the entry point to the config file
-      character(len=:), allocatable, optional, intent(inout) :: u_sol   !< solve u on/off
-      character(len=:), allocatable, optional, intent(inout) :: v_sol   !< solve v on/off
-      character(len=:), allocatable, optional, intent(inout) :: w_sol   !< solve w on/off
-      character(len=:), allocatable, optional, intent(inout) :: p_sol   !< solve p on/off
+      character(len=ccs_string_len), dimension(:), allocatable, intent(out) :: solved_variables
     end subroutine
 
     !v Get solvers to be used
@@ -213,8 +221,8 @@ module read_config
     !> Get output type variables
     module subroutine get_output_type(config_file, post_type, post_vars)
       class(*), pointer, intent(in) :: config_file                !< the entry point to the config file
-      character(len=:), allocatable, intent(inout) :: post_type   !< values at cell centres or cell vertices?
-      character(len=2), dimension(10), intent(inout) :: post_vars !< variables to be written out
+      character(len=:), allocatable, intent(out) :: post_type   !< values at cell centres or cell vertices?
+      character(len=ccs_string_len), dimension(:), allocatable, intent(out) :: post_vars !< variables to be written out
     end subroutine
 
     !> Gets the specified field value from the config file and writes to given bcs struct
@@ -237,15 +245,33 @@ module read_config
     end subroutine
 
     !> Gets the number of boundaries
-    module subroutine get_boundary_count(filename, n_boundaries)
-      character(len=*), intent(in) :: filename      !< name of the config file
+    module subroutine get_boundary_count(config_file, n_boundaries)
+      class(*), pointer, intent(in) :: config_file                            !< pointer to configuration file
       integer(ccs_int), intent(out) :: n_boundaries !< number of boundaries
-    end subroutine
+    end subroutine get_boundary_count
 
-    !> Gets wether residuals should be stored or not
+    !> Gets the names of boundaries
+    module subroutine get_boundary_names(config_file, bnd_names)
+      class(*), pointer, intent(in) :: config_file                            !< pointer to configuration file
+      character(len=128), dimension(:), allocatable, intent(out) :: bnd_names !< List of boundary names
+    end subroutine get_boundary_names
+
+    !> Gets whether residuals should be stored or not
     module subroutine get_store_residuals(filename, store_residuals)
       character(len=*), intent(in) :: filename
       logical, intent(out) :: store_residuals
     end subroutine
+
+    !> Gets whether cell corrections (non orthogonality, excentricity etc.) should be used
+    module subroutine get_enable_cell_corrections(filename, enable_cell_corrections)
+      character(len=*), intent(in) :: filename
+      logical, intent(out) :: enable_cell_corrections
+    end subroutine
+
+    module subroutine get_solver_eq_parameters(config_file, solver_parameters)
+      class(*), pointer, intent(in) :: config_file                      !< the entry point to the config file
+      type(solver_params), dimension(:), allocatable, intent(out) :: solver_parameters !< Solver parameters to write to
+    end subroutine
+
   end interface
 end module read_config

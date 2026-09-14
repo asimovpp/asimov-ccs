@@ -6,13 +6,16 @@
 !  @build petsc
 submodule(vec) vec_petsc
 #include "ccs_macros.inc"
+#include <petscversion.h>
 
   use kinds, only: ccs_err
-  use petsctypes, only: vector_petsc
+  use petsctypes, only: vector_petsc, destroy_vector_petsc
   use parallel_types_mpi, only: parallel_environment_mpi
   use constants, only: cell, face
   use petsc, only: ADD_VALUES, INSERT_VALUES, SCATTER_FORWARD
-  use utils, only: debug_print, exit_print, str
+  use utils, only: exit_print, str
+  use error_codes
+  use logging, only: log_unit_out
 
   implicit none
 
@@ -23,8 +26,7 @@ contains
 
     use petsc, only: PETSC_DECIDE, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE
     use petscvec, only: VecCreateGhost, VecSetSizes, VecSetFromOptions, VecSet, VecSetOption, &
-                        VecCreate
-
+                        VecCreate, VecSetOptionsPrefix
     use meshing, only: get_local_num_cells, get_halo_num_cells, get_num_faces
 
     type(vector_spec), intent(in) :: vec_properties     !< the data describing how the vector should be created.
@@ -53,8 +55,8 @@ contains
 
           select case (vec_properties%storage_location)
           case (cell)
-            call get_local_num_cells(mesh, nlocal)
-            call get_halo_num_cells(mesh, nhalo)
+            call get_local_num_cells(nlocal)
+            call get_halo_num_cells(nhalo)
             associate (idx_global => mesh%topo%global_indices)
               allocate (global_halo_indices(nhalo))
               do i = 1, nhalo
@@ -69,13 +71,15 @@ contains
             ! Vector has ghost points, store this information
             v%ghosted = .true.
           case (face)
-            call get_num_faces(mesh, num_faces)
+            call get_num_faces(num_faces)
 
             call VecCreate(par_env%comm, v%v, ierr)
             call VecSetSizes(v%v, num_faces, PETSC_DECIDE, ierr)
 
             ! Vector doesn't have ghost points, store this information
             v%ghosted = .false.
+          case default
+            call error_abort("Invalid storage location for vector")
           end select
         end associate
 
@@ -99,18 +103,31 @@ contains
 
   end subroutine
 
+  !> Destroy a PETSc-backed vector.
+  module subroutine destroy_vector(v)
+
+    class(ccs_vector), intent(inout) :: v
+
+    select type (v)
+    type is (vector_petsc)
+      call destroy_vector_petsc(v)
+    class default
+      call error_abort("Unknown vector type.")
+    end select
+
+  end subroutine destroy_vector
+
   !> Sets values in a PETSc vector
   module subroutine set_vector_values(val_dat, v)
 
-    use petsc, only: VecSetValues
-
+    use petsc, only: VecSetValues, eInsertMode
     use constants, only: insert_mode, add_mode
 
     class(*), intent(in) :: val_dat         !< contains the values, their indices and the mode to use for setting them.
     class(ccs_vector), intent(inout) :: v   !< the PETSc vector.
 
     integer(ccs_int) :: n    ! Number of elements to add
-    integer(ccs_int) :: mode ! Append or insert mode
+    type(eInsertMode) :: mode ! Append or insert mode
     integer(ccs_err) :: ierr ! Error code
 
     select type (v)
@@ -122,7 +139,7 @@ contains
         ! First check if safe to set
         if (v%modeset) then
           if (val_dat%setter_mode /= v%mode) then
-            print *, ""
+            write (log_unit_out, *) ""
             call error_abort("ERROR: trying to set vector using different mode without updating.")
           end if
         else
@@ -225,7 +242,7 @@ contains
   !v Begin a ghost update of a PETSc vector
   !
   !  Begins the ghost update to allow overlapping comms and compute
-  subroutine begin_ghost_update_vector(v)
+  module subroutine begin_ghost_update_vector(v)
 
     use petsc, only: VecGhostUpdateBegin
 
@@ -246,12 +263,12 @@ contains
 
     end select
 
-  end subroutine
+  end subroutine begin_ghost_update_vector
 
   !v End a ghost update of a PETSc vector.
   !
   !  Ends the ghost update to allow overlapping comms and compute.
-  subroutine end_ghost_update_vector(v)
+  module subroutine end_ghost_update_vector(v)
 
     use petsc, only: VecGhostUpdateEnd
 
@@ -266,6 +283,31 @@ contains
         ! Cant update ghosts if not ghost points.
         call VecGhostUpdateEnd(v%v, INSERT_VALUES, SCATTER_FORWARD, ierr)
       end if
+
+    class default
+      call error_abort("Unknown vector type.")
+
+    end select
+
+  end subroutine end_ghost_update_vector
+
+  !v Perform the 'shift' vector operation using PETSc (aka APY)
+  !
+  !          y[i] = alpha + y[i]
+  module subroutine vec_shift(alpha, y)
+
+    use petscvec, only: VecSHIFT
+
+    real(ccs_real), intent(in) :: alpha     !< a scalar value
+    class(ccs_vector), intent(inout) :: y   !< PETSc vector serving as input, overwritten with result
+
+    integer(ccs_err) :: ierr ! Error code
+
+    select type (y)
+    type is (vector_petsc)
+
+      ! PETSc performs alpha+Y with result stored in Y.
+      call VecSHIFT(y%v, alpha, ierr)
 
     class default
       call error_abort("Unknown vector type.")
@@ -341,6 +383,22 @@ contains
 
   end subroutine
 
+  !> Compute the element-wise sum of a PETSc vector
+  module subroutine vec_sum(v, sum)
+    class(ccs_vector), intent(in) :: v
+    real(ccs_real), intent(out) :: sum
+
+    integer(ccs_err) :: ierr
+
+    select type (v)
+    type is (vector_petsc)
+      call VecSum(v%v, sum, ierr)
+    class default
+      call error_abort("Should be unreachable.")
+    end select
+
+  end subroutine
+
   !> Compute the norm of a PETSc vector
   module function vec_norm(v, norm_type) result(n)
 
@@ -372,7 +430,7 @@ contains
 
   end function
 
-  module subroutine clear_vector_values_entries(val_dat)
+  pure module subroutine clear_vector_values_entries(val_dat)
     type(vector_values), intent(inout) :: val_dat
 
     val_dat%global_indices(:) = -1 ! PETSc ignores -ve indices, used as "empty" indicator
@@ -380,7 +438,7 @@ contains
 
   end subroutine clear_vector_values_entries
 
-  module subroutine set_vector_values_row(row, val_dat)
+  pure module subroutine set_vector_values_row(row, val_dat)
     integer(ccs_int), intent(in) :: row
     type(vector_values), intent(inout) :: val_dat
 
@@ -400,7 +458,7 @@ contains
       idxs = findloc(val_dat%global_indices, -1_ccs_int, kind=ccs_int)
       i = idxs(1) ! We want the first entry
       if (i == 0) then
-        call error_abort("ERROR: Couldn't find a free entry in vector values.")
+        error stop no_free_entry ! Couldn't find a free entry in vector values
       end if
     end if
 
@@ -411,7 +469,7 @@ contains
 
   !> Gets the data in a given vector with possibility to overwrite the data.
   module subroutine get_vector_data(vec, array)
-    use petscvec, only: VecGhostGetLocalForm, VecGetArrayF90
+    use petscvec, only: VecGhostGetLocalForm, VecGetArray
     class(ccs_vector), intent(inout) :: vec !< the vector to get data from
     real(ccs_real), dimension(:), pointer, intent(out) :: array !< an array to store the data in
     integer :: ierr
@@ -428,9 +486,9 @@ contains
 
       if (vec%ghosted) then
         call VecGhostGetLocalForm(vec%v, vec%v_local, ierr)
-        call VecGetArrayF90(vec%v_local, array, ierr)
+        call VecGetArray(vec%v_local, array, ierr)
       else
-        call VecGetArrayF90(vec%v, array, ierr)
+        call VecGetArray(vec%v, array, ierr)
       end if
 
       vec%checked_out = .true.
@@ -441,8 +499,7 @@ contains
 
   !> Resets the vector data if required for further processing
   module subroutine restore_vector_data(vec, array)
-    use petscvec, only: VecRestoreArrayF90, VecGhostRestoreLocalForm
-
+    use petscvec, only: VecRestoreArray, VecGhostRestoreLocalForm
     class(ccs_vector), intent(inout) :: vec !< the vector to reset
     real(ccs_real), dimension(:), pointer, intent(in) :: array !< the array containing the data to restore
 
@@ -455,10 +512,10 @@ contains
       end if
 
       if (vec%ghosted) then
-        call VecRestoreArrayF90(vec%v_local, array, ierr)
+        call VecRestoreArray(vec%v_local, array, ierr)
         call VecGhostRestoreLocalForm(vec%v, vec%v_local, ierr)
       else
-        call VecRestoreArrayF90(vec%v, array, ierr)
+        call VecRestoreArray(vec%v, array, ierr)
       end if
 
       vec%checked_out = .false.
@@ -470,7 +527,7 @@ contains
 
   !> Gets the data in a given vector with readonly access.
   module subroutine get_vector_data_readonly(vec, array)
-    use petscvec, only: VecGhostGetLocalForm, VecGetArrayReadF90
+    use petscvec, only: VecGhostGetLocalForm, VecGetArrayRead
     class(ccs_vector), intent(inout) :: vec !< the vector to get data from
     real(ccs_real), dimension(:), pointer, intent(out) :: array !< an array to store the data in
     integer :: ierr
@@ -479,9 +536,9 @@ contains
     type is (vector_petsc)
       if (vec%ghosted) then
         call VecGhostGetLocalForm(vec%v, vec%v_local, ierr)
-        call VecGetArrayReadF90(vec%v_local, array, ierr)
+        call VecGetArrayRead(vec%v_local, array, ierr)
       else
-        call VecGetArrayReadF90(vec%v, array, ierr)
+        call VecGetArrayRead(vec%v, array, ierr)
       end if
     class default
       call error_abort('Invalid vector type.')
@@ -490,8 +547,7 @@ contains
 
   !> Resets the vector data with readonly access.
   module subroutine restore_vector_data_readonly(vec, array)
-    use petscvec, only: VecRestoreArrayReadF90, VecGhostRestoreLocalForm
-
+    use petscvec, only: VecRestoreArrayRead, VecGhostRestoreLocalForm
     class(ccs_vector), intent(inout) :: vec !< the vector to reset
     real(ccs_real), dimension(:), pointer, intent(in) :: array !< the array containing the data to restore
 
@@ -500,10 +556,10 @@ contains
     select type (vec)
     type is (vector_petsc)
       if (vec%ghosted) then
-        call VecRestoreArrayReadF90(vec%v_local, array, ierr)
+        call VecRestoreArrayRead(vec%v_local, array, ierr)
         call VecGhostRestoreLocalForm(vec%v, vec%v_local, ierr)
       else
-        call VecRestoreArrayReadF90(vec%v, array, ierr)
+        call VecRestoreArrayRead(vec%v, array, ierr)
       end if
     class default
       call error_abort('Invalid vector type.')
@@ -584,67 +640,49 @@ contains
 
   end subroutine
 
-  !> PETSc implementation to get vector data in natural ordering
-  module subroutine get_natural_data_vec(par_env, mesh, v, data)
+  module subroutine reorder_data_vec(par_env, data_from, idx_to, data_to)
 
     use petsc, only: PETSC_DECIDE
-    use petscvec, only: tVec, &
-                        VecCreate, VecSetSizes, VecSetFromOptions, &
+    use petscvec, only: tVec, VecCreate, VecSetSizes, VecSetFromOptions, &
                         VecSetValues, VecAssemblyBegin, VecAssemblyEnd, &
-                        VecGetArrayReadF90, VecRestoreArrayReadF90, &
+                        VecGetArrayRead, VecRestoreArrayRead, &
                         VecDestroy
 
     class(parallel_environment), intent(in) :: par_env
-    type(ccs_mesh), intent(in) :: mesh
-    class(ccs_vector), intent(inout) :: v
-    real(ccs_real), dimension(:), allocatable, intent(out) :: data !< The returned vector data in
-    !< natural ordering. Note the use
-    !< of allocatable + intent(out),
-    !< this ensures it will be
-    !< de/reallocated by this subroutine.
+    real(ccs_real), dimension(:), intent(in) :: data_from
+    integer(ccs_int), dimension(:), intent(in) :: idx_to
+    real(ccs_real), dimension(:), intent(out) :: data_to
 
-    real(ccs_real), dimension(:), pointer :: vec_data ! The data stored in the vector
+    integer(ccs_int) :: nlocal_out, nlocal_in
 
+    real(ccs_real), dimension(:), pointer :: data_tmp
     type(tVec) :: vec_tmp
-
     integer(ccs_err) :: ierr
 
-    associate (topo => mesh%topo, &
-               local_num_cells => mesh%topo%local_num_cells)
+    nlocal_out = size(data_to)
+    nlocal_in = size(data_from)
 
-      ! Create temporary vector to hold the shuffled data
-      select type (par_env)
-      type is (parallel_environment_mpi)
-        call VecCreate(par_env%comm, vec_tmp, ierr)
-      class default
-        call error_abort("Only MPI parallel environments currently supported!")
-      end select
-      call VecSetSizes(vec_tmp, local_num_cells, PETSC_DECIDE, ierr)
-      call VecSetFromOptions(vec_tmp, ierr)
+    ! XXX: This would be better with VecCreateMPIWithArray, however the Fortran interface is
+    !      missing...
+    select type (par_env)
+    type is (parallel_environment_mpi)
+      call VecCreate(par_env%comm, vec_tmp, ierr)
+    class default
+      call error_abort("Only MPI parallel environments currently supported")
+    end select
+    call VecSetSizes(vec_tmp, nlocal_out, PETSC_DECIDE, ierr)
+    call VecSetFromOptions(vec_tmp, ierr)
 
-      ! Copy local data into temporary vector, inserting values at natural index locations
-      call get_vector_data(v, vec_data)
-      call VecSetValues(vec_tmp, local_num_cells, topo%natural_indices(1:local_num_cells) - 1, &
-                        vec_data(1:local_num_cells), INSERT_VALUES, ierr)
-      call VecAssemblyBegin(vec_tmp, ierr)
-      call VecAssemblyEnd(vec_tmp, ierr)
-      call restore_vector_data(v, vec_data)
+    call VecSetValues(vec_tmp, nlocal_in, idx_to(1:nlocal_in) - 1, data_from, INSERT_VALUES, ierr)
+    call VecAssemblyBegin(vec_tmp, ierr)
+    call VecAssemblyEnd(vec_tmp, ierr)
 
-      ! Extract natural-indexed data into data array and return
-      call VecGetArrayReadF90(vec_tmp, vec_data, ierr)
-      if (allocated(data)) then ! Really shouldn't happen
-        deallocate (data)
-      end if
-      allocate (data(local_num_cells))
-      data(1:local_num_cells) = vec_data(1:local_num_cells)
-      call VecRestoreArrayReadF90(vec_tmp, vec_data, ierr)
+    call VecGetArrayRead(vec_tmp, data_tmp, ierr)
+    data_to(1:nlocal_out) = data_tmp(1:nlocal_out)
+    call VecRestoreArrayRead(vec_tmp, data_tmp, ierr)
+    call VecDestroy(vec_tmp, ierr)
 
-      ! Clean up
-      call VecDestroy(vec_tmp, ierr)
-
-    end associate
-
-  end subroutine get_natural_data_vec
+  end subroutine reorder_data_vec
 
 !   module subroutine vec_view(vec_properties, vec)
 

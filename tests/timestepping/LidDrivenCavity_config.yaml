@@ -1,49 +1,100 @@
 ---
 title: LidDrivenCavity
+# restart capability
+restart: false
 
-# ---- setup 1 - normal LDC
-# "steps" - currently the number of iterations
-#iterations: 10
-#
-#relaxation_factor:
-#  u: 0.9
-#  v: 0.9
-#  p: 0.1
-#
-#target_residual: 1.0e-10
+# unstaedy state
+unsteady: false
 
-# ---- setup 2 - pure timestepping
-#  number of iterations
+#  number of steady iterations
 iterations: 10
 
-relaxation_factor:
-  u: 0.9
-  v: 0.9
-  w: 0.9
-  p: 0.1
+#  number of timesteps
+steps: 5
+# time step size
+dt: 0.01
+
+# Frequency (in terms of timesteps) of writing solution to file
+write_frequency: 5
+
+mesh: 2d
+# Square/cubic mesh generation parameters
+# cells per side
+cps: 5
+# domain size
+L: 1.0
 
 target_residual: 1.0e-10
 
+#compute_partqual: false
+#compute_bwidth: false
+
+### VALUES BELOW THIS POINT ARE NOT CURRENTLY USED
+
+#reference_numbers:
+#    pressure: 101325.0
+#    temperature: 289.0
+#    density: 1.0
+#    viscosity: 1.0e-03
+#    pref_at_cell: 4096
+
+#solve:
+#  w: off
+
+#init: 
+#  type: user
+
+#monitor_cell: 1990
+
+# 1 = central
+#convection_scheme:
+#  u: 1 
+#  v: 1
+#  w: 1
+
+#blending_factor:
+#  u: 1.0
+#  v: 1.0
+#  w: 1.0
+  
+#output:
+#  every: 1000
+
+post:
+  type: center
+  variables: [u, v, w, p]
+
 variables:
-  n_variables: 4
+  store_residuals: false
+  enable_cell_corrections: false
+  n_variables: 5
   variable_1:
     name: u
     type: central
+    solve: on
+    relaxation: 0.9
   variable_2:
     name: v
     type: upwind
+    solve: on
+    relaxation: 0.9
   variable_3:
     name: w
     type: upwind
+    solve: on
+    relaxation: 0.9
   variable_4:
     name: p
     type: central
-  variable_4:
+    solve: on
+    relaxation: 0.1
+  variable_5:
     name: p_prime
     type: central
+    solve: off
 
 boundaries:
-  n_boundaries: 6
+  n_boundaries: 4
   boundary_1: 
     name: left
     type: dirichlet
@@ -51,7 +102,8 @@ boundaries:
     variable_p:
       type: extrapolate
     variable_p_prime:
-      type: extrapolate
+      type: neumann
+      value: 0
   boundary_2:
     name: right
     type: dirichlet
@@ -59,7 +111,8 @@ boundaries:
     variable_p:
       type: extrapolate
     variable_p_prime:
-      type: extrapolate
+      type: neumann
+      value: 0
   boundary_3:
     name: bottom
     type: dirichlet
@@ -67,7 +120,8 @@ boundaries:
     variable_p:
       type: extrapolate
     variable_p_prime:
-      type: extrapolate
+      type: neumann
+      value: 0
   boundary_4:
     name: top
     type: dirichlet
@@ -78,12 +132,19 @@ boundaries:
     variable_p:
       type: extrapolate
     variable_p_prime:
-      type: extrapolate
+      type: neumann
+      value: 0
   boundary_5:
     name: back
     type: neumann
     value: 0
+    variable_w:
+      type: dirichlet
+      value: 0
   boundary_6:
     name: front
     type: neumann
     value: 0
+    variable_w:
+      type: dirichlet
+      value: 0

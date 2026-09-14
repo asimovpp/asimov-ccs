@@ -1,23 +1,27 @@
 ---
 title: TaylorGreenVortex2D
 
-#  number of timesteps
-steps: 5
+# restart capability
+restart: false 
+
+# unstaedy state
+unsteady: true
+
 #  number of iterations
 iterations: 5
+
+#  number of timesteps
+steps: 5
+
 # time step size
 dt: 0.01
 
+mesh: 2d
 # Square/cubic mesh generation parameters
 # cells per side
 cps: 16
 # domain size
 L: 3.1415926535
-
-relaxation_factor:
-  u: 0.9
-  v: 0.9
-  p: 0.1
 
 target_residual: 1.0e-10
 
@@ -25,7 +29,13 @@ target_residual: 1.0e-10
 write_frequency: 5
 
 # Fluid properties
-viscocity : 1.0e-3
+viscosity : 1.0e-3
+
+# Report partition quality (true/false)
+compute_partqual : false
+
+# Compute matrix bandwidth (true/false)
+compute_bwidth : false
 
 ### VALUES BELOW THIS POINT ARE NOT CURRENTLY USED
 
@@ -55,25 +65,38 @@ viscocity : 1.0e-3
 #  v: 1.0
 #  w: 1.0
 
-#post:
-#  type: center
-#  variables: [u, v, w, p]
+post:
+  type: center
+  variables: [u, v, w, p]
 
 variables:
   store_residuals: false
-  n_variables: 4
+  enable_cell_corrections: false
+  n_variables: 5
   variable_1:
     name: u
     type: central
+    solve: on
+    relaxation: 0.9
   variable_2:
     name: v
     type: central
+    solve: on
+    relaxation: 0.9
   variable_3:
+    name: w
+    type: central
+    solve: on
+    relaxation: 0.9
+  variable_4:
     name: p
     type: central
-  variable_4:
+    solve: on
+    relaxation: 0.1
+  variable_5:
     name: p_prime
     type: central
+    solve: off
 
 boundaries:
   n_boundaries: 4

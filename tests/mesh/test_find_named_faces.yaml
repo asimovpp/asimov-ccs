@@ -1,0 +1,6 @@
+# RUN: %build_test %s %t1 test_find_named_faces.f90
+# RUN: %mpirun -n 1 %t1
+
+main: test_find_named_faces
+base: mpi_petsc
+extra: parhip

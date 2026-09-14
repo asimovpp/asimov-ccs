@@ -1,0 +1,9 @@
+[project]
+name = "ccs-fv-schemes-refs"
+version = "0.1.0"
+description = "Reference generator for CCS finite-volume distorted-grid tests"
+requires-python = ">=3.10"
+dependencies = [
+  "numpy",
+  "sympy",
+]

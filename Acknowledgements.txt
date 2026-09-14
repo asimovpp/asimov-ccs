@@ -1,1 +1,7 @@
 This software was developed as part of the EPSRC funded project ASiMoV (Project ID: EP/S005072/1)
+
+ASiMoV-CCS has been developed as a new code, during the development we have used the Dolfyn CFD code
+[1] and Ferziger & Peric's textbook [2] as references.
+
+[1] Dolfyn CFD https://code.launchpad.net/dolfyn-cfd
+[2] Ferziger, J.H. & Peric, M., "Computational methods for fluid dynamics" (2002)

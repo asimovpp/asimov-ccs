@@ -1,15 +1,65 @@
+module timestepping_common_types
+
+  use kinds, only: ccs_real, ccs_int
+
+  implicit none
+
+  private
+  public :: ptr_handle
+
+  ! Small type used to enable creating an array of data pointers, this allows the timestep
+  ! application to be implemented more generically across arbitrary transient stencil
+  ! widths. Additionally this allows for data hiding.
+  type ptr_handle
+    private
+    real(ccs_real), dimension(:), pointer :: data => null()
+  contains
+    procedure :: read => read_ptr_handle
+    procedure :: get_pointer
+    procedure :: set_pointer
+  end type ptr_handle
+
+contains
+
+  pure real(ccs_real) function read_ptr_handle(self, idx) result(val)
+    class(ptr_handle), intent(in) :: self
+    integer(ccs_int), intent(in) :: idx
+
+    val = self%data(idx)
+
+  end function read_ptr_handle
+
+  function get_pointer(self) result(ptr)
+    class(ptr_handle), intent(in) :: self
+    real(ccs_real), dimension(:), pointer :: ptr
+
+    ptr => self%data
+  end function get_pointer
+
+  subroutine set_pointer(self, ptr)
+    class(ptr_handle), intent(out) :: self
+    real(ccs_real), dimension(:), pointer :: ptr
+
+    self%data => ptr
+  end subroutine set_pointer
+
+end module timestepping_common_types
+
 submodule(timestepping) timestepping_common
 #include "ccs_macros.inc"
 
   use meshing, only: get_local_num_cells, create_cell_locator, get_volume
+  use transient_kernels, only: transient_kernel
   use types, only: cell_locator
   use utils, only: exit_print
+
+  use timestepping_common_types, only: ptr_handle
 
   implicit none
 
   logical :: timestepping_active = .false. !< flag to signify whether timestepping should occur
   logical :: timestep_is_set = .false. !< flag to signify whether dt has already been set
-  real(ccs_real) :: dt !< timestep size
+  real(ccs_real) :: dt = huge(0.0_ccs_real) !< timestep size
   integer(ccs_int) :: current_step = 0
 
 contains
@@ -18,7 +68,7 @@ contains
     timestepping_active = .true.
   end subroutine
 
-  module function timestepping_is_active() result(active)
+  pure module function timestepping_is_active() result(active)
     logical :: active
     active = timestepping_active
   end function
@@ -57,7 +107,7 @@ contains
 
   end function
 
-  module subroutine get_current_step(step)
+  pure module subroutine get_current_step(step)
 
     integer(ccs_int), intent(out) :: step
 
@@ -69,7 +119,7 @@ contains
 
   end subroutine
 
-  module subroutine get_current_time(time)
+  pure module subroutine get_current_time(time)
 
     real(ccs_real), intent(out) :: time
 
@@ -112,38 +162,44 @@ contains
 
   module subroutine update_old_values_generic(num_old_vals, x)
 
-    use vec, only: get_vector_data, restore_vector_data
-
     integer(ccs_int), intent(in) :: num_old_vals
     class(field), intent(inout) :: x
 
-    real(ccs_real), dimension(:), pointer :: values_data, old_values_data
     integer(ccs_int) :: i
 
     do i = num_old_vals, 2, -1
-      call get_vector_data(x%old_values(i)%vec, old_values_data)
-      call get_vector_data(x%old_values(i - 1)%vec, values_data)
-      old_values_data = values_data
-      call restore_vector_data(x%old_values(i)%vec, old_values_data)
-      call restore_vector_data(x%old_values(i - 1)%vec, values_data)
+      call copy_old_data(x%old_values(i - 1)%vec, x%old_values(i)%vec)
     end do
-
-    call get_vector_data(x%old_values(1)%vec, old_values_data)
-    call get_vector_data(x%values, values_data)
-    old_values_data = values_data
-    call restore_vector_data(x%old_values(1)%vec, old_values_data)
-    call restore_vector_data(x%values, values_data)
+    call copy_old_data(x%values, x%old_values(1)%vec)
 
   end subroutine
 
-  module subroutine apply_timestep_first_order(mesh, phi, diag, M, b)
+  !> Copies vector data from new to old destination using readonly views of current data.
+  subroutine copy_old_data(newv, oldv)
+    use vec, only: get_vector_data, restore_vector_data, get_vector_data_readonly, restore_vector_data_readonly
 
+    class(ccs_vector), intent(inout) :: newv
+    class(ccs_vector), intent(inout) :: oldv
+
+    real(ccs_real), dimension(:), pointer :: new_data, old_data
+
+    call get_vector_data_readonly(newv, new_data)
+    call get_vector_data(oldv, old_data)
+
+    old_data(:) = new_data(:)
+
+    call restore_vector_data_readonly(newv, new_data)
+    call restore_vector_data(oldv, old_data)
+
+  end subroutine copy_old_data
+
+  module subroutine apply_timestep_kernel(transient, phi, diag, M, b)
     use kinds, only: ccs_int
     use mat, only: set_matrix_diagonal, get_matrix_diagonal
-    use vec, only: get_vector_data, restore_vector_data
+    use vec, only: get_vector_data, restore_vector_data, get_vector_data_readonly, restore_vector_data_readonly
     use utils, only: update, finalise
 
-    type(ccs_mesh), intent(in) :: mesh
+    class(transient_kernel), intent(inout) :: transient ! The transient kernel
     class(field), intent(inout) :: phi
     class(ccs_vector), intent(inout) :: diag
     class(ccs_matrix), intent(inout) :: M
@@ -151,143 +207,81 @@ contains
 
     real(ccs_real), dimension(:), pointer :: diag_data
     real(ccs_real), dimension(:), pointer :: b_data
-    real(ccs_real), dimension(:), pointer :: phi_data
+    real(ccs_real), dimension(:), pointer :: ptr
+    type(ptr_handle), dimension(:), allocatable :: old_pointer
     integer(ccs_int) :: i
-    integer(ccs_int) :: local_num_cells
 
-    real(ccs_real) :: V_p
-    type(cell_locator) :: loc_p
+    call transient%init()
+    call transient%set_step(current_step + 1)
+    call transient%set_dt(get_timestep())
 
     call finalise(M)
     call get_matrix_diagonal(M, diag)
 
-    call get_vector_data(phi%old_values(1)%vec, phi_data)
+    allocate (old_pointer(transient%get_width()))
+    do i = 1, transient%get_width()
+      call get_vector_data_readonly(phi%old_values(i)%vec, ptr)
+      call old_pointer(i)%set_pointer(ptr)
+      nullify (ptr)
+    end do
+
     call get_vector_data(diag, diag_data)
     call update(b)
     call get_vector_data(b, b_data)
 
-    call get_local_num_cells(mesh, local_num_cells)
-    do i = 1, local_num_cells
-      call create_cell_locator(mesh, i, loc_p)
-      call get_volume(loc_p, V_p)
+    call apply_kernel_driver(transient, old_pointer, diag_data, b_data)
 
-      ! A = A + V/dt
-      diag_data(i) = diag_data(i) + V_p / get_timestep()
-
-      ! b = b + V/dt * phi_old
-      b_data(i) = b_data(i) + V_p / get_timestep() * phi_data(i)
+    do i = 1, transient%get_width()
+      ptr => old_pointer(i)%get_pointer()
+      call restore_vector_data_readonly(phi%old_values(i)%vec, ptr)
+      nullify (ptr)
     end do
-    call restore_vector_data(phi%old_values(1)%vec, phi_data)
     call restore_vector_data(diag, diag_data)
     call restore_vector_data(b, b_data)
     call set_matrix_diagonal(diag, M)
 
-  end subroutine apply_timestep_first_order
+  end subroutine apply_timestep_kernel
 
-  module subroutine apply_timestep_second_order(mesh, phi, diag, M, b)
-    use kinds, only: ccs_int
-    use mat, only: set_matrix_diagonal, get_matrix_diagonal
-    use vec, only: get_vector_data, restore_vector_data
-    use utils, only: update, finalise
+  subroutine apply_kernel_driver(transient, old_pointer, diag_data, b_data)
 
-    type(ccs_mesh), intent(in) :: mesh
-    class(field), intent(inout) :: phi
-    class(ccs_vector), intent(inout) :: diag
-    class(ccs_matrix), intent(inout) :: M
-    class(ccs_vector), intent(inout) :: b
+    class(transient_kernel), intent(inout) :: transient
+    type(ptr_handle), dimension(:), intent(in) :: old_pointer
+    real(ccs_real), dimension(:), intent(inout) :: diag_data, b_data
 
-    real(ccs_real), dimension(:), pointer :: diag_data
-    real(ccs_real), dimension(:), pointer :: b_data
-    real(ccs_real), dimension(:), pointer :: phi_old1_data
-    real(ccs_real), dimension(:), pointer :: phi_old2_data
-    real(ccs_real) :: rho
-    integer(ccs_int) :: i
     integer(ccs_int) :: local_num_cells
-
+    integer(ccs_int) :: i, j
     type(cell_locator) :: loc_p
-    real(ccs_real) :: V_p
+    real(ccs_real) :: V_p, coeff, rhs
+    real(ccs_real) :: rho
+
+    real(ccs_real), allocatable, dimension(:) :: old
 
     rho = 1.0
 
-    call finalise(M)
-    call get_matrix_diagonal(M, diag)
+    allocate (old(transient%get_width()))
 
-    call get_vector_data(phi%old_values(1)%vec, phi_old1_data)
-    call get_vector_data(phi%old_values(2)%vec, phi_old2_data)
-    call get_vector_data(diag, diag_data)
-    call update(b)
-    call get_vector_data(b, b_data)
-
-    call get_local_num_cells(mesh, local_num_cells)
+    call get_local_num_cells(local_num_cells)
+    !$omp parallel do default(none) schedule(static)   &
+    !$omp shared(local_num_cells, old_pointer, rho,    &
+    !$omp transient, diag_data, b_data)                &
+    !$omp private(i, j, old, loc_p, V_p, coeff, rhs)
     do i = 1, local_num_cells
-      call create_cell_locator(mesh, i, loc_p)
+      call create_cell_locator(i, loc_p)
       call get_volume(loc_p, V_p)
 
-      ! A = A + 1.5*rho*V/dt
-      diag_data(i) = diag_data(i) + 1.5 * rho * V_p / get_timestep()
+      call transient%eval_coeffs(rho, V_p, coeff)
 
-      ! b = b + rho*V/dt * (2*phi_old(n-1) - 0.5*phi_old(n-2))
-      b_data(i) = b_data(i) + rho * V_p / get_timestep() * (2 * phi_old1_data(i) - 0.5 * phi_old2_data(i))
+      do j = 1, transient%get_width()
+        old(j) = old_pointer(j)%read(i)
+      end do
+
+      call transient%eval_explicit(rho, V_p, old, rhs)
+
+      diag_data(i) = diag_data(i) + coeff
+      b_data(i) = b_data(i) + rhs
     end do
-    call restore_vector_data(phi%old_values(1)%vec, phi_old1_data)
-    call restore_vector_data(phi%old_values(2)%vec, phi_old2_data)
-    call restore_vector_data(diag, diag_data)
-    call restore_vector_data(b, b_data)
-    call set_matrix_diagonal(diag, M)
-  end subroutine apply_timestep_second_order
+    !$omp end parallel do
 
-  module subroutine apply_timestep_theta(mesh, theta, phi, diag, M, b)
-    use kinds, only: ccs_int
-    use mat, only: set_matrix_diagonal, get_matrix_diagonal
-    use vec, only: get_vector_data, restore_vector_data
-    use utils, only: update, finalise
-    use meshing, only: get_local_num_cells
-
-    type(ccs_mesh), intent(in) :: mesh
-    real(ccs_real), intent(in) :: theta
-    class(field), intent(inout) :: phi
-    class(ccs_vector), intent(inout) :: diag
-    class(ccs_matrix), intent(inout) :: M
-    class(ccs_vector), intent(inout) :: b
-
-    real(ccs_real), dimension(:), pointer :: diag_data
-    real(ccs_real), dimension(:), pointer :: b_data
-    real(ccs_real), dimension(:), pointer :: phi_old1_data
-    real(ccs_real), dimension(:), pointer :: phi_old2_data
-    real(ccs_real) :: rho
-    integer(ccs_int) :: i
-    integer(ccs_int) :: local_num_cells
-
-    type(cell_locator) :: loc_p
-    real(ccs_real) :: V_p
-
-    rho = 1.0
-
-    call finalise(M)
-    call get_matrix_diagonal(M, diag)
-
-    call get_vector_data(phi%old_values(1)%vec, phi_old1_data)
-    call get_vector_data(phi%old_values(2)%vec, phi_old2_data)
-    call get_vector_data(diag, diag_data)
-    call update(b)
-    call get_vector_data(b, b_data)
-
-    call get_local_num_cells(mesh, local_num_cells)
-    do i = 1, local_num_cells
-      call create_cell_locator(mesh, i, loc_p)
-      call get_volume(loc_p, V_p)
-
-      ! A = A + (1.0 + 0.5 * theta)*rho*V/dt
-      diag_data(i) = diag_data(i) + (1.0 + 0.5 * theta) * rho * V_p / get_timestep()
-
-      ! b = b + rho*V/dt * ((1.0 + theta)*phi_old(n-1) - 0.5*theta*phi_old(n-2))
-      b_data(i) = b_data(i) + rho * V_p / get_timestep() * ((1.0 + theta) * phi_old1_data(i) - 0.5 * theta * phi_old2_data(i))
-    end do
-    call restore_vector_data(phi%old_values(1)%vec, phi_old1_data)
-    call restore_vector_data(phi%old_values(2)%vec, phi_old2_data)
-    call restore_vector_data(diag, diag_data)
-    call restore_vector_data(b, b_data)
-    call set_matrix_diagonal(diag, M)
-  end subroutine apply_timestep_theta
+  end subroutine apply_kernel_driver
 
 end submodule timestepping_common

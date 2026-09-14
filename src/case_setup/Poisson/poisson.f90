@@ -17,7 +17,6 @@ module problem_setup
   use constants, only: ndim
   use kinds, only: ccs_int, ccs_real
   use types, only: ccs_mesh, cell_locator, face_locator
-  use parallel, only: create_new_par_env
 
   use meshing, only: create_face_locator, create_cell_locator, get_centre
 
@@ -133,31 +132,33 @@ program poisson
   use problem_setup
 
   ! ASiMoV-CCS uses
-  use constants, only: ndim, add_mode, insert_mode, ccs_split_type_shared, ccs_split_type_low_high, ccs_split_undefined
+  use core
+  use ccs_base, only: mesh, bnd_names_default
+  use constants, only: ndim, add_mode, insert_mode, default_pressure_solver, default_pressure_precon
   use kinds, only: ccs_real, ccs_int
-  use case_config, only: velocity_solver_method_name, velocity_solver_precon_name, &
-                         pressure_solver_method_name, pressure_solver_precon_name
   use types, only: vector_spec, ccs_vector, matrix_spec, ccs_matrix, &
                    equation_system, linear_solver, ccs_mesh, cell_locator, face_locator, &
                    neighbour_locator, vector_values, matrix_values, matrix_values_spec
   use meshing, only: create_cell_locator, create_face_locator, create_neighbour_locator, get_local_num_cells
-  use vec, only: create_vector
-  use mat, only: create_matrix, set_nnz, create_matrix_values, set_matrix_values_spec_nrows, &
+  use meshing, only: nullify_mesh_object
+  use vec, only: create_vector, destroy_vector
+  use mat, only: create_matrix, destroy_matrix, set_nnz, create_matrix_values, set_matrix_values_spec_nrows, &
                  set_matrix_values_spec_ncols
   use solver, only: create_solver, solve, set_equation_system, axpy, norm, &
-                    set_solver_method, set_solver_precon
+                    destroy_solver, set_solver_method, set_solver_precon
   use utils, only: update, begin_update, end_update, finalise, initialise, &
                    set_size, &
                    set_values, clear_entries, set_values, set_row, set_col, set_entry, set_mode
   use vec, only: create_vector_values
-  use mesh_utils, only: build_square_mesh
   use meshing, only: get_face_area, get_centre, get_volume, get_global_index, &
                      count_neighbours, get_boundary_status
   use parallel_types, only: parallel_environment
   use parallel, only: initialise_parallel_environment, &
                       cleanup_parallel_environment, &
-                      read_command_line_arguments, &
-                      timer, sync, create_new_par_env
+                      timer, sync, &
+                      is_root
+  use profiler, only: profiler_init, profiler_shutdown, profiler_begin_region, profiler_end_region
+  use logging, only: log_unit_out
 
   implicit none
 
@@ -171,31 +172,22 @@ program poisson
   type(vector_spec) :: vec_properties
   type(matrix_spec) :: mat_properties
   type(equation_system) :: poisson_eq
-  type(ccs_mesh) :: mesh
-
-  integer(ccs_int) :: cps = 10 !< Default value for cells per side
 
   real(ccs_real) :: err_norm
-  logical :: use_mpi_splitting
 
-  double precision :: start_time
-  double precision :: end_time
+  type(ccs_options) :: run_options
 
   call initialise_parallel_environment(par_env)
-  use_mpi_splitting = .false.
-  call create_new_par_env(par_env, ccs_split_type_low_high, use_mpi_splitting, shared_env)
-  call read_command_line_arguments(par_env, cps=cps)
+  call profiler_init()
 
-  ! set solver and preconditioner info
-  velocity_solver_method_name = "gmres"
-  velocity_solver_precon_name = "bjacobi"
-  pressure_solver_method_name = "cg"
-  pressure_solver_precon_name = "gamg"
+  call get_config(par_env, run_options)
+  call configure_parallelism(run_options, par_env, shared_env)
 
   call sync(par_env)
-  call timer(start_time)
+  call profiler_begin_region('Total elapsed time')
 
-  call initialise_poisson(par_env, shared_env)
+  run_options%mesh%bnd_names = bnd_names_default(1:4)
+  call initialise_poisson(par_env, shared_env, run_options)
 
   ! Initialise with default values
   call initialise(vec_properties)
@@ -237,8 +229,8 @@ program poisson
   ! Create linear solver & set options
   call set_equation_system(par_env, b, u, M, poisson_eq)
   call create_solver(poisson_eq, poisson_solver)
-  call set_solver_method(pressure_solver_method_name, poisson_solver)
-  call set_solver_precon(pressure_solver_precon_name, poisson_solver)
+  call set_solver_method(default_pressure_solver, poisson_solver)
+  call set_solver_precon(default_pressure_precon, poisson_solver)
   call solve(poisson_solver)
 
   ! Check solution
@@ -246,23 +238,35 @@ program poisson
   call axpy(-1.0_ccs_real, u_exact, u)
 
   err_norm = norm(u, 2) * mesh%geo%h
-  if (par_env%proc_id == par_env%root) then
-    print *, "Norm of error = ", err_norm
+  if (is_root(par_env)) then
+    write (log_unit_out, *) "Norm of error = ", err_norm
   end if
 
   ! Clean up
-  deallocate (u)
-  deallocate (b)
-  deallocate (u_exact)
-  deallocate (M)
-  deallocate (poisson_solver)
-
-  call timer(end_time)
-
-  if (par_env%proc_id == par_env%root) then
-    print *, "Elapsed time = ", (end_time - start_time)
+  if (allocated(poisson_solver)) then
+    call destroy_solver(poisson_solver)
+    deallocate (poisson_solver)
+  end if
+  if (allocated(u)) then
+    call destroy_vector(u)
+    deallocate (u)
+  end if
+  if (allocated(b)) then
+    call destroy_vector(b)
+    deallocate (b)
+  end if
+  if (allocated(u_exact)) then
+    call destroy_vector(u_exact)
+    deallocate (u_exact)
+  end if
+  if (allocated(M)) then
+    call destroy_matrix(M)
+    deallocate (M)
   end if
 
+  call profiler_end_region('Total elapsed time')
+  call profiler_shutdown(par_env)
+  call finalise_mesh(par_env)
   call cleanup_parallel_environment(par_env)
 
 contains
@@ -282,10 +286,10 @@ contains
     call create_vector_values(nrows_working_set, vec_values)
     call set_mode(insert_mode, vec_values)
 
-    call get_local_num_cells(mesh, local_num_cells)
+    call get_local_num_cells(local_num_cells)
     do i = 1, local_num_cells
       call clear_entries(vec_values)
-      call create_cell_locator(mesh, i, loc_p)
+      call create_cell_locator(i, loc_p)
       call get_global_index(loc_p, global_index_p)
 
       call set_row(global_index_p, vec_values)
@@ -298,12 +302,13 @@ contains
     call update(u_exact)
   end subroutine set_exact_sol
 
-  subroutine initialise_poisson(par_env, shared_env)
+  subroutine initialise_poisson(par_env, shared_env, run_options)
 
     class(parallel_environment), allocatable :: par_env
     class(parallel_environment), allocatable :: shared_env
+    type(ccs_options), intent(in) :: run_options
 
-    mesh = build_square_mesh(par_env, shared_env, cps, 1.0_ccs_real)
+    call initialise_mesh(par_env, shared_env, run_options)
 
   end subroutine initialise_poisson
 
@@ -329,7 +334,7 @@ contains
     call create_vector_values(nrows_working_set, val_dat)
     call set_mode(add_mode, val_dat)
 
-    call get_local_num_cells(mesh, nloc)
+    call get_local_num_cells(nloc)
     associate (h => mesh%geo%h)
       ! this is currently setting 1 vector value at a time
       ! consider changing to doing all the updates in one go
@@ -337,7 +342,7 @@ contains
       do i = 1, nloc
         call clear_entries(val_dat)
 
-        call create_cell_locator(mesh, i, loc_p)
+        call create_cell_locator(i, loc_p)
         call get_centre(loc_p, cc)
         call get_volume(loc_p, V)
         call get_global_index(loc_p, global_index_p)

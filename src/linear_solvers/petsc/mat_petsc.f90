@@ -1,12 +1,16 @@
 submodule(mat) mat_petsc
 #include "ccs_macros.inc"
+#include <petscversion.h>
 
   use kinds, only: ccs_err
-  use petsctypes, only: matrix_petsc, vector_petsc
+  use petsctypes, only: matrix_petsc, vector_petsc, destroy_matrix_petsc
   use parallel_types_mpi, only: parallel_environment_mpi
+  use parallel, only: is_root
   use petscmat, only: MatAssemblyBegin, MatAssemblyEnd, MAT_FLUSH_ASSEMBLY
   use petsc, only: ADD_VALUES, INSERT_VALUES
   use utils, only: debug_print, str, update, exit_print
+  use error_codes
+  use logging, only: log_unit_out
 
   implicit none
 
@@ -17,9 +21,9 @@ contains
 
     use mpi
 
-    use petsc, only: PETSC_DETERMINE, PETSC_NULL_INTEGER
+    use petsc, only: PETSC_DETERMINE, PETSC_NULL_INTEGER_ARRAY
     use petscmat, only: MatCreate, MatSetSizes, MatSetFromOptions, MatSetUp, &
-                        MatSeqAIJSetPreallocation, MatMPIAIJSetPreallocation
+                        MatSeqAIJSetPreallocation, MatMPIAIJSetPreallocation, MatSetOptionsPrefix
 
     use meshing, only: get_local_num_cells
 
@@ -45,7 +49,7 @@ contains
         call MatCreate(par_env%comm, M%M, ierr)
 
         associate (mesh => mat_properties%mesh)
-          call get_local_num_cells(mesh, local_num_cells)
+          call get_local_num_cells(local_num_cells)
           call MatSetSizes(M%M, local_num_cells, local_num_cells, &
                            PETSC_DETERMINE, PETSC_DETERMINE, ierr)
         end associate
@@ -60,14 +64,15 @@ contains
         call MatSetFromOptions(M%M, ierr)
 
         if (mat_properties%nnz < 1) then
-          if (par_env%proc_id == par_env%root) then
+          if (is_root(par_env)) then
             call dprint("WARNING: No matrix preallocation set, potentially inefficient.")
           end if
           call MatSetUp(M%M, ierr)
         else
-          call MatSeqAIJSetPreallocation(M%M, mat_properties%nnz, PETSC_NULL_INTEGER, ierr)
-          call MatMPIAIJSetPreallocation(M%M, mat_properties%nnz, PETSC_NULL_INTEGER, mat_properties%nnz - 1, &
-                                         PETSC_NULL_INTEGER, ierr)
+
+        call MatSeqAIJSetPreallocation(M%M, mat_properties%nnz, PETSC_NULL_INTEGER_ARRAY, ierr)
+        call MatMPIAIJSetPreallocation(M%M, mat_properties%nnz, PETSC_NULL_INTEGER_ARRAY, mat_properties%nnz - 1, &
+                                       PETSC_NULL_INTEGER_ARRAY, ierr)
         end if
 
       class default
@@ -82,6 +87,20 @@ contains
 
   end subroutine
 
+  !> Destroy a PETSc-backed matrix.
+  module subroutine destroy_matrix(M)
+
+    class(ccs_matrix), intent(inout) :: M
+
+    select type (M)
+    type is (matrix_petsc)
+      call destroy_matrix_petsc(M)
+    class default
+      call error_abort("Unsupported matrix type")
+    end select
+
+  end subroutine destroy_matrix
+
   module subroutine finalise_matrix(M)
 
     use petscmat, only: MAT_FINAL_ASSEMBLY
@@ -94,30 +113,34 @@ contains
     type is (matrix_petsc)
       call MatAssemblyBegin(M%M, MAT_FINAL_ASSEMBLY, ierr)
       call MatAssemblyEnd(M%M, MAT_FINAL_ASSEMBLY, ierr)
+    class default
+      call error_abort("Unsupported matrix type")
     end select
 
   end subroutine finalise_matrix
 
-  !> Returns information about matrix storage (number of nonzeros, memory, etc.) 
-  ! see https://petsc.org/release/manualpages/Mat/MatInfo/ for all the available fields
+  !> Returns information about matrix storage (number of nonzeros, memory, etc.)
+  ! see https: // petsc.org/release/manualpages/Mat/MatInfo/ for all the available fields
   module subroutine get_info_matrix(M)
 
-    use petscmat, only: MAT_INFO_SIZE, MatGetInfo, MAT_INFO_MEMORY, MAT_INFO_NZ_ALLOCATED, MAT_LOCAL, &
-       MAT_INFO_NZ_USED, MAT_INFO_NZ_UNNEEDED
+  use petscmat, only: MatGetInfo, sMatInfo
+  use petscmatdef, only: MAT_LOCAL
 
-    class(ccs_matrix), intent(inout) :: M
-    double precision, dimension(MAT_INFO_SIZE) :: info
+  class(ccs_matrix), intent(inout) :: M
+  type(sMatInfo) :: info
 
-    integer(ccs_err) :: ierr
+  integer(ccs_err) :: ierr
 
-    select type (M)
-    type is (matrix_petsc)
-      call MatGetInfo(M%M, MAT_LOCAL, info, ierr)
-      print *, "---"
-      print *, "nnz allocated: ", info(MAT_INFO_NZ_ALLOCATED)
-      print *, "nnz used: ", info(MAT_INFO_NZ_USED)
-      print *, "nnz unneeded: ", info(MAT_INFO_NZ_UNNEEDED)
-    end select
+  select type (M)
+  type is (matrix_petsc)
+    call MatGetInfo(M%M, MAT_LOCAL, info, ierr)
+    write (log_unit_out, *) "---"
+    write (log_unit_out, *) "nnz allocated: ", info%nz_allocated
+    write (log_unit_out, *) "nnz used: ", info%nz_used
+    write (log_unit_out, *) "nnz unneeded: ", info%nz_unneeded
+  class default
+    call error_abort("Unsupported matrix type")
+  end select
 
   end subroutine get_info_matrix
 
@@ -134,7 +157,6 @@ contains
 
     class default
       call error_abort("Unsupported matrix type")
-
     end select
 
   end subroutine
@@ -185,6 +207,7 @@ contains
   !> Set values in a PETSc matrix.
   module subroutine set_matrix_values(mat_values, M)
 
+    use petsc, only: eInsertMode
     use petscmat, only: MatSetValues
     use constants, only: insert_mode, add_mode
 
@@ -192,8 +215,7 @@ contains
     class(ccs_matrix), intent(inout) :: M           !< the matrix
 
     integer(ccs_int) :: nrows, ncols ! number of rows/columns
-    integer(ccs_int) :: mode ! Add or insert values?
-
+    type(eInsertMode) :: mode ! Add or insert values?
     integer(ccs_err) :: ierr ! Error code
 
     associate (ridx => mat_values%global_row_indices, &
@@ -265,7 +287,7 @@ contains
   end subroutine
 
   !> Clear working set of values to begin new working set.
-  module subroutine clear_matrix_values_entries(val_dat)
+  pure module subroutine clear_matrix_values_entries(val_dat)
     type(matrix_values), intent(inout) :: val_dat !< Working set object
 
     val_dat%global_row_indices(:) = -1 ! PETSc ignores -ve indices, used as "empty" indicator
@@ -274,7 +296,7 @@ contains
   end subroutine clear_matrix_values_entries
 
   !> Set working row.
-  module subroutine set_matrix_values_row(row, val_dat)
+  pure module subroutine set_matrix_values_row(row, val_dat)
 
     ! Arguments
     integer(ccs_int), intent(in) :: row           !< Which (global) row to work on?
@@ -302,7 +324,7 @@ contains
       rglobs = findloc(val_dat%global_row_indices, -1_ccs_int, kind=ccs_int)
       i = rglobs(1) ! We want the first entry
       if (i == 0) then
-        call error_abort("ERROR: Couldn't find a free entry in matrix values.")
+        error stop no_free_entry ! Couldn't find a free entry in matrix values
       end if
     end if
 
@@ -312,7 +334,7 @@ contains
   end subroutine set_matrix_values_row
 
   !> Set working column.
-  module subroutine set_matrix_values_col(col, val_dat)
+  pure module subroutine set_matrix_values_col(col, val_dat)
 
     ! Arguments
     integer(ccs_int), intent(in) :: col           !< Which (global) column to work on ?
@@ -340,7 +362,7 @@ contains
       cglobs = findloc(val_dat%global_col_indices, -1_ccs_int, kind=ccs_int)
       i = cglobs(1) ! We want the first entry
       if (i == 0) then
-        call error_abort("ERROR: Couldn't find a free column entry in matrix values.")
+        error stop no_free_entry ! Couldn't find a free column entry in matrix values
       end if
     end if
 
@@ -550,5 +572,30 @@ contains
     end select
 
   end subroutine mat_vec_product
+
+  module subroutine check_operator_symmetry(M)
+#include <petsc/finclude/petscsys.h>
+    use petscsys
+    use petscmat, only: MatIsSymmetric
+
+    class(ccs_matrix), intent(in) :: M
+    PetscBool :: symm
+    integer :: ierr
+
+    real(ccs_real) :: tol
+
+    select type (M)
+    type is (matrix_petsc)
+      tol = 1.0e-6
+      call MatIsSymmetric(M%M, tol, symm, ierr)
+
+      if (.not. symm) then
+        call error_abort("Matrix " // trim(M%name) // " is unsymmetric")
+      end if
+    class default
+      call error_abort("Unknown matrix type.")
+    end select
+
+  end subroutine check_operator_symmetry
 
 end submodule mat_petsc

@@ -4,6 +4,13 @@ module error_analysis
 
   use kinds
   use types
+  use constants, only: ndim
+  use meshing, only: get_centre, set_centre, create_cell_locator
+  use logging, only: log_unit_out
+
+  interface compute_order
+    module procedure compute_order_single, compute_order_multi
+  end interface
 
 contains
 
@@ -22,84 +29,136 @@ contains
     nvar = size(errors, dim=1)
     nref = size(refinements)
 
-    call get_order(refinements, errors, orders)
+    call compute_order(refinements, errors, orders)
     if (present(errors_secondary)) then
-      call get_order(refinements, errors_secondary, orders_secondary)
+      call compute_order(refinements, errors_secondary, orders_secondary)
     end if
 
-    print *, "----------------------------------------------------"
-    print *, "Summary of errors"
+    write (log_unit_out, *) "----------------------------------------------------"
+    write (log_unit_out, *) "Summary of errors"
 
     do j = 1, nvar
-      print *, "------ " // trim(variable_labels(j)) // " errors"
+      write (log_unit_out, *) "------ " // trim(variable_labels(j)) // " errors"
       do i = 1, nref
         if (present(errors_secondary)) then
           fmt = '(f12.4,e12.4,e12.4)'
-          write (*, fmt) refinements(i), errors(j, i), errors_secondary(j, i)
+          write (log_unit_out, fmt) refinements(i), errors(j, i), errors_secondary(j, i)
         else
           fmt = '(f12.4,e12.4)'
-          write (*, fmt) refinements(i), errors(j, i)
+          write (log_unit_out, fmt) refinements(i), errors(j, i)
         end if
       end do
     end do
 
-    print *, "----------------------------------------------------"
-    print *, "Convergence orders"
+    write (log_unit_out, *) "----------------------------------------------------"
+    write (log_unit_out, *) "Convergence orders"
     do j = 1, nvar
       if (present(errors_secondary)) then
         fmt = '(a12,f12.4,f12.4)'
-        write (*, fmt) trim(variable_labels(j)) // " order: ", orders(j), orders_secondary(j)
+        write (log_unit_out, fmt) trim(variable_labels(j)) // " order: ", orders(j), orders_secondary(j)
       else
         fmt = '(a12,f12.4)'
-        write (*, fmt) trim(variable_labels(j)) // " order: ", orders(j)
+        write (log_unit_out, fmt) trim(variable_labels(j)) // " order: ", orders(j)
       end if
     end do
-    print *, "----------------------------------------------------"
-    print *, ""
+    write (log_unit_out, *) "----------------------------------------------------"
+    write (log_unit_out, *) ""
 
   end subroutine
 
-  !v Computes convergence orders from a refinement list and the associated errors
-  ! The orders are computed as the slope of the linear regression of the log of error against the log of refinements
-  subroutine get_order(refinements, errors, orders)
+  !v Computes convergence order from a refinement list and the associated errors
+  ! The order is computed as the slope of the linear regression of the log of error against the log of refinements
+  pure subroutine compute_order_single(refinements, errors, order)
+
+    real(ccs_real), dimension(:), intent(in) :: refinements !< refinement (likely in time or space) against which the orders are computed
+    real(ccs_real), dimension(:), intent(in) :: errors !< error values, error(variable, refinement)
+    real(ccs_real), intent(out) :: order !< the computed order
+    real(ccs_real), dimension(:), allocatable :: x, y
+    real(ccs_real) :: x_bar, y_bar, Sxx, Sxy
+    integer(ccs_int) :: nref, j
+
+    nref = size(refinements)
+
+    allocate (x(nref))
+    allocate (y(nref))
+
+    x(:) = log(refinements(:))
+    y(:) = log(errors(:))
+
+    x_bar = sum(x(:)) / nref
+    y_bar = sum(y(:)) / nref
+
+    Sxy = 0.0_ccs_real
+    Sxx = 0.0_ccs_real
+    do j = 1, nref
+      Sxy = Sxy + (x(j) - x_bar) * (y(j) - y_bar)
+      Sxx = Sxx + (x(j) - x_bar)**2
+    end do
+
+    order = Sxy / Sxx
+    !alpha = y_bar - order * x_bar
+
+  end subroutine
+
+  !v Computes convergence orders from several different error lists
+  pure subroutine compute_order_multi(refinements, errors, orders)
 
     real(ccs_real), dimension(:), intent(in) :: refinements !< refinement (likely in time or space) against which the orders are computed
     real(ccs_real), dimension(:, :), intent(in) :: errors !< error values, error(variable, refinement)
     real(ccs_real), dimension(:), allocatable, intent(out) :: orders !< the computed orders for each variable
-    real(ccs_real), dimension(:), allocatable :: x, y
-    real(ccs_real) :: x_bar, y_bar, Sxx, Sxy, alpha, beta
-    integer(ccs_int) :: nref, nvar, i, j
+    integer(ccs_int) :: nvar, i
 
     nvar = size(errors, dim=1)
-    nref = size(refinements)
-
     allocate (orders(nvar))
-    allocate (x(nref))
-    allocate (y(nref))
-
     orders(:) = 0.0_ccs_real
 
     do i = 1, nvar
+      call compute_order_single(refinements, errors(i, :), orders(i))
+    end do
 
-      x(:) = log(refinements(:))
-      y(:) = log(errors(i, :))
+  end subroutine
 
-      x_bar = sum(x(:)) / nref
-      y_bar = sum(y(:)) / nref
+  !v Modifies a square mesh by slightly moving cell centres
+  subroutine disturb_cartesian(cps, domain_size, mesh)
+    use mesh_utils, only: compute_face_interpolation
+    use meshing, only: get_total_num_cells
 
-      Sxy = 0.0_ccs_real
-      Sxx = 0.0_ccs_real
-      do j = 1, nref
-        Sxy = Sxy + (x(j) - x_bar) * (y(j) - y_bar)
-        Sxx = Sxx + (x(j) - x_bar)**2
-      end do
+    integer(ccs_int), intent(in) :: cps
+    real(ccs_real), intent(in) :: domain_size
+    type(ccs_mesh), intent(inout) :: mesh
 
-      beta = Sxy / Sxx
-      alpha = y_bar - beta * x_bar
+    real(ccs_real) :: dx
+    integer(ccs_int) :: icell, total_num_cells, idim, icell_global
+    real(ccs_real) :: disturbance
+    type(cell_locator) :: loc_p
+    real(ccs_real), dimension(ndim) :: x_p
 
-      orders(i) = beta
+    dx = domain_size / real(cps)
+
+    call get_total_num_cells(total_num_cells)
+    do icell = 1, total_num_cells
+      icell_global = mesh%topo%global_indices(icell)
+
+      call create_cell_locator(icell, loc_p)
+      call get_centre(loc_p, x_p)
+
+      if (x_p(1) >= 0.1 * domain_size .and. x_p(1) <= 0.9 * domain_size .and. &
+          x_p(2) >= 0.1 * domain_size .and. x_p(2) <= 0.9 * domain_size) then
+        idim = 1
+        disturbance = real(modulo(3 * icell_global, 17), ccs_real) / 17.0_ccs_real
+        x_p(idim) = x_p(idim) + (disturbance - 0.5_ccs_real) * dx / 20.0
+
+        idim = 2
+        disturbance = real(modulo(3 * icell_global, 29), ccs_real) / 29.0_ccs_real
+        x_p(idim) = x_p(idim) + (disturbance - 0.5_ccs_real) * dx / 20.0
+
+        call set_centre(loc_p, x_p)
+      end if
 
     end do
+
+    ! Update face interpolation
+    call compute_face_interpolation(mesh)
 
   end subroutine
 

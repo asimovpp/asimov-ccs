@@ -11,9 +11,9 @@ program test_partition_tri_mesh
   use testing_lib
   use partitioning, only: compute_partitioner_input, &
                           partition_kway, compute_connectivity
+  use core, only: partitioning_options
   use kinds, only: ccs_int, ccs_long
-  ! use types, only: topology
-  use mesh_utils, only: build_square_mesh
+  use types, only: topology, graph_connectivity
   use meshing, only: get_local_num_cells, set_local_num_cells, &
                      get_global_num_cells, set_global_num_cells, &
                      set_total_num_cells, set_halo_num_cells, &
@@ -21,22 +21,20 @@ program test_partition_tri_mesh
                      get_max_faces, set_max_faces, &
                      get_vert_per_cell, set_vert_per_cell, &
                      create_cell_locator, get_global_index
+  use meshing, only: set_mesh_object, nullify_mesh_object
   use utils, only: debug_print
-  use parallel, only: destroy_shared_array
+  use parallel, only: destroy_shared_array, is_root
 
   implicit none
 
   ! type(topology) :: topo
-  type(ccs_mesh), target :: mesh
-  integer :: i
 
-  integer, parameter :: topo_idx_type = kind(mesh%topo%adjncy(1))
+  integer, parameter :: topo_idx_type = kind(mesh%topo%graph_conn%adjncy(1))
 
   ! Topology grid size
   integer, parameter :: nrows = 3
   integer, parameter :: ncols = 5
-
-  integer(ccs_int) :: global_num_cells
+  type(partitioning_options) :: partitioning_opt
 
   call init()
   call initialise_test()
@@ -44,6 +42,7 @@ program test_partition_tri_mesh
   !n = count(mesh%topo%nb_indices > 0)
   !print*,"Number of positive value neighbour indices: ", n
   call compute_partitioner_input(par_env, shared_env, mesh)
+  call set_mesh_object(mesh)
 
   ! print *, "Adjacency arrays: ", mesh%topo%adjncy
   ! print *, "Adjacency index array: ", mesh%topo%xadj
@@ -51,20 +50,22 @@ program test_partition_tri_mesh
   ! Run test to check we agree
   call check_topology("mid")
 
-  call partition_kway(par_env, shared_env, roots_env, mesh)
+  call partition_kway(par_env, mesh, partitioning_opt)
+  call sync(shared_env)
 
-  if (par_env%proc_id == 0) then
-    print *, "Global partition after partitioning:"
-    call get_global_num_cells(mesh, global_num_cells)
-    do i = 1, global_num_cells
-      print *, mesh%topo%global_partition(i)
-    end do
-  end if
+  !if (is_root(par_env)) then
+  !  print *, "Global partition after partitioning:"
+  !  call get_global_num_cells(global_num_cells)
+  !  do i = 1, global_num_cells
+  !    print *, mesh%topo%graph_conn%global_partition(i)
+  !  end do
+  !end if
 
   ! Compute new connectivity after partitioning
-  call compute_connectivity(par_env, shared_env, roots_env, mesh)
+  call compute_connectivity(par_env, shared_env, mesh)
 
   call check_topology("post")
+  call nullify_mesh_object()
 
   call clean_test()
   call fin()
@@ -85,30 +86,43 @@ contains
     !  call stop_test(message)
     !end if
 
-    call check_distribution(stage)
+    call check_distribution(mesh%topo, stage)
+    call check_topology_topo(mesh%topo)
+    call check_self_loops(mesh%topo%graph_conn, stage)
+    call check_connectivity(mesh%topo%graph_conn, stage)
 
-    if ((maxval(mesh%topo%xadj(1:size(mesh%topo%xadj) - 1)) >= size(mesh%topo%adjncy)) &
-        .or. (mesh%topo%xadj(size(mesh%topo%xadj) - 1) > size(mesh%topo%adjncy))) then
-      print *, mesh%topo%xadj
-      print *, size(mesh%topo%adjncy)
+  end subroutine check_topology
+  subroutine check_topology_topo(topo)
+
+    type(topology), intent(in) :: topo
+
+    call check_topology_graphconn(topo%graph_conn)
+
+    if ((maxval(topo%global_indices) > 16) .or. (minval(topo%global_indices) < 1)) then
+      write (message, *) "ERROR: global indices min/max: ", &
+        minval(topo%global_indices), maxval(topo%global_indices), &
+        " outside expected range: ", 1, 16
+      call stop_test(message)
+    end if
+    
+  end subroutine check_topology_topo
+  subroutine check_topology_graphconn(graph_conn)
+
+    type(graph_connectivity), intent(in) :: graph_conn
+
+    if ((maxval(graph_conn%xadj(1:size(graph_conn%xadj) - 1)) >= size(graph_conn%adjncy)) &
+        .or. (graph_conn%xadj(size(graph_conn%xadj) - 1) > size(graph_conn%adjncy))) then
+      print *, graph_conn%xadj
+      print *, size(graph_conn%adjncy)
       write (message, *) "ERROR: xadj array is wrong."
       call stop_test(message)
     end if
 
-    if ((maxval(mesh%topo%global_indices) > 16) .or. (minval(mesh%topo%global_indices) < 1)) then
-      write (message, *) "ERROR: global indices min/max: ", &
-        minval(mesh%topo%global_indices), maxval(mesh%topo%global_indices), &
-        " outside expected range: ", 1, 16
-      call stop_test(message)
-    end if
+  end subroutine check_topology_graphconn
+  
+  subroutine check_distribution(topo, stage)
 
-    call check_self_loops(stage)
-    call check_connectivity(stage)
-
-  end subroutine
-
-  subroutine check_distribution(stage)
-
+    type(topology), intent(in) :: topo
     character(len=*), intent(in) :: stage
 
     integer :: i
@@ -118,22 +132,22 @@ contains
 
     ! Do some basic verification
 
-    if (size(mesh%topo%vtxdist) /= (par_env%num_procs + 1)) then
+    if (size(topo%graph_conn%vtxdist) /= (par_env%num_procs + 1)) then
       write (message, *) "ERROR: global vertex distribution is wrong size " // stage // "- partitioning."
       call stop_test(message)
     end if
 
     ctr = 0
-    do i = 2, size(mesh%topo%vtxdist)
-      if (mesh%topo%vtxdist(i) < mesh%topo%vtxdist(i - 1)) then
+    do i = 2, size(topo%graph_conn%vtxdist)
+      if (topo%graph_conn%vtxdist(i) < topo%graph_conn%vtxdist(i - 1)) then
         write (message, *) "ERROR: global vertex distribution ordering is wrong " // stage // "- partitioning."
         call stop_test(message)
       end if
 
-      ctr = ctr + int(mesh%topo%vtxdist(i) - mesh%topo%vtxdist(i - 1), ccs_int)
+      ctr = ctr + int(topo%graph_conn%vtxdist(i) - topo%graph_conn%vtxdist(i - 1), ccs_int)
     end do
 
-    call get_global_num_cells(mesh, global_num_cells)
+    call get_global_num_cells(global_num_cells)
     if (ctr /= global_num_cells) then
       write (message, *) "ERROR: global vertex distribution count is wrong " // stage // "- partitioning."
       call stop_test(message)
@@ -141,8 +155,9 @@ contains
 
   end subroutine
 
-  subroutine check_self_loops(stage)
+  subroutine check_self_loops(graph_conn, stage)
 
+    type(graph_connectivity), intent(in) :: graph_conn
     character(len=*), intent(in) :: stage
 
     integer(ccs_int) :: local_num_cells
@@ -151,14 +166,14 @@ contains
     type(cell_locator) :: loc_p
     integer(ccs_int) :: global_index_p
 
-    call get_local_num_cells(mesh, local_num_cells)
+    call get_local_num_cells(local_num_cells)
     do i = 1, local_num_cells
-      call create_cell_locator(mesh, i, loc_p)
+      call create_cell_locator(i, loc_p)
       call get_global_index(loc_p, global_index_p)
 
-      do j = int(mesh%topo%xadj(i), ccs_int), int(mesh%topo%xadj(i + 1), ccs_int) - 1
-        if (mesh%topo%adjncy(j) == global_index_p) then
-         print *, "TOPO neighbours @ global idx ", global_index_p, ": ", mesh%topo%adjncy(mesh%topo%xadj(i):mesh%topo%xadj(i+1) - 1)
+      do j = int(graph_conn%xadj(i), ccs_int), int(graph_conn%xadj(i + 1), ccs_int) - 1
+        if (graph_conn%adjncy(j) == global_index_p) then
+          print *, "TOPO neighbours @ global idx ", global_index_p, ": ", graph_conn%adjncy(graph_conn%xadj(i):graph_conn%xadj(i+1) - 1)
           write (message, *) "ERROR: found self-loop " // stage // "- partitioning."
           call stop_test(message)
         end if
@@ -167,8 +182,9 @@ contains
 
   end subroutine
 
-  subroutine check_connectivity(stage)
+  subroutine check_connectivity(graph_conn, stage)
 
+    type(graph_connectivity), intent(in) :: graph_conn
     character(len=*), intent(in) :: stage
 
     integer(ccs_int) :: local_num_cells
@@ -179,19 +195,19 @@ contains
     type(cell_locator) :: loc_p
     integer(ccs_int) :: global_index_p
 
-    call get_local_num_cells(mesh, local_num_cells)
+    call get_local_num_cells(local_num_cells)
     do i = 1, local_num_cells ! Loop over local cells
-      call create_cell_locator(mesh, i, loc_p)
+      call create_cell_locator(i, loc_p)
       call get_global_index(loc_p, global_index_p)
 
-      nadj = int(mesh%topo%xadj(i + 1) - mesh%topo%xadj(i), ccs_int)
+      nadj = int(graph_conn%xadj(i + 1) - graph_conn%xadj(i), ccs_int)
       allocate (adjncy_global_expected(nadj))
 
       call compute_expected_global_adjncy(i, adjncy_global_expected)
 
-      do j = int(mesh%topo%xadj(i), ccs_int), int(mesh%topo%xadj(i + 1), ccs_int) - 1
-        if (.not. any(adjncy_global_expected == mesh%topo%adjncy(j))) then
-         print *, "TOPO neighbours @ global idx ", global_index_p, ": ", mesh%topo%adjncy(mesh%topo%xadj(i):mesh%topo%xadj(i+1) - 1)
+      do j = int(graph_conn%xadj(i), ccs_int), int(graph_conn%xadj(i + 1), ccs_int) - 1
+        if (.not. any(adjncy_global_expected == graph_conn%adjncy(j))) then
+         print *, "TOPO neighbours @ global idx ", global_index_p, ": ", graph_conn%adjncy(graph_conn%xadj(i):graph_conn%xadj(i+1) - 1)
           print *, "Expected neighbours @ global idx ", global_index_p, ": ", adjncy_global_expected
           write (message, *) "ERROR: neighbours are wrong " // stage // "-partitioning."
           call stop_test(message)
@@ -199,8 +215,8 @@ contains
       end do
 
       do j = 1, size(adjncy_global_expected)
-        if (.not. any(mesh%topo%adjncy == adjncy_global_expected(j))) then
-         print *, "TOPO neighbours @ global idx ", global_index_p, ": ", mesh%topo%adjncy(mesh%topo%xadj(i):mesh%topo%xadj(i+1) - 1)
+        if (.not. any(graph_conn%adjncy == adjncy_global_expected(j))) then
+         print *, "TOPO neighbours @ global idx ", global_index_p, ": ", graph_conn%adjncy(graph_conn%xadj(i):graph_conn%xadj(i+1) - 1)
           print *, "Expected neighbours @ global idx ", global_index_p, ": ", adjncy_global_expected
           write (message, *) "ERROR: neighbours are missing " // stage // "-partitioning."
           call stop_test(message)
@@ -230,7 +246,7 @@ contains
     left_boundary = .false.
     right_boundary = .false.
 
-    call create_cell_locator(mesh, i, loc_p)
+    call create_cell_locator(i, loc_p)
     call get_global_index(loc_p, idx_global)
     cidx_global = idx_global - 1
 
@@ -296,13 +312,15 @@ contains
     ! N.B. in terms of "top"/"bottom" boundaries this graph should be reflected about the horizontal axis.
 
     ! --- read_topology() ---
-    call set_global_num_cells(nrows * ncols, mesh)
-    call set_global_num_faces(46, mesh) ! Hardcoded for now (check face array counts)
-    call set_max_faces(6, mesh) ! mesh%topo%num_nb(1)
+    call set_mesh_object(mesh)
 
-    call get_global_num_cells(mesh, global_num_cells)
-    call get_global_num_faces(mesh, global_num_faces)
-    call get_max_faces(mesh, max_faces)
+    call set_global_num_cells(nrows * ncols)
+    call set_global_num_faces(46) ! Hardcoded for now (check face array counts)
+    call set_max_faces(6) ! mesh%topo%num_nb(1)
+
+    call get_global_num_cells(global_num_cells)
+    call get_global_num_faces(global_num_faces)
+    call get_max_faces(max_faces)
 
     allocate (mesh%topo%face_cell1(global_num_faces))
     allocate (mesh%topo%face_cell2(global_num_faces))
@@ -326,14 +344,9 @@ contains
     ! --- read_topology() --- end
 
     ! --- compute_partitioner_input() ---
-    allocate (mesh%topo%vtxdist(par_env%num_procs + 1))
-
-    ! Hardcode vtxdist for now
-    mesh%topo%vtxdist = (/1, 6, 11, 16/)
-
-    local_num_cells = int(mesh%topo%vtxdist(par_env%proc_id + 2) - mesh%topo%vtxdist(par_env%proc_id + 1), ccs_int)
-    call set_local_num_cells(local_num_cells, mesh)
-    call get_local_num_cells(mesh, local_num_cells) ! Ensure using correct value
+    call initialise_test_partition(mesh%topo%graph_conn, local_num_cells)
+    call set_local_num_cells(local_num_cells)
+    call get_local_num_cells(local_num_cells) ! Ensure using correct value
 
     mesh%topo%halo_num_cells = 0
     mesh%topo%total_num_cells = local_num_cells + mesh%topo%halo_num_cells
@@ -342,50 +355,66 @@ contains
 
     allocate (mesh%topo%global_indices(local_num_cells))
     do i = 1, local_num_cells
-      mesh%topo%global_indices(i) = int(mesh%topo%vtxdist(par_env%proc_id + 1), ccs_int) + (i - 1)
+      mesh%topo%global_indices(i) = int(mesh%topo%graph_conn%vtxdist(par_env%proc_id + 1), ccs_int) + (i - 1)
     end do
 
     ! Dummy vertex connectivity
-    call set_vert_per_cell(6, mesh) ! Interior cells are hexagonal
-    call get_vert_per_cell(mesh, vert_per_cell)
+    call set_vert_per_cell(6) ! Interior cells are hexagonal
+    call get_vert_per_cell(vert_per_cell)
     allocate (mesh%topo%global_vertex_indices(vert_per_cell, global_num_cells))
-    allocate (mesh%topo%vert_nb_indices(vert_per_cell, local_num_cells))
-    allocate (mesh%topo%num_vert_nb(local_num_cells))
-    mesh%topo%num_vert_nb(:) = 0
 
-    call set_halo_num_cells(0, mesh)
-    call set_total_num_cells(local_num_cells, mesh)
+    call set_halo_num_cells(0)
+    call set_total_num_cells(local_num_cells)
+    call nullify_mesh_object()
 
   end subroutine initialise_test
+  subroutine initialise_test_partition(graph_conn, local_num_cells)
 
+    type(graph_connectivity), intent(inout) :: graph_conn
+    integer(ccs_int), intent(out) :: local_num_cells
+    
+    allocate (graph_conn%vtxdist(par_env%num_procs + 1))
+
+    ! Hardcode vtxdist for now
+    graph_conn%vtxdist = (/1, 6, 11, 16/)
+
+    local_num_cells = int(graph_conn%vtxdist(par_env%proc_id + 2) - graph_conn%vtxdist(par_env%proc_id + 1), ccs_int)
+
+    
+  end subroutine initialise_test_partition
+  
   subroutine clean_test
-    if (allocated(mesh%topo%xadj)) then
-      deallocate (mesh%topo%xadj)
+    call clean_test_topo(mesh%topo)
+  end subroutine clean_test
+
+  subroutine clean_test_topo(topo)
+    type(topology), intent(inout) :: topo
+
+    call clean_test_graphconn(topo%graph_conn)
+  end subroutine clean_test_topo
+
+  subroutine clean_test_graphconn(graph_conn)
+    type(graph_connectivity), intent(inout) :: graph_conn
+
+    if (allocated(graph_conn%xadj)) then
+      deallocate (graph_conn%xadj)
     end if
 
-    if (allocated(mesh%topo%adjncy)) then
-      deallocate (mesh%topo%adjncy)
+    if (allocated(graph_conn%adjncy)) then
+      deallocate (graph_conn%adjncy)
     end if
 
-    if (allocated(mesh%topo%adjwgt)) then
-      deallocate (mesh%topo%adjwgt)
+    if (allocated(graph_conn%adjwgt)) then
+      deallocate (graph_conn%adjwgt)
     end if
 
-    if (allocated(mesh%topo%vwgt)) then
-      deallocate (mesh%topo%vwgt)
+    if (allocated(graph_conn%vwgt)) then
+      deallocate (graph_conn%vwgt)
     end if
 
-    if (allocated(mesh%topo%vtxdist)) then
-      deallocate (mesh%topo%vtxdist)
+    if (allocated(graph_conn%vtxdist)) then
+      deallocate (graph_conn%vtxdist)
     end if
-
-    if (allocated(mesh%topo%vert_nb_indices)) then
-      deallocate(mesh%topo%vert_nb_indices)
-    end if
-
-    if (allocated(mesh%topo%num_vert_nb)) then
-      deallocate(mesh%topo%num_vert_nb)
-    end if
-  end subroutine
+  end subroutine clean_test_graphconn
 
 end program

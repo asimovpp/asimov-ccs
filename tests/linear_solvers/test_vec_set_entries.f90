@@ -6,23 +6,31 @@ program test_vec_set_entries
 
   use testing_lib
 
+  use core
+  
+  use ccs_base, only: bnd_names_default
   use kinds
   use constants, only: insert_mode, add_mode
   use types, only: ccs_vector, ccs_mesh
   use mesh_utils, only: global_start, local_count, build_square_mesh
   use utils, only: zero
+  use meshing, only: set_mesh_object, nullify_mesh_object
 
   implicit none
 
   class(ccs_vector), allocatable :: v
   integer(ccs_int) :: n
-  type(ccs_mesh) :: mesh
   real(ccs_real), parameter :: elt_val = 1.0_ccs_real
+  type(ccs_options) :: run_options
 
   call init()
 
   do n = 4, 100
-    mesh = build_square_mesh(par_env, shared_env, n, 1.0_ccs_real)
+    run_options%mesh%bnd_names = bnd_names_default(1:4)
+    run_options%mesh%cps = n
+    run_options%mesh%domain_size = 1.0_ccs_real
+    mesh = build_square_mesh(par_env, shared_env, run_options)
+    call set_mesh_object(mesh)
 
     call init_vector()
 
@@ -33,6 +41,7 @@ program test_vec_set_entries
     call test_vector()
 
     call clean_vector()
+    call nullify_mesh_object()
   end do
 
   call fin()
@@ -74,7 +83,7 @@ contains
     integer(ccs_int) :: index_p
     integer(ccs_int) :: global_index_p
 
-    call get_local_num_cells(mesh, nlocal)
+    call get_local_num_cells(nlocal)
 
     nrows = 1_ccs_int
     nblocks = nlocal / nrows
@@ -89,7 +98,7 @@ contains
         ! Compute local and global indices
         index_p = j + (i - 1) * nrows
 
-        call create_cell_locator(mesh, index_p, loc_p)
+        call create_cell_locator(index_p, loc_p)
         call get_global_index(loc_p, global_index_p)
 
         call set_row(global_index_p, val_dat) ! TODO: this should work on local indices...
@@ -114,13 +123,10 @@ contains
 
     integer(ccs_int) :: global_num_cells
 
-    call get_global_num_cells(mesh, global_num_cells)
+    call get_global_num_cells(global_num_cells)
     expectation = real(global_num_cells, ccs_real)
     test_value = (norm(v, 2))**2
-    if (test_value /= expectation) then
-      write (message, *) "FAIL: expected ", expectation, " got ", test_value
-      call stop_test(message)
-    end if
+    call assert_eq(test_value, expectation, "Wrong vector norm")
 
   end subroutine test_vector
 

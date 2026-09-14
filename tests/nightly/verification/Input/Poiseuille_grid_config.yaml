@@ -1,0 +1,145 @@
+---
+title: Poiseuille
+
+# restart capability
+restart: false 
+
+# unstaedy state
+unsteady: false
+
+mesh: 2d
+
+#  number of timesteps
+steps: 100
+#  number of iterations
+iterations: 2000
+# time step size
+dt: 1.0e-2
+
+# Square/cubic mesh generation parameters
+# cells per side
+cps: 16
+# domain size
+L: 1.0
+
+target_residual: 1.0e-10
+
+# Frequency (in terms of timesteps) of writing solution to file
+write_frequency: 50
+
+# Fluid properties
+viscocity : 1.0e-3
+
+### VALUES BELOW THIS POINT ARE NOT CURRENTLY USED
+
+#reference_numbers:
+#    pressure: 101325.0
+#    temperature: 289.0
+#    density: 1.0
+#    viscosity: 1.0e-03
+#    pref_at_cell: 4096
+
+#solve:
+#  w: off
+
+#init: 
+#  type: user
+
+#monitor_cell: 1990
+
+# 1 = central
+#convection_scheme:
+#  u: 1 
+#  v: 1
+#  w: 1
+
+#blending_factor:
+#  u: 1.0
+#  v: 1.0
+#  w: 1.0
+
+post:
+  type: center
+  variables: [u, v, w, p]
+
+variables:
+  n_variables: 5
+  enable_cell_corrections: true
+  variable_1:
+    name: u
+    type: central
+    solve: on
+    relaxation: 0.8
+  variable_2:
+    name: v
+    type: central
+    solve: on
+    relaxation: 0.8
+  variable_3:
+    name: w
+    type: central
+    solve: on
+    relaxation: 0.8
+  variable_4:
+    name: p
+    type: central
+    solve: on
+    relaxation: 0.1
+  variable_5:
+    name: p_prime
+    type: central
+    solve: off
+
+boundaries:
+  n_boundaries: 4
+  boundary_1: 
+    name: left
+    type: neumann
+    value: 0
+    variable_p:
+      type: extrapolate
+    variable_u:
+      type: profile
+      value: 1
+    variable_v:
+      type: dirichlet
+      value: 0
+    variable_w:
+      type: dirichlet
+      value: 0
+  boundary_2:
+    name: right
+    type: neumann
+    value: 0
+    variable_p:
+      type: dirichlet
+      value: 0
+    variable_p_prime:
+      type: dirichlet
+      value: 0
+  boundary_3:
+    name: bottom
+    type: neumann
+    value: 0
+    variable_u:
+      type: dirichlet
+      value: 0
+    variable_v:
+      type: dirichlet
+      value: 0
+    variable_w:
+      type: dirichlet
+      value: 0
+  boundary_4:
+    name: top
+    type: neumann
+    value: 0
+    variable_u:
+      type: dirichlet
+      value: 0
+    variable_v:
+      type: dirichlet
+      value: 0
+    variable_w:
+      type: dirichlet
+      value: 0

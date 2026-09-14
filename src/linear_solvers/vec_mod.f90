@@ -13,6 +13,7 @@ module vec
   private
 
   public :: create_vector
+  public :: destroy_vector
   public :: set_vector_values
   public :: clear_vector_values_entries
   public :: set_vector_values_entry
@@ -22,8 +23,12 @@ module vec
   public :: update_vector
   public :: begin_update_vector
   public :: end_update_vector
+  public :: begin_ghost_update_vector
+  public :: end_ghost_update_vector
+  public :: vec_shift
   public :: vec_axpy
   public :: vec_aypx
+  public :: vec_sum
   public :: vec_norm
   public :: initialise_vector
   public :: set_vector_size
@@ -35,6 +40,8 @@ module vec
   public :: mult_vec_vec
   public :: scale_vec
   public :: get_natural_data_vec
+  public :: get_global_data_vec
+  public :: reorder_data_vec
 
   interface
 
@@ -48,28 +55,33 @@ module vec
       character(len=*), optional, intent(in) :: name !< Name of the vector object
     end subroutine
 
+    !> Interface to destroy a vector object.
+    module subroutine destroy_vector(v)
+      class(ccs_vector), intent(inout) :: v !< The vector to destroy.
+    end subroutine
+
     !> Interface to set values in a vector.
     module subroutine set_vector_values(val_dat, v)
       class(*), intent(in) :: val_dat       !< contains the values, their indices and the mode to use for setting them.
       class(ccs_vector), intent(inout) :: v !< the vector.
     end subroutine set_vector_values
 
-    module subroutine clear_vector_values_entries(val_dat)
+    pure module subroutine clear_vector_values_entries(val_dat)
       type(vector_values), intent(inout) :: val_dat
     end subroutine clear_vector_values_entries
 
-    module subroutine set_vector_values_entry(val, val_dat)
+    pure module subroutine set_vector_values_entry(val, val_dat)
       real(ccs_real), intent(in) :: val
       type(vector_values), intent(inout) :: val_dat
     end subroutine set_vector_values_entry
 
     !> Interface to create a vector values object.
-    module subroutine create_vector_values(nrows, val_dat)
+    pure module subroutine create_vector_values(nrows, val_dat)
       integer(ccs_int), intent(in) :: nrows       !< how many rows will be set?
       type(vector_values), intent(out) :: val_dat !< the vector values object
     end subroutine create_vector_values
 
-    module subroutine set_vector_values_mode(mode, val_dat)
+    pure module subroutine set_vector_values_mode(mode, val_dat)
       integer(ccs_int), intent(in) :: mode
       type(vector_values), intent(inout) :: val_dat
     end subroutine set_vector_values_mode
@@ -79,7 +91,7 @@ module vec
     !  Sets the current row in the vector value object, the implementation of this is
     !  backend-dependent as it should immediately convert to the correct indexing
     !  (whether that's 0, 1 or X-based) as used by the backend.
-    module subroutine set_vector_values_row(row, val_dat)
+    pure module subroutine set_vector_values_row(row, val_dat)
       integer(ccs_int), intent(in) :: row           !< the row
       type(vector_values), intent(inout) :: val_dat !< the vector values object
     end subroutine set_vector_values_row
@@ -103,6 +115,28 @@ module vec
       class(ccs_vector), intent(inout) :: v !< the vector
     end subroutine end_update_vector
 
+    !v Interface to begin a ghost update of a vector.
+    !
+    !  Begins the ghost update to allow overlapping comms and compute.
+    module subroutine begin_ghost_update_vector(v)
+      class(ccs_vector), intent(inout) :: v !< the vector
+    end subroutine begin_ghost_update_vector
+
+    !v Interface to end a ghost update of a vector.
+    !
+    !  Ends the ghost update to allow overlapping comms and compute.
+    module subroutine end_ghost_update_vector(v)
+      class(ccs_vector), intent(inout) :: v !< the vector
+    end subroutine end_ghost_update_vector
+
+    !v Perform the 'shift' vector operation using PETSc (aka APY)
+    !
+    !          y[i] = alpha + y[i]
+    module subroutine vec_shift(alpha, y)
+      real(ccs_real), intent(in) :: alpha     !< a scalar value
+      class(ccs_vector), intent(inout) :: y   !< PETSc vector serving as input, overwritten with result
+    end subroutine
+
     !v Interface to perform the AXPY vector operation.
     !
     !  Performs the AXPY operation
@@ -125,6 +159,12 @@ module vec
       class(ccs_vector), intent(inout) :: y !< vector serving as input, overwritten with result
     end subroutine
 
+    !> Interface to compute the element-wise sum of a vector
+    module subroutine vec_sum(v, sum)
+      class(ccs_vector), intent(in) :: v !< an input vector
+      real(ccs_real), intent(out) :: sum !< the element-wise sum
+    end subroutine
+
     !> Interface to compute the norm of a vector
     module function vec_norm(v, norm_type) result(n)
       class(ccs_vector), intent(in) :: v !< the vector
@@ -134,7 +174,7 @@ module vec
     end function
 
     !> Constructor for default vector values
-    module subroutine initialise_vector(vec_properties)
+    pure module subroutine initialise_vector(vec_properties)
       type(vector_spec), intent(inout) :: vec_properties !< the initialised vector values
     end subroutine initialise_vector
 
@@ -169,9 +209,9 @@ module vec
       class(ccs_vector), intent(inout) :: vec                       !< the vector to reset
       real(ccs_real), dimension(:), pointer, intent(in) :: array !< the array containing the data to restore
     end subroutine restore_vector_data_readonly
-    
+
     !> Set vector values to be located at either cell-centre or face
-    module subroutine set_vector_location(loc, vec_properties)
+    pure module subroutine set_vector_location(loc, vec_properties)
       integer(ccs_int), intent(in) :: loc
       type(vector_spec), intent(inout) :: vec_properties
     end subroutine set_vector_location
@@ -206,6 +246,25 @@ module vec
       !< this ensures it will be
       !< de/reallocated by this subroutine.
     end subroutine get_natural_data_vec
+
+    !> Interface to return the vector data in global ordering
+    module subroutine get_global_data_vec(par_env, mesh, v, data)
+      class(parallel_environment), intent(in) :: par_env
+      type(ccs_mesh), intent(in) :: mesh
+      class(ccs_vector), intent(inout) :: v
+      real(ccs_real), dimension(:), allocatable, intent(out) :: data !< The returned vector data in
+      !< global ordering. Note the use
+      !< of allocatable + intent(out),
+      !< this ensures it will be
+      !< de/reallocated by this subroutine.
+    end subroutine get_global_data_vec
+
+    module subroutine reorder_data_vec(par_env, data_from, idx_to, data_to)
+      class(parallel_environment), intent(in) :: par_env
+      real(ccs_real), dimension(:), intent(in) :: data_from
+      integer(ccs_int), dimension(:), intent(in) :: idx_to
+      real(ccs_real), dimension(:), intent(out) :: data_to
+    end subroutine reorder_data_vec
 
   end interface
 

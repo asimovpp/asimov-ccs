@@ -1,11 +1,13 @@
 submodule(partitioning) partitioning_parmetis
 #include "ccs_macros.inc"
 
-  use kinds, only: ccs_int, ccs_real, ccs_long
+  use kinds, only: ccs_int, ccs_long
+  use types, only: topology, graph_connectivity
   use utils, only: str, debug_print
   use parallel_types_mpi, only: parallel_environment_mpi
-  use meshing, only: set_local_num_cells, get_local_num_cells
-  use parallel, only: is_root, is_valid, create_shared_array, destroy_shared_array
+  use meshing, only: set_local_num_cells, get_local_num_cells, get_global_num_cells
+  use parallel, only: is_root, is_valid, create_shared_array, destroy_shared_array, sync
+  use logging, only: log_unit_out
 
   implicit none
 
@@ -16,20 +18,20 @@ submodule(partitioning) partitioning_parmetis
                                       edgecuts, local_partition, comm) bind(c)
       use iso_c_binding
 
-      integer(c_long), dimension(*) :: vtxdist
-      integer(c_long), dimension(*) :: xadj
-      integer(c_long), dimension(*) :: adjncy
-      integer(c_long), dimension(*) :: vwgt
-      integer(c_long), dimension(*) :: adjwgt
-      integer(c_long) :: wgtflag ! Set to 0 for "no weights"
-      integer(c_long) :: numflag ! Numbering scheme - 1 means Fortran style
-      integer(c_long) :: ncon
-      integer(c_long) :: num_procs
+      integer(c_int32_t), dimension(*) :: vtxdist
+      integer(c_int32_t), dimension(*) :: xadj
+      integer(c_int32_t), dimension(*) :: adjncy
+      integer(c_int32_t), dimension(*) :: vwgt
+      integer(c_int32_t), dimension(*) :: adjwgt
+      integer(c_int32_t) :: wgtflag ! Set to 0 for "no weights"
+      integer(c_int32_t) :: numflag ! Numbering scheme - 1 means Fortran style
+      integer(c_int32_t) :: ncon
+      integer(c_int32_t) :: num_procs
       real(c_float), dimension(*) :: tpwgts
       real(c_float), dimension(*) :: ubvec
-      integer(c_long), dimension(*) :: options
-      integer(c_long) :: edgecuts
-      integer(c_long), dimension(*) :: local_partition
+      integer(c_int32_t), dimension(*) :: options
+      integer(c_int32_t) :: edgecuts
+      integer(c_int32_t), dimension(*) :: local_partition
       integer(c_int) :: comm
     end subroutine
   end interface
@@ -40,66 +42,106 @@ contains
   !
   ! Use Parmetis library to compute a k-way vertex separator given a k-way partition of the graph.
   ! The graph can be weighted or unweighted.
-  module subroutine partition_kway(par_env, shared_env, roots_env, mesh)
+  !
+  ! High-level interface operating on the mesh object.
+  module subroutine partition_kway_mesh(par_env, mesh, partitioning_opt)
+
+    class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
+    type(ccs_mesh), target, intent(inout) :: mesh                           !< The mesh for which to compute the parition
+    type(partitioning_options), intent(in) :: partitioning_opt              !< Partitioning configuration
+
+    call partition_kway_topo(par_env, mesh%topo, partitioning_opt)
+
+  end subroutine partition_kway_mesh
+
+  !v Partition the mesh
+  !
+  ! Use Parmetis library to compute a k-way vertex separator given a k-way partition of the graph.
+  ! The graph can be weighted or unweighted.
+  !
+  ! High-level interface operating on the topology object.
+  module subroutine partition_kway_topo(par_env, topo, partitioning_opt)
+
+    class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
+    type(topology), target, intent(inout) :: topo                           !< The mesh topology for which to compute the parition
+    type(partitioning_options), intent(in) :: partitioning_opt              !< Partitioning configuration
+
+    call partition_kway_graph_conn(par_env, topo%graph_conn, partitioning_opt)
+
+  end subroutine partition_kway_topo
+
+  !v Partition the mesh
+  !
+  ! Use Parmetis library to compute a k-way vertex separator given a k-way partition of the graph.
+  ! The graph can be weighted or unweighted.
+  !
+  ! Performs the partitioning on the graph connectivity object.
+  module subroutine partition_kway_graph_conn(par_env, graph_conn, partitioning_opt)
 
     use mpi
     use iso_c_binding
+    use iso_fortran_env
 
-    class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
-    class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The parallel environment
-    class(parallel_environment), allocatable, target, intent(in) :: roots_env !< The parallel environment
-    type(ccs_mesh), target, intent(inout) :: mesh                           !< The mesh for which to compute the parition
+    class(parallel_environment), allocatable, target, intent(in) :: par_env    !< The parallel environment
+    type(graph_connectivity), target, intent(inout) :: graph_conn              !< The graph connectivity for which to compute the parition
+    type(partitioning_options), intent(in) :: partitioning_opt                 !< Partitioning configuration
 
     ! Local variables
-    integer(ccs_long), dimension(:), pointer :: tmp_partition
-    integer(ccs_int) :: tmp_partition_window
     integer(ccs_int) :: local_part_size
     integer(ccs_int) :: irank
-    integer(ccs_int) :: ierr
-    integer(ccs_int) :: i
 
-    integer(c_long), dimension(:), allocatable :: vtxdist
-    integer(c_long), dimension(:), allocatable :: xadj
-    integer(c_long), dimension(:), allocatable :: adjncy
-    integer(c_long), dimension(:), allocatable :: vwgt
-    integer(c_long), dimension(:), allocatable :: adjwgt
-    integer(c_long) :: wgtflag ! Set to 0 for "no weights"
-    integer(c_long) :: numflag ! Numbering scheme - 1 means Fortran style
-    integer(c_long) :: ncon
-    integer(c_long) :: num_procs
+    integer(ccs_long) :: global_num_cells
+
+    integer(c_int32_t), dimension(:), allocatable :: vtxdist
+    integer(c_int32_t), dimension(:), allocatable :: xadj
+    integer(c_int32_t), dimension(:), allocatable :: adjncy
+    integer(c_int32_t), dimension(:), allocatable :: vwgt
+    integer(c_int32_t), dimension(:), allocatable :: adjwgt
+    integer(c_int32_t) :: wgtflag ! Set to 0 for "no weights"
+    integer(c_int32_t) :: numflag ! Numbering scheme - 1 means Fortran style
+    integer(c_int32_t) :: ncon
+    integer(c_int32_t) :: num_procs
     real(c_float), dimension(:), allocatable :: tpwgts
     real(c_float), dimension(:), allocatable :: ubvec
-    integer(c_long), dimension(:), allocatable :: options
-    integer(c_long) :: edgecuts
-    integer(c_long), dimension(:), allocatable :: local_partition
+    integer(c_int32_t), dimension(:), allocatable :: options
+    integer(c_int32_t) :: edgecuts
+    integer(c_int32_t), dimension(:), allocatable :: local_partition
     integer(c_int) :: comm
+
+    ! ParHIP-specific options do not affect ParMETIS.
+    associate (unused => partitioning_opt)
+    end associate
 
     ! Values mostly hardcoded for now
     wgtflag = 0 ! No weights
     numflag = 0 ! Use C-style indexing for now
-    ncon = 3
+    ncon = 1
     num_procs = par_env%num_procs
     edgecuts = -1
+
+    ! vtxdist should contain the (initial) global cell partition - the final element is global cell
+    ! count + 1
+    global_num_cells = graph_conn%vtxdist(num_procs + 1) - 1
 
     allocate (ubvec(ncon))
     allocate (tpwgts(ncon * num_procs))
     allocate (options(0:2))
 
-    options(0) = 0 ! 0 = default values, 1 = values specified in (1) and (2)
-    options(1) = 1 ! Output verbosity - 1 gives timing information
+    options(0) = 1 ! 0 = default values, 1 = values specified in (1) and (2)
+    options(1) = 2 ! Output verbosity - 1 gives timing information
     options(2) = 2023 ! Random number seed
 
-    ubvec(:) = 1.05 ! Imbalance tolerance for each vertex weight, 1.05 is recommended value
-    tpwgts(:) = 1.0 / real(num_procs, c_float) ! Sum of tpwgts(:) should be 1. Check this is correct
+    ubvec(:) = 1.03 ! Imbalance tolerance for each vertex weight, 1.05 is recommended value
+    tpwgts(:) = 1.0 / real(num_procs, c_float) ! Should be set to 1 / num_procs
 
     irank = par_env%proc_id ! Current rank
 
-    vtxdist = mesh%topo%vtxdist - 1
-    xadj = mesh%topo%xadj - 1
-    adjncy = mesh%topo%adjncy - 1
+    vtxdist = int(graph_conn%vtxdist, int32) - 1
+    xadj = int(graph_conn%xadj, int32) - 1
+    adjncy = int(graph_conn%adjncy, int32) - 1
 
-    adjwgt = mesh%topo%adjwgt
-    vwgt = mesh%topo%vwgt
+    adjwgt = int(graph_conn%adjwgt, int32)
+    vwgt = int(graph_conn%vwgt, int32)
 
     ! Set weights to 1
     adjwgt = 1
@@ -107,13 +149,17 @@ contains
 
     ! Number of elements in local partition array
     ! Needed for gathering loca partitions into global partition array
-    local_part_size = size(mesh%topo%local_partition)
+    local_part_size = size(graph_conn%local_partition)
 
     allocate (local_partition(local_part_size))
 
     ! Partitioning an unweighted graph
     select type (par_env)
     type is (parallel_environment_mpi)
+
+      if (is_root(par_env)) then
+        write (log_unit_out, *) "Partitioning with ParMETIS"
+      end if
 
       comm = par_env%comm
 
@@ -122,37 +168,15 @@ contains
                                   tpwgts, ubvec, options, &
                                   edgecuts, local_partition, comm)
 
-      mesh%topo%local_partition(:) = local_partition(:)
-
-      call create_shared_array(shared_env, mesh%topo%global_num_cells, tmp_partition, tmp_partition_window)
-
-      if (is_root(shared_env)) then
-        tmp_partition(:) = 0
-      end if
-
-      do i = 1, local_part_size
-        tmp_partition(i + vtxdist(irank + 1)) = mesh%topo%local_partition(i)
-      end do
-
-      if (is_valid(roots_env)) then
-        select type (roots_env)
-        type is (parallel_environment_mpi)
-          call MPI_AllReduce(tmp_partition, mesh%topo%global_partition, mesh%topo%global_num_cells, &
-                            MPI_LONG, MPI_SUM, roots_env%comm, ierr)
-        class default
-          print *, "ERROR: Unknown parallel environment!"
-        end select
-      end if
+      graph_conn%local_partition(:) = int(local_partition(:), int64)
 
     class default
-      print *, "ERROR: Unknown parallel environment! "
+      write (log_unit_out, *) "ERROR: Unknown parallel environment! "
     end select
 
     call dprint("Number of edgecuts: " // str(int(edgecuts)))
 
-    call destroy_shared_array(shared_env, tmp_partition, tmp_partition_window)
-
-  end subroutine partition_kway
+  end subroutine partition_kway_graph_conn
 
   !v Compute the input arrays for the partitioner
   !

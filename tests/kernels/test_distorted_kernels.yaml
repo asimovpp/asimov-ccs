@@ -1,0 +1,6 @@
+# RUN: %build_test %s %t1 ../fv_schemes/distorted_refs.f90 test_distorted_kernels.f90
+# RUN: %mpirun -n 1 %t1
+
+main: test_distorted_kernels
+base: mpi_petsc
+extra: parhip

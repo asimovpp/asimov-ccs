@@ -2,6 +2,8 @@
 program test_face_values
 
   use testing_lib
+  use ccs_base, only: bnd_names_default
+  use core
   use kinds, only: ccs_int, ccs_real
   use constants, only: face
   use types, only: vector_spec, ccs_mesh, field, face_field
@@ -9,6 +11,7 @@ program test_face_values
   use vec, only: create_vector, set_vector_location
   use meshing, only: create_neighbour_locator, &
                      get_global_index, get_local_index, get_face_area, get_face_normal
+  use meshing, only: set_mesh_object, nullify_mesh_object
   use utils, only: initialise, set_size
 
   implicit none
@@ -16,15 +19,20 @@ program test_face_values
   class(field), allocatable :: mf
 
   type(vector_spec) :: vec_properties
-  type(ccs_mesh) :: mesh
 
   ! integer(ccs_int) :: nfaces
   integer(ccs_int) :: cps = 5 !< Cells per side of the mesh
 
+  type(ccs_options) :: run_options
+  
   call init()
 
   ! Create a square mesh
-  mesh = build_square_mesh(par_env, shared_env, cps, 1.0_ccs_real)
+  run_options%mesh%bnd_names = bnd_names_default(1:4)
+  run_options%mesh%cps = cps
+  run_options%mesh%domain_size = 1.0_ccs_real
+  mesh = build_square_mesh(par_env, shared_env, run_options)
+  call set_mesh_object(mesh)
 
   allocate (face_field :: mf)
 
@@ -36,6 +44,7 @@ program test_face_values
   call set_size(par_env, mesh, vec_properties)
   call create_vector(vec_properties, mf%values)
 
+  call nullify_mesh_object()
   call fin()
 
 end program test_face_values

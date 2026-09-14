@@ -3,3 +3,4 @@
 
 main: test_bc_profile_interpolation
 base: mpi_petsc
+extra: parhip

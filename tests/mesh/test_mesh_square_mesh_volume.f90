@@ -4,13 +4,15 @@
 !  verified by summing the volumes of all cells.
 program test_mesh_square_mesh_volume
 
+  use ccs_base, only: bnd_names_default
   use testing_lib
+  use ccs_base, only: bnd_names_default
+  use core
   use meshing, only: create_cell_locator, get_volume, get_local_num_cells
+  use meshing, only: set_mesh_object, nullify_mesh_object
   use mesh_utils, only: build_square_mesh
 
   implicit none
-
-  type(ccs_mesh) :: mesh
 
   integer(ccs_int) :: n
   real(ccs_real) :: l
@@ -31,12 +33,18 @@ program test_mesh_square_mesh_volume
   integer(ccs_int), dimension(7) :: m = (/4, 8, 16, 20, 40, 80, 100/)
   integer(ccs_int) :: mctr
 
+  type(ccs_options) :: run_options
+
   call init()
 
   do mctr = 1, size(m)
     n = m(mctr)
     l = parallel_random(par_env)
-    mesh = build_square_mesh(par_env, shared_env, n, l)
+    run_options%mesh%bnd_names = bnd_names_default(1:4)
+    run_options%mesh%cps = n
+    run_options%mesh%domain_size = l
+    mesh = build_square_mesh(par_env, shared_env, run_options)
+    call set_mesh_object(mesh)
     expected_vol = l**2 ! XXX: Currently the square mesh is hard-coded 2D...
 
     CV = (l / n)**2 ! Expected cell volume
@@ -44,9 +52,14 @@ program test_mesh_square_mesh_volume
     vol = 0.0_ccs_real
     nneg_vol = 0
 
-    call get_local_num_cells(mesh, local_num_cells)
+    call get_local_num_cells(local_num_cells)
+
+    !$omp parallel do default(none) &
+    !$omp private(V, loc_p, message) &
+    !$omp shared(local_num_cells, CV) &
+    !$omp reduction(+:vol, nneg_vol)
     do i = 1, local_num_cells
-      call create_cell_locator(mesh, i, loc_p)
+      call create_cell_locator(i, loc_p)
       call get_volume(loc_p, V)
       if (V <= 0) then
         nneg_vol = nneg_vol + 1
@@ -59,6 +72,7 @@ program test_mesh_square_mesh_volume
 
       vol = vol + V
     end do
+    !$omp end parallel do
 
     select type (par_env)
     type is (parallel_environment_mpi)
@@ -80,6 +94,8 @@ program test_mesh_square_mesh_volume
       write (message, *) "FAIL: encountered negative cell volume."
       call stop_test(message)
     end if
+
+    call nullify_mesh_object()
   end do
 
   call fin()

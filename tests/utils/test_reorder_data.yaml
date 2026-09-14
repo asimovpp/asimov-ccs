@@ -1,0 +1,6 @@
+# RUN: %build_test %s %t1 test_reorder_data.f90
+# RUN: %mpirun  -n 4 %t1
+
+main: test_reorder_data
+base: mpi_petsc
+extra: parhip

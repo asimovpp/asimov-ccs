@@ -9,13 +9,13 @@ submodule(fv) fv_discretisation
   use vec, only: get_vector_data, restore_vector_data
   use meshing, only: get_face_interpolation, get_local_index
   use types, only: neighbour_locator
-  use meshing, only: get_distance, get_centre
+  use meshing, only: get_distance
 
   implicit none
 
 contains
   !> Calculates advection coefficient for neighbouring cell using CDS discretisation
-  module subroutine calc_advection_coeff_cds(phi, loc_f, mf, bc, coeffaP, coeffaF)
+  pure module subroutine calc_advection_coeff_cds(phi, loc_f, mf, bc, coeffaP, coeffaF)
     type(central_field), intent(in) :: phi  !< scalar field
     type(face_locator), intent(in) :: loc_f !< face locator
     real(ccs_real), intent(in) :: mf        !< mass flux at the face
@@ -31,7 +31,7 @@ contains
     associate (mflux => mf)
     end associate
 
-    if (bc == 0) then
+    if (bc == 0 .and. (.not. phi%enable_cell_corrections)) then
       call get_face_interpolation(loc_f, interpolation_factor)
       interpolation_factor = 1.0_ccs_real - interpolation_factor
     else
@@ -42,7 +42,7 @@ contains
   end subroutine calc_advection_coeff_cds
 
   !> Calculates advection coefficient for neighbouring cell using UDS discretisation
-  module subroutine calc_advection_coeff_uds(phi, loc_f, mf, bc, coeffaP, coeffaF)
+  pure module subroutine calc_advection_coeff_uds(phi, loc_f, mf, bc, coeffaP, coeffaF)
     type(upwind_field), intent(in) :: phi   !< scalar field
     type(face_locator), intent(in) :: loc_f !< face locator
     real(ccs_real), intent(in) :: mf        !< mass flux at the face
@@ -65,6 +65,26 @@ contains
   end subroutine calc_advection_coeff_uds
 
   !> Calculates advection coefficient for neighbouring cell using gamma discretisation
+  !
+  ! The implementation of the Gamma scheme is based on the Dolfyn implementation
+  ! https://bazaar.launchpad.net/~hwkrus/dolfyn-cfd/trunk/view/411/src/diffschemes.f90
+  ! The original code is distributed under the APACHE-2.0 license reproduced below
+  !
+  ! Copyright 2003-2014 Henk Krus, Cyclone Fluid Dynamics BV
+  ! All Rights Reserved.
+  !
+  ! Licensed under the Apache License, Version 2.0 (the "License");
+  ! you may not use this file except in compliance with the License.
+  ! You may obtain a copy of the License at
+  !
+  ! http://www.dolfyn.net/license.html
+  !
+  ! Unless required by applicable law or agreed to in writing, software
+  ! distributed under the License is distributed on an
+  ! "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+  ! either express or implied. See the License for the specific
+  ! language governing permissions and limitations under the License.
+  !
   module subroutine calc_advection_coeff_gamma(phi, loc_f, mf, bc, loc_p, loc_nb, coeffaP, coeffaF)
     type(gamma_field), intent(inout) :: phi       !< scalar field
     type(face_locator), intent(in) :: loc_f       !< face locator
@@ -134,7 +154,7 @@ contains
           call get_face_interpolation(loc_f, interpolation_factor)
           interpolation_factor = 1.0_ccs_real - interpolation_factor
           coeffaF = interpolation_factor
-        else if (phiPt > 0.0_ccs_real .and. phiPt <= beta_m) then !Gamma
+        else !Gamma
           gamma_m = phiPt / beta_m
           call get_face_interpolation(loc_f, interpolation_factor)
           coeffaF = 1.0_ccs_real + (gamma_m * (interpolation_factor - 1.0_ccs_real))
@@ -165,8 +185,9 @@ contains
           call get_face_interpolation(loc_f, interpolation_factor)
           interpolation_factor = 1.0_ccs_real - interpolation_factor
           coeffaF = interpolation_factor
-        else if (phiPt > 0.0_ccs_real .and. phiPt <= beta_m) then !Gamma
+        else !Gamma
           gamma_m = phiPt / beta_m
+          call get_face_interpolation(loc_f, interpolation_factor)
           coeffaF = (1.0_ccs_real - interpolation_factor) * gamma_m
         end if
         coeffaP = 1.0_ccs_real - coeffaF
@@ -177,7 +198,7 @@ contains
       ! -------------
       coeffaF = 0.5_ccs_real
       coeffaP = 1.0_ccs_real - coeffaF
-    endif
+    end if
 
     ! Restore vectors
     call restore_vector_data(phi%values, phi_data)
@@ -188,6 +209,26 @@ contains
   end subroutine calc_advection_coeff_gamma
 
   !> Calculates advection coefficient for neighbouring cell using Linear Upwind discretisation
+  !
+  ! The implementation of the linear upwind scheme is based on the Dolfyn implementation
+  ! https://bazaar.launchpad.net/~hwkrus/dolfyn-cfd/trunk/view/411/src/diffschemes.f90
+  ! The original code is distributed under the APACHE-2.0 license reproduced below
+  !
+  ! Copyright 2003-2014 Henk Krus, Cyclone Fluid Dynamics BV
+  ! All Rights Reserved.
+  !
+  ! Licensed under the Apache License, Version 2.0 (the "License");
+  ! you may not use this file except in compliance with the License.
+  ! You may obtain a copy of the License at
+  !
+  ! http://www.dolfyn.net/license.html
+  !
+  ! Unless required by applicable law or agreed to in writing, software
+  ! distributed under the License is distributed on an
+  ! "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+  ! either express or implied. See the License for the specific
+  ! language governing permissions and limitations under the License.
+  !
   module subroutine calc_advection_coeff_luds(phi, loc_f, mf, bc, loc_p, loc_nb, coeffaP, coeffaF)
     type(linear_upwind_field), intent(inout) :: phi     !< scalar field
     type(face_locator), intent(in) :: loc_f       !< face locator
@@ -254,7 +295,7 @@ contains
         else !LUDS
           call get_distance(loc_nb, loc_f, d)
           coeffaF = 1.0_ccs_real
-          if (dabs(phiP) > 0.0_ccs_real) then
+          if (abs(phiP) > 0.0_ccs_real) then
             coeffaF = coeffaF + (dot_product(dphiP, d) / phiP)
           end if
           coeffaP = 0.0_ccs_real
@@ -284,7 +325,7 @@ contains
         else !LUDS
           call get_distance(loc_p, loc_f, d)
           coeffaP = 1.0_ccs_real
-          if (dabs(phiP) > 0.0_ccs_real) then
+          if (abs(phiP) > 0.0_ccs_real) then
             coeffaP = coeffaP + (dot_product(dphiP, d) / phiP)
           end if
           coeffaF = 0.0_ccs_real

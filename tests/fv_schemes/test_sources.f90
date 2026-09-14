@@ -5,11 +5,14 @@ program test_sources
 
   use testing_lib
 
+  use core
+  
   use types, only: ccs_matrix, ccs_mesh, ccs_vector
 
   use meshing, only: get_centre, get_local_num_cells, &
        create_cell_locator, get_volume
   use vec, only: get_vector_data, restore_vector_data
+  use meshing, only: set_mesh_object, nullify_mesh_object
 
   use utils, only: zero
 
@@ -18,7 +21,6 @@ program test_sources
   ! Mesh / geometry information
   integer(ccs_int), parameter :: n = 5
   real(ccs_real), parameter :: l = 1.0_ccs_real
-  type(ccs_mesh) :: mesh
 
   ! Linear system
   class(ccs_vector), allocatable :: rhs ! Right hand side vector
@@ -26,11 +28,15 @@ program test_sources
   class(ccs_vector), allocatable :: S   ! Source vector
   class(ccs_matrix), allocatable :: M   ! System matrix
   
+  type(ccs_options) :: run_options
+  
   call init()
 
   call init_case()
   call test_fixed_source()
   call test_linear_source()
+
+  call nullify_mesh_object()
   
   call fin()
 
@@ -55,12 +61,12 @@ contains
     
     call zero(rhs) ! Just a precaution / to simplify the error check.
 
-    call add_fixed_source(mesh, S, rhs)
+    call add_fixed_source(S, rhs)
 
     call get_vector_data(rhs, rhs_data)
-    call get_local_num_cells(mesh, local_num_cells)
+    call get_local_num_cells(local_num_cells)
     do index_p = 1, local_num_cells
-       call create_cell_locator(mesh, index_p, loc_p)
+       call create_cell_locator(index_p, loc_p)
        call get_centre(loc_p, x_p)
        call get_volume(loc_p, V_p)
 
@@ -95,7 +101,7 @@ contains
     call zero(rhs) ! Just a precaution / to simplify the error check.
     call zero(M)
 
-    call add_linear_source(mesh, S, M)
+    call add_linear_source(S, M)
 
     call finalise_matrix(M)
     
@@ -103,9 +109,9 @@ contains
     call mat_vec_product(M, x, rhs)
     
     call get_vector_data(rhs, rhs_data)
-    call get_local_num_cells(mesh, local_num_cells)
+    call get_local_num_cells(local_num_cells)
     do index_p = 1, local_num_cells
-       call create_cell_locator(mesh, index_p, loc_p)
+       call create_cell_locator(index_p, loc_p)
        call get_centre(loc_p, x_p)
        call get_volume(loc_p, V_p)
 
@@ -120,6 +126,7 @@ contains
   subroutine init_case()
 
     use constants, only: cell
+    use ccs_base, only: bnd_names_default
     use types, only: matrix_spec, vector_spec
 
     use vec, only: create_vector, set_vector_location
@@ -135,12 +142,17 @@ contains
     integer(ccs_int) :: index_p
     type(cell_locator) :: loc_p
     real(ccs_real), dimension(3) :: x_p
+    real(ccs_real) :: V_P
 
     real(ccs_real), dimension(:), pointer :: x_data
     real(ccs_real), dimension(:), pointer :: S_data
     
     ! Initialise mesh
-    mesh = build_mesh(par_env, shared_env, n, n, n, l)
+    run_options%mesh%bnd_names = bnd_names_default
+    run_options%mesh%cps = n
+    run_options%mesh%domain_size = l
+    mesh = build_mesh(par_env, shared_env, run_options)
+    call set_mesh_object(mesh)
 
     ! Initialise vectors
     call initialise(vec_sizes)
@@ -161,13 +173,14 @@ contains
     
     call get_vector_data(x, x_data)
     call get_vector_data(S, S_data)
-    call get_local_num_cells(mesh, local_num_cells)
+    call get_local_num_cells(local_num_cells)
     do index_p = 1, local_num_cells
-       call create_cell_locator(mesh, index_p, loc_p)
+       call create_cell_locator(index_p, loc_p)
        call get_centre(loc_p, x_p)
+       call get_volume(loc_p, V_P)
 
        x_data(index_p) = set_solution(x_p)
-       S_data(index_p) = compute_source(x_p)
+       S_data(index_p) = compute_source(x_p) * V_P ! We need to pass the integrated source
     end do
     call restore_vector_data(x, x_data)
     call restore_vector_data(S, S_data)

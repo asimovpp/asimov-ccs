@@ -14,6 +14,7 @@ module solver
   private
 
   public :: create_solver
+  public :: destroy_solver
   public :: solve
   public :: initialise_equation_system
   public :: set_equation_system
@@ -31,13 +32,18 @@ module solver
       class(linear_solver), allocatable, intent(inout) :: solver !< The linear solver returned allocated.
     end subroutine
 
+    !> Interface to destroy a linear solver object.
+    module subroutine destroy_solver(solver)
+      class(linear_solver), intent(inout) :: solver !< The linear solver object.
+    end subroutine
+
     !> Interface to solve the linear system in a solver.
     module subroutine solve(solver)
       class(linear_solver), intent(inout) :: solver !< The linear solver object.
     end subroutine
 
     !> Constructor for default linear system
-    module subroutine initialise_equation_system(lin_sys)
+    pure module subroutine initialise_equation_system(lin_sys)
       type(equation_system), intent(inout) :: lin_sys
     end subroutine initialise_equation_system
 

@@ -30,13 +30,13 @@ contains
     integer(ccs_int) :: global_index_nb
 
     ! Loop over cells
-    call get_local_num_cells(mesh, local_num_cells)
+    call get_local_num_cells(local_num_cells)
     do i = 1, local_num_cells
       !^ @todo Doing this in a loop is awful code - malloc maximum coefficients per row once,
       !        filling from front, and pass the number of coefficients to be set, requires
       !        modifying the matrix_values type and the implementation of set_values applied to
       !        matrices.
-      call create_cell_locator(mesh, i, loc_p)
+      call create_cell_locator(i, loc_p)
       call get_global_index(loc_p, global_index_p)
       call count_neighbours(loc_p, nnb)
 
@@ -56,7 +56,7 @@ contains
         if (.not. is_boundary) then
           ! Interior face
 
-          call create_face_locator(mesh, i, j, loc_f)
+          call create_face_locator(i, j, loc_f)
           call get_face_area(loc_f, A)
           coeff_f = (1.0 / mesh%geo%h) * A
 
@@ -129,12 +129,12 @@ contains
     call create_vector_values(nrows_working_set, vec_values)
     call set_mode(add_mode, vec_values)
 
-    call get_local_num_cells(mesh, local_num_cells)
+    call get_local_num_cells(local_num_cells)
     do i = 1, local_num_cells
       if (minval(mesh%topo%nb_indices(:, i)) < 0) then
         call clear_entries(mat_coeffs)
         call clear_entries(vec_values)
-        call create_cell_locator(mesh, i, loc_p)
+        call create_cell_locator(i, loc_p)
         call get_global_index(loc_p, global_index_p)
         coeff = 0.0_ccs_real
         r = 0.0_ccs_real
@@ -150,7 +150,7 @@ contains
           call get_boundary_status(loc_nb, is_boundary)
 
           if (is_boundary) then
-            call create_face_locator(mesh, i, j, loc_f)
+            call create_face_locator(i, j, loc_f)
             call get_face_area(loc_f, A)
             boundary_coeff = (2.0 / mesh%geo%h) * A
             boundary_val = eval_solution(loc_f)

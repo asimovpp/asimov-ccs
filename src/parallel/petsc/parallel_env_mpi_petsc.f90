@@ -50,7 +50,6 @@ contains
 
   end subroutine
 
-
   !> Cleanup the PETSc and MPI parallel environments
   module subroutine cleanup_parallel_environment(par_env)
 
@@ -75,15 +74,16 @@ contains
   !> Initalise PETSc
   subroutine initialise_petsc(par_env)
 
+    use petsc
     type(parallel_environment_mpi), intent(in) :: par_env !< parallel_environment_mpi
 
     integer :: ierr ! Error code
 
+    PETSC_COMM_WORLD = par_env%comm ! initialise PETSC_COMM_WORLD
+    call PetscOptionsSetValue(PETSC_NULL_OPTIONS, "-no_signal_handler", "true", ierr) ! This should prevent PETSc swallowing tracebacks
     call PetscInitialize(PETSC_NULL_CHARACTER, ierr)
 
-    if (ierr /= 0) then
-      call error_handling(ierr, "petsc", par_env)
-    end if
+    call error_handling(ierr, "petsc", par_env)
 
   end subroutine
 
@@ -96,9 +96,7 @@ contains
 
     call PetscFinalize(ierr) ! Finalises MPI
 
-    if (ierr /= 0) then
-      call error_handling(ierr, "petsc", par_env)
-    end if
+    call error_handling(ierr, "petsc", par_env)
 
   end subroutine
 

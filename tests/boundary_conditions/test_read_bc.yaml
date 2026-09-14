@@ -3,3 +3,4 @@
 
 main: test_read_bc
 base: mpi_petsc
+extra: parhip

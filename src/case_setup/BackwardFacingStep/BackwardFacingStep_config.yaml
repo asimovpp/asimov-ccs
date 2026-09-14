@@ -1,12 +1,21 @@
 ---
 title: BackwardFacingStep
 
+# restart capability
+restart: false
+
+# unstaedy state
+unsteady: true
+
+mesh: read
+
+#  number of steady iterations
+iterations: 100
+
 #  number of timesteps
-steps: 100
-#  number of iterations
-iterations: 5
+steps: 5
 # time step size
-dt: 8.0e-1
+dt: 0.01
 
 # Square/cubic mesh generation parameters
 # cells per side
@@ -14,18 +23,13 @@ dt: 8.0e-1
 # domain size
 L: 3.1415926535
 
-relaxation_factor:
-  u: 0.9
-  v: 0.9
-  p: 0.1
-
 target_residual: 1.0e-10
 
 # Frequency (in terms of timesteps) of writing solution to file
 write_frequency: 50
 
 # Fluid properties
-viscocity : 1.0e-3
+viscosity : 1.0e-3
 
 ### VALUES BELOW THIS POINT ARE NOT CURRENTLY USED
 
@@ -55,29 +59,41 @@ viscocity : 1.0e-3
 #  v: 1.0
 #  w: 1.0
 
-#post:
-#  type: center
-#  variables: [u, v, w, p]
+post:
+  type: center
+  variables: [u, v, w, p]
 
 variables:
-  n_variables: 4
+  enable_cell_corrections: true
+  n_variables: 5
   variable_1:
     name: u
     type: central
+    solve: on
+    relaxation: 0.9
   variable_2:
     name: v
     type: central
+    solve: on
+    relaxation: 0.9
   variable_3:
+    name: w
+    type: central
+    solve: off
+  variable_4:
     name: p
     type: central
-  variable_4:
+    solve: on
+    relaxation: 0.1
+  variable_5:
     name: p_prime
     type: central
+    solve: off
 
 boundaries:
   n_boundaries: 8
   boundary_1: 
-    name: left
+    name: default
     type: neumann
     value: 0
     variable_p:
@@ -89,11 +105,11 @@ boundaries:
       type: dirichlet
       value: 0
   boundary_2:
-    name: right
+    name: live
     type: neumann
     value: 0
   boundary_3:
-    name: bottom
+    name: inflow
     type: neumann
     value: 0
     variable_p:
@@ -105,7 +121,7 @@ boundaries:
       type: dirichlet
       value: 0
   boundary_4:
-    name: top
+    name: outflow
     type: neumann
     value: 0
     variable_p:
@@ -118,7 +134,7 @@ boundaries:
       type: dirichlet
       value: 0
   boundary_5:
-    name: back
+    name: step
     type: neumann
     value: 0
     variable_p:
@@ -130,7 +146,7 @@ boundaries:
       type: dirichlet
       value: 0
   boundary_6:
-    name: front
+    name: bottomwall
     type: neumann
     value: 0
     variable_p:
@@ -142,7 +158,7 @@ boundaries:
       type: dirichlet
       value: 0
   boundary_7:
-    name: other1
+    name: backwall
     type: neumann
     value: 0
     variable_p:
@@ -154,7 +170,7 @@ boundaries:
       type: dirichlet
       value: 0
   boundary_8:
-    name: other2
+    name: topwall
     type: neumann
     value: 0
     variable_p:

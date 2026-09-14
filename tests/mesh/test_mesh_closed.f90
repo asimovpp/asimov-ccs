@@ -6,17 +6,20 @@ program test_mesh_closed
 
   use testing_lib
 
+  use core
+  
   use constants
 
+  use ccs_base, only: bnd_names_default
   use meshing, only: create_face_locator, get_face_normal, get_face_area, get_local_num_cells
+  use meshing, only: set_mesh_object, nullify_mesh_object
   use mesh_utils, only: build_mesh
 
   implicit none
 
-  type(ccs_mesh), target :: mesh
   type(face_locator) :: loc_f
 
-  integer(ccs_int) :: n, nx, ny, nz
+  integer(ccs_int) :: n
   real(ccs_real) :: l
 
   real(ccs_real), dimension(ndim) :: S
@@ -31,30 +34,36 @@ program test_mesh_closed
   integer(ccs_int), dimension(4) :: m = (/4, 8, 16, 20/)
   integer(ccs_int) :: mctr
 
+  type(ccs_options) :: run_options
+  
   call init()
 
   ! XXX: use smaller size than 2D test - 20^3 ~= 100^2
   do mctr = 1, size(m)
     n = m(mctr)
 
-    nx = n
-    ny = n
-    nz = n
-
     l = parallel_random(par_env)
-    mesh = build_mesh(par_env, shared_env, nx, nz, ny, l)
+    run_options%mesh%bnd_names = bnd_names_default
+    run_options%mesh%cps = n
+    run_options%mesh%domain_size = l
+    mesh = build_mesh(par_env, shared_env, run_options)
+    call set_mesh_object(mesh)
 
     A_expected = (l / n)**2
 
     ! Loop over cells
-    call get_local_num_cells(mesh, local_num_cells)
+    call get_local_num_cells(local_num_cells)
+    !$omp parallel do default(none) &
+    !$omp shared(local_num_cells, mesh, A_expected) &
+    !$omp private(i, j, S, norm, A, loc_f, message) &
+    !$omp schedule(static)
     do i = 1, local_num_cells
       S(:) = 0.0_ccs_real
 
       ! Loop over neighbours/faces
       do j = 1, mesh%topo%num_nb(i)
 
-        call create_face_locator(mesh, i, j, loc_f)
+        call create_face_locator(i, j, loc_f)
         call get_face_area(loc_f, A)
         call get_face_normal(loc_f, norm)
         S(:) = S(:) + norm(:) * A
@@ -74,6 +83,9 @@ program test_mesh_closed
         end if
       end do
     end do
+    !$omp end parallel do
+
+    call nullify_mesh_object()
   end do
 
   call fin()

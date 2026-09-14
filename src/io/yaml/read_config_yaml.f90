@@ -6,25 +6,28 @@
 submodule(read_config) read_config_utils
 #include "ccs_macros.inc"
 
-  use constants, only: cell_centred_central, cell_centred_upwind
-  use utils, only: exit_print, debug_print, str, get_scheme_id
+  use utils, only: exit_print, get_scheme_id
   use fortran_yaml_c_interface, only: parse
   use fortran_yaml_c, only: type_dictionary, &
                             type_error, &
                             type_list, &
                             type_list_item, &
                             type_scalar
-  use boundary_conditions, only: set_bc_real_value, set_bc_id, set_bc_type, allocate_bc_arrays
+  use boundary_conditions, only: set_bc_real_value, set_bc_id, set_bc_type
+  use types, only: solver_params
+  use logging, only: log_unit_out
 
   implicit none
 
 contains
 
   !> Gets the integer value associated with the keyword from dict
-  module subroutine get_integer_value(dict, keyword, int_val)
+  module subroutine get_integer_value(dict, keyword, int_val, value_present, required)
     class(*), pointer, intent(in) :: dict     !< The dictionary
     character(len=*), intent(in) :: keyword   !< The key
-    integer, intent(out) :: int_val           !< The corresponding value
+    integer, intent(inout) :: int_val           !< The corresponding value
+    logical, intent(out), optional :: value_present !< Indicates whether the key-value pair is present in the dictionary
+    logical, intent(in), optional :: required         !< Flag indicating whether the value is required. Absence implies not required
 
     type(type_error), allocatable :: io_err
 
@@ -32,15 +35,25 @@ contains
     type is (type_dictionary)
 
       int_val = dict%get_integer(keyword, error=io_err)
-      ! call error_handler(io_err)
+
+      if (allocated(io_err)) then
+        if (present(value_present)) then
+          value_present = .false.
+        end if
+        if (present(required)) then
+          if (required) then
+            call error_abort("Error reading keyword " // keyword // ". Possibly missing keyword in yaml file.")
+          end if
+        end if
+      else
+        if (present(value_present)) then
+          value_present = .true.
+        end if
+      end if
 
     class default
       call error_abort("Unknown type")
     end select
-
-    if (allocated(io_err) .eqv. .true.) then
-      call error_abort("Error reading " // keyword)
-    end if
 
   end subroutine
 
@@ -50,8 +63,8 @@ contains
   module subroutine get_real_value(dict, keyword, real_val, value_present, required)
     class(*), pointer, intent(in) :: dict            !< The dictionary to read from
     character(len=*), intent(in) :: keyword          !< The key to read
-    real(ccs_real), intent(out) :: real_val          !< The value read from the dictionary
-    logical, intent(inout), optional :: value_present !< Indicates whether the key-value pair is present in the dictionary
+    real(ccs_real), intent(inout) :: real_val          !< The value read from the dictionary
+    logical, intent(out), optional :: value_present !< Indicates whether the key-value pair is present in the dictionary
     logical, intent(in), optional :: required         !< Flag indicating whether the value is required. Absence implies not required
 
     type(type_error), allocatable :: io_err
@@ -60,16 +73,19 @@ contains
     type is (type_dictionary)
 
       real_val = dict%get_real(keyword, error=io_err)
-      if (present(value_present)) then
-        if (allocated(io_err)) then
+
+      if (allocated(io_err)) then
+        if (present(value_present)) then
           value_present = .false.
-        else
-          value_present = .true.
         end if
-      end if
-      if (present(required)) then
-        if (required .eqv. .true.) then
-          ! call error_handler(io_err)
+        if (present(required)) then
+          if (required) then
+            call error_abort("Error reading keyword " // keyword // ". Possibly missing keyword in yaml file.")
+          end if
+        end if
+      else
+        if (present(value_present)) then
+          value_present = .true.
         end if
       end if
 
@@ -77,38 +93,37 @@ contains
       call error_abort("Unknown type")
     end select
 
-    if ((allocated(io_err) .eqv. .true.) .and. present(required)) then
-      if (required .eqv. .true.) then
-        call error_abort("Error reading " // keyword)
-      end if
-    end if
-
   end subroutine
 
   !> Gets the string associated with the keyword from dict
   module subroutine get_string_value(dict, keyword, string_val, value_present, required)
-    class(*), pointer, intent(in) :: dict                       !< The dictionary
-    character(len=*), intent(in) :: keyword                     !< The key
-    character(len=:), allocatable, intent(inout) :: string_val  !< The corresponding value
-    logical, intent(inout), optional :: value_present           !< Indicates whether the key-value pair is present in the dictionary
-    logical, optional, intent(in) :: required                   !< Flag indicating whether result is required. Absence implies not required.
+    class(*), pointer, intent(in) :: dict                    !< The dictionary
+    character(len=*), intent(in) :: keyword                  !< The key. Length is assumed (len=*) from input
+    character(len=:), allocatable, intent(out) :: string_val !< The corresponding value. Length is allocated as result (len=:)
+    logical, intent(out), optional :: value_present          !< Indicates whether the key-value pair is present in the dictionary
+    logical, optional, intent(in) :: required                !< Flag indicating whether result is required. Absence implies not required.
 
     type(type_error), allocatable :: io_err
 
     select type (dict)
     type is (type_dictionary)
 
-      string_val = trim(dict%get_string(keyword, error=io_err))
-      if (present(value_present)) then
-        if (allocated(io_err)) then
+      string_val = ""
+      string_val = dict%get_string(keyword, error=io_err)
+
+      if (allocated(io_err)) then
+        if (present(value_present)) then
           value_present = .false.
-        else
-          value_present = .true.
         end if
-      end if
-      if (present(required)) then
-        if (required .eqv. .true.) then
-          !call error_handler(io_err)
+        if (present(required)) then
+          if (required) then
+            call error_abort("Error reading keyword " // keyword // ". Possibly missing keyword in yaml file.")
+          end if
+        end if
+      else
+        string_val = trim(string_val)
+        if (present(value_present)) then
+          value_present = .true.
         end if
       end if
 
@@ -116,19 +131,15 @@ contains
       call error_abort("Unknown type")
     end select
 
-    if ((allocated(io_err) .eqv. .true.) .and. present(required)) then
-      if (required .eqv. .true.) then
-        call error_abort("Error reading " // keyword)
-      end if
-    end if
   end subroutine
 
-module subroutine get_logical_value(dict, keyword, logical_val, value_present, required)
+  !> Get the logical value associated with the keyword from dict
+  module subroutine get_logical_value(dict, keyword, logical_val, value_present, required)
     class(*), pointer, intent(in) :: dict                       !< The dictionary
     character(len=*), intent(in) :: keyword                     !< The key
-    logical, intent(inout) :: logical_val !< The corresponding value
-    logical, intent(inout), optional :: value_present           !< Indicates whether the key-value pair is present in the dictionary
-    logical, optional, intent(in) :: required                   !< Flag indicating whether result is required. Absence implies not required.
+    logical, intent(inout) :: logical_val                       !< The corresponding value
+    logical, intent(out), optional :: value_present           !< Indicates whether the key-value pair is present in the dictionary
+    logical, intent(in), optional :: required                   !< Flag indicating whether result is required. Absence implies not required.
 
     type(type_error), allocatable :: io_err
 
@@ -136,16 +147,18 @@ module subroutine get_logical_value(dict, keyword, logical_val, value_present, r
     type is (type_dictionary)
 
       logical_val = dict%get_logical(keyword, error=io_err)
-      if (present(value_present)) then
-        if (allocated(io_err)) then
+      if (allocated(io_err)) then
+        if (present(value_present)) then
           value_present = .false.
-        else
-          value_present = .true.
         end if
-      end if
-      if (present(required)) then
-        if (required .eqv. .true.) then
-          !call error_handler(io_err)
+        if (present(required)) then
+          if (required) then
+            call error_abort("Error reading keyword " // keyword // ". Possibly missing keyword in yaml file.")
+          end if
+        end if
+      else
+        if (present(value_present)) then
+          value_present = .true.
         end if
       end if
 
@@ -153,21 +166,50 @@ module subroutine get_logical_value(dict, keyword, logical_val, value_present, r
       call error_abort("Unknown type")
     end select
 
-    if ((allocated(io_err) .eqv. .true.) .and. present(required)) then
-      if (required .eqv. .true.) then
-        call error_abort("Error reading " // keyword)
-      end if
-    end if
-  end subroutine
- 
-  subroutine error_handler(io_err)
-    type(type_error), pointer, intent(inout) :: io_err
+  end subroutine get_logical_value
 
-    if (associated(io_err)) then
-      print *, trim(io_err%message)
-    end if
+  !v Get options specific to the ParHIP partitioner
+  module subroutine get_parhip_options(config_file, imbalance, mode)
+    class(*), pointer, intent(in) :: config_file
+    real(ccs_real), intent(inout) :: imbalance
+    integer(ccs_int), intent(inout) :: mode
 
-  end subroutine
+    class(*), pointer :: partitioning_dict
+    class(*), pointer :: parhip_dict
+    type(type_error), allocatable :: io_err
+    real(ccs_real) :: configured_imbalance
+    integer(ccs_int) :: configured_mode
+    logical :: value_present
+
+    select type (config_file)
+    type is (type_dictionary)
+      partitioning_dict => config_file%get_dictionary("partitioning", required=.false., error=io_err)
+      if (allocated(io_err)) return
+      if (.not. associated(partitioning_dict)) return
+
+      select type (partitioning_dict)
+      type is (type_dictionary)
+        parhip_dict => partitioning_dict%get_dictionary("parhip", required=.false., error=io_err)
+        if (allocated(io_err)) return
+        if (.not. associated(parhip_dict)) return
+
+        configured_imbalance = imbalance
+        call get_value(parhip_dict, "imbalance", configured_imbalance, value_present, required=.false.)
+        if (value_present) imbalance = configured_imbalance
+
+        configured_mode = mode
+        call get_value(parhip_dict, "mode", configured_mode, value_present, required=.false.)
+        if (value_present) mode = configured_mode
+
+      class default
+        call error_abort("Unknown type")
+      end select
+
+    class default
+      call error_abort("Unknown type")
+    end select
+
+  end subroutine get_parhip_options
 
   !v Get the name of the test case
   !
@@ -246,49 +288,87 @@ module subroutine get_logical_value(dict, keyword, logical_val, value_present, r
     class(*), pointer :: dict
     type(type_error), allocatable :: io_err
 
+    real(ccs_real) :: val
+    integer :: val_int
+    logical :: val_present
+
     select type (config_file)
     type is (type_dictionary)
 
       dict => config_file%get_dictionary('reference_numbers', required=.true., error=io_err)
+      if (.not. allocated(io_err)) then
 
-      ! Pressure
-      if (present(p_ref)) then
-        call get_value(dict, "pressure", p_ref)
-      end if
+        ! Pressure
+        if (present(p_ref)) then
+          val_present = .false.
+          call get_value(dict, "pressure", val, value_present=val_present, required=.false.)
+          if (val_present) then
+            p_ref = val
+          end if
+        end if
 
-      ! Pressure_total
-      if (present(p_total)) then
-        call get_value(dict, "pressure_total", p_total)
-      end if
+        ! Pressure_total
+        if (present(p_total)) then
+          val_present = .false.
+          call get_value(dict, "pressure_total", val, value_present=val_present, required=.false.)
+          if (val_present) then
+            p_total = val
+          end if
+        end if
 
-      ! Temperature
-      if (present(temp_ref)) then
-        call get_value(dict, "temperature", temp_ref)
-      end if
+        ! Temperature
+        if (present(temp_ref)) then
+          val_present = .false.
+          call get_value(dict, "temperature", val, value_present=val_present, required=.false.)
+          if (val_present) then
+            temp_ref = val
+          end if
+        end if
 
-      ! Density
-      if (present(dens_ref)) then
-        call get_value(dict, "density", dens_ref)
-      end if
+        ! Density
+        if (present(dens_ref)) then
+          val_present = .false.
+          call get_value(dict, "density", val, value_present=val_present, required=.false.)
+          if (val_present) then
+            dens_ref = val
+          end if
+        end if
 
-      ! Viscosity
-      if (present(visc_ref)) then
-        call get_value(dict, "viscosity", visc_ref)
-      end if
+        ! Viscosity
+        if (present(visc_ref)) then
+          val_present = .false.
+          call get_value(dict, "viscosity", val, value_present=val_present, required=.false.)
+          if (val_present) then
+            visc_ref = val
+          end if
+        end if
 
-      ! Velocity
-      if (present(velo_ref)) then
-        call get_value(dict, "velocity", velo_ref)
-      end if
+        ! Velocity
+        if (present(velo_ref)) then
+          val_present = .false.
+          call get_value(dict, "velocity", val, value_present=val_present, required=.false.)
+          if (val_present) then
+            velo_ref = val
+          end if
+        end if
 
-      ! Length
-      if (present(len_ref)) then
-        call get_value(dict, "length", len_ref)
-      end if
+        ! Length
+        if (present(len_ref)) then
+          val_present = .false.
+          call get_value(dict, "length", val, value_present=val_present, required=.false.)
+          if (val_present) then
+            len_ref = val
+          end if
+        end if
 
-      ! Pref_at_cell
-      if (present(pref_at_cell)) then
-        call get_value(dict, "pref_at_cell", pref_at_cell)
+        ! Pref_at_cell
+        if (present(pref_at_cell)) then
+          val_present = .false.
+          call get_value(dict, "pref_at_cell", val_int, value_present=val_present, required=.false.)
+          if (val_present) then
+            pref_at_cell = val_int
+          end if
+        end if
       end if
 
     class default
@@ -304,41 +384,106 @@ module subroutine get_logical_value(dict, keyword, logical_val, value_present, r
   !  certain variables will not be solved by setting in to "off"
   !
   !  @todo extend list of variables
-  module subroutine get_solve(config_file, u_sol, v_sol, w_sol, p_sol)
+  module subroutine get_solver_eq_parameters(config_file, solver_parameters)
+    use constants, only: L2, Linfty
 
     class(*), pointer, intent(in) :: config_file                      !< the entry point to the config file
-    character(len=:), allocatable, optional, intent(inout) :: u_sol   !< solve u on/off
-    character(len=:), allocatable, optional, intent(inout) :: v_sol   !< solve v on/off
-    character(len=:), allocatable, optional, intent(inout) :: w_sol   !< solve w on/off
-    character(len=:), allocatable, optional, intent(inout) :: p_sol   !< solve p on/off
+    type(solver_params), dimension(:), allocatable, intent(out) :: solver_parameters !< Solver parameters to write to
 
     class(*), pointer :: dict
+    class(*), pointer :: dict_var
     type(type_error), allocatable :: io_err
+    integer(ccs_int) :: n_var
+    integer :: i
+    character(len=25) :: key
+    character(len=:), allocatable :: solved
+    character(len=:), allocatable :: residuals_norm
+    character(len=:), allocatable :: solver_name
+    character(len=:), allocatable :: precon_name
+    real(ccs_real) :: res_target
+    real(ccs_real) :: relaxation
+    real(ccs_real) :: global_grad_relaxation
+    real(ccs_real) :: grad_relaxation
+    logical :: val_present
+    character(len=:), allocatable :: variable
+    character(len=ccs_string_len) :: var
 
     select type (config_file)
     type is (type_dictionary)
 
-      dict => config_file%get_dictionary('solve', required=.true., error=io_err)
+      dict => config_file%get_dictionary('variables', required=.true., error=io_err)
+      call get_value(dict, "n_variables", n_var)
 
-      ! Solve u?
-      if (present(u_sol)) then
-        call get_value(dict, "u", u_sol)
+      allocate (solver_parameters(n_var))
+
+      call get_value(dict, "grad_relaxation", grad_relaxation, value_present=val_present, required=.false.)
+      if (val_present) then
+        global_grad_relaxation = grad_relaxation
+      else
+        global_grad_relaxation = 1.0_ccs_real
       end if
 
-      ! Solve v?
-      if (present(v_sol)) then
-        call get_value(dict, "v", v_sol)
-      end if
+      select type (dict)
+      type is (type_dictionary)
+        do i = 1, n_var
+          write (key, '(A, I0)') "variable_", i
+          dict_var => dict%get_dictionary(key, required=.true., error=io_err)
 
-      ! Solve w?
-      if (present(w_sol)) then
-        call get_value(dict, "w", w_sol)
-      end if
+          ! Get name of variable
+          call get_value(dict_var, "name", variable)
+          var = adjustl(variable)
+          solver_parameters(i)%name = trim(var)
 
-      ! Solve p?
-      if (present(p_sol)) then
-        call get_value(dict, "p", p_sol)
-      end if
+          call get_value(dict_var, 'solve', solved, value_present=val_present, required=.false.)
+          if (val_present) then
+            solver_parameters(i)%solve = (trim(solved) == "on")
+          else
+            solver_parameters(i)%solve = .false.
+          end if
+
+          call get_value(dict_var, 'relaxation', relaxation, value_present=val_present, required=.false.)
+          if (val_present) then
+            solver_parameters(i)%relaxation_factor = relaxation
+          end if
+
+          call get_value(dict_var, "grad_relaxation", grad_relaxation, value_present=val_present, required=.false.)
+          if (val_present) then
+            solver_parameters(i)%grad_relaxation_factor = grad_relaxation
+          else
+            solver_parameters(i)%grad_relaxation_factor = global_grad_relaxation
+          end if
+
+          call get_value(dict_var, 'target_residual', res_target, value_present=val_present, required=.false.)
+          if (val_present) then
+            solver_parameters(i)%res_target = res_target
+          end if
+
+          call get_value(dict_var, 'norm_residual', residuals_norm, value_present=val_present, required=.false.)
+          if (val_present) then
+            select case (trim(residuals_norm))
+            case ("L2")
+              solver_parameters(i)%res_norm = L2
+            case ("Linfty")
+              solver_parameters(i)%res_norm = Linfty
+            case default
+              call error_abort("Unknown residual norm for " // trim(solver_parameters(i)%name) // ", should be L2 or Linfty")
+            end select
+          end if
+
+          call get_value(dict_var, 'solver_name', solver_name, value_present=val_present, required=.false.)
+          if (val_present) then
+            solver_parameters(i)%solver_name = trim(solver_name)
+          end if
+
+          call get_value(dict_var, 'precon_name', precon_name, value_present=val_present, required=.false.)
+          if (val_present) then
+            solver_parameters(i)%precon_name = trim(precon_name)
+          end if
+
+        end do
+      class default
+        call error_abort("Unknown type")
+      end select
 
     class default
       call error_abort("Unknown type")
@@ -543,51 +688,6 @@ module subroutine get_logical_value(dict, keyword, logical_val, value_present, r
 
   end subroutine
 
-  !v Get relaxation factor values
-  !
-  !  Get relaxation factors
-  module subroutine get_relaxation_factors(config_file, u_relax, v_relax, p_relax, te_relax, ed_relax)
-    class(*), pointer, intent(in) :: config_file        !< the entry point to the config file
-    real(ccs_real), optional, intent(inout) :: u_relax  !< relaxation factor for u
-    real(ccs_real), optional, intent(inout) :: v_relax  !< relaxation factor for v
-    real(ccs_real), optional, intent(inout) :: p_relax  !< relaxation factor for p
-    real(ccs_real), optional, intent(inout) :: te_relax !< relaxation factor for te
-    real(ccs_real), optional, intent(inout) :: ed_relax !< relaxation factor for ed
-
-    class(*), pointer :: dict
-    type(type_error), allocatable :: io_err
-
-    select type (config_file)
-    type is (type_dictionary)
-
-      dict => config_file%get_dictionary('relaxation_factor', required=.false., error=io_err)
-
-      if (present(u_relax)) then
-        call get_value(dict, "u", u_relax)
-      end if
-
-      if (present(v_relax)) then
-        call get_value(dict, "v", v_relax)
-      end if
-
-      if (present(p_relax)) then
-        call get_value(dict, "p", p_relax)
-      end if
-
-      if (present(te_relax)) then
-        call get_value(dict, "te", te_relax)
-      end if
-
-      if (present(ed_relax)) then
-        call get_value(dict, "ed", ed_relax)
-      end if
-
-    class default
-      call error_abort("Unknown type")
-    end select
-
-  end subroutine
-
   !> Get output file format
   module subroutine get_plot_format(config_file, plot_format)
     class(*), pointer, intent(in) :: config_file                !< the entry point to the config file
@@ -599,69 +699,67 @@ module subroutine get_logical_value(dict, keyword, logical_val, value_present, r
 
   !> Get output type and variables
   module subroutine get_output_type(config_file, post_type, post_vars)
-    class(*), pointer, intent(in) :: config_file                !< the entry point to the config file
-    character(len=:), allocatable, intent(inout) :: post_type   !< values at cell centres or cell vertices?
-    character(len=2), dimension(10), intent(inout) :: post_vars !< variables to be written out
+    class(*), pointer, intent(in) :: config_file            !< the entry point to the config file
+    character(len=:), allocatable, intent(out) :: post_type !< values at cell centres or cell vertices?
+    character(len=ccs_string_len), dimension(:), allocatable, intent(out) :: post_vars !< variables to be written out
 
     class(*), pointer :: dict
     class(type_list), pointer :: list
     class(type_list_item), pointer :: item
     type(type_error), allocatable :: io_err
-    integer :: idx
+    character(len=ccs_string_len) :: elt
+
+    allocate (post_vars(0)) ! Set initial size to zero
 
     select type (config_file)
     type is (type_dictionary)
 
       dict => config_file%get_dictionary('post', required=.false., error=io_err)
 
-      call get_value(dict, "type", post_type)
+      if (.not. allocated(io_err)) then
+        ! call get_value(dict, "type", post_type)
+        post_type = "center"
+        select type (dict)
+        type is (type_dictionary)
 
-      select type (dict)
-      type is (type_dictionary)
+          list => dict%get_list('variables', required=.false., error=io_err)
 
-        list => dict%get_list('variables', required=.false., error=io_err)
-        ! call error_handler(io_err)
+          if (.not. allocated(io_err)) then
+            item => list%first
+            do while (associated(item))
+              select type (element => item%node)
+              class is (type_scalar)
+                elt = ""
+                elt = element%string
+                post_vars = [post_vars, elt]
+                item => item%next
+              end select
+            end do
+          else
+            write (log_unit_out, *) "COULDN'T FIND POST VARIABLES"
+          end if
 
-        item => list%first
-        idx = 1
-        do while (associated(item))
-          select type (element => item%node)
-          class is (type_scalar)
-            post_vars(idx) = trim(element%string)
-            print *, post_vars(idx)
-            item => item%next
-            idx = idx + 1
-          end select
-        end do
-
-      class default
-        call error_abort("Unknown type")
-      end select
+        class default
+          call error_abort("Unknown type")
+        end select
+      end if
 
     class default
       call error_abort("Unknown type")
     end select
 
-  end subroutine
+  end subroutine get_output_type
 
-  module subroutine get_boundary_count(filename, n_boundaries)
-    character(len=*), intent(in) :: filename
+  module subroutine get_boundary_count(config_file, n_boundaries)
+    class(*), pointer, intent(in) :: config_file
     integer(ccs_int), intent(out) :: n_boundaries
 
-    class(*), pointer :: config_file
     class(*), pointer :: dict
-    character(:), allocatable :: error
     type(type_error), allocatable :: io_err
-
-    config_file => parse(filename, error)
-    if (allocated(error)) then
-      call error_abort(trim(error))
-    end if
 
     select type (config_file)
     type is (type_dictionary)
       dict => config_file%get_dictionary("boundaries", required=.true., error=io_err)
-      !call error_handler(io_err)
 
       call get_value(dict, "n_boundaries", n_boundaries)
     class default
@@ -669,6 +767,49 @@ module subroutine get_logical_value(dict, keyword, logical_val, value_present, r
     end select
   end subroutine get_boundary_count
 
+  module subroutine get_boundary_names(config_file, bnd_names)
+    class(*), pointer, intent(in) :: config_file
+    character(len=128), dimension(:), allocatable, intent(out) :: bnd_names
+
+    integer :: n_boundaries
+
+    class(*), pointer :: dict, dict2
+    character(:), allocatable :: error
+    type(type_error), allocatable :: io_err
+
+    integer :: i
+
+    character(len=25) :: boundary_entry
+    character(len=:), allocatable :: tmpstr
+
+    call get_boundary_count(config_file, n_boundaries)
+    allocate (bnd_names(n_boundaries))
+
+    if (allocated(error)) then
+      call error_abort(trim(error))
+    end if
+
+    select type (config_file)
+    type is (type_dictionary)
+      dict => config_file%get_dictionary("boundaries", required=.true., error=io_err)
+
+      do i = 1, n_boundaries
+        write (boundary_entry, '(A, I0)') "boundary_", i
+        select type (dict)
+        type is (type_dictionary)
+          dict2 => dict%get_dictionary(boundary_entry, required=.true., error=io_err)
+
+          call get_value(dict2, "name", tmpstr)
+          bnd_names(i) = trim(tmpstr)
+        class default
+          call error_abort("type unhandled")
+        end select
+      end do
+    class default
+      call error_abort("type unhandled")
+    end select
+
+  end subroutine get_boundary_names
 
   module subroutine get_store_residuals(filename, store_residuals)
     character(len=*), intent(in) :: filename
@@ -688,7 +829,6 @@ module subroutine get_logical_value(dict, keyword, logical_val, value_present, r
     select type (config_file)
     type is (type_dictionary)
       dict => config_file%get_dictionary("variables", required=.true., error=io_err)
-      !call error_handler(io_err)
 
       call get_value(dict, "store_residuals", store_residuals, value_present)
       ! do not store residuals by default
@@ -699,6 +839,35 @@ module subroutine get_logical_value(dict, keyword, logical_val, value_present, r
       call error_abort("type unhandled")
     end select
   end subroutine get_store_residuals
+
+  module subroutine get_enable_cell_corrections(filename, enable_cell_corrections)
+    character(len=*), intent(in) :: filename
+    logical, intent(out) :: enable_cell_corrections
+
+    class(*), pointer :: config_file
+    class(*), pointer :: dict
+    character(:), allocatable :: error
+    type(type_error), allocatable :: io_err
+    logical :: value_present
+
+    config_file => parse(filename, error)
+    if (allocated(error)) then
+      call error_abort(trim(error))
+    end if
+
+    select type (config_file)
+    type is (type_dictionary)
+      dict => config_file%get_dictionary("variables", required=.true., error=io_err)
+
+      call get_value(dict, "enable_cell_corrections", enable_cell_corrections, value_present)
+      ! do not store residuals by default
+      if (.not. value_present) then
+        enable_cell_corrections = .true.
+      end if
+    class default
+      call error_abort("type unhandled")
+    end select
+  end subroutine get_enable_cell_corrections
 
   module subroutine get_variables(config_file, variables)
     class(*), pointer, intent(in) :: config_file
@@ -715,9 +884,11 @@ module subroutine get_logical_value(dict, keyword, logical_val, value_present, r
     select type (config_file)
     type is (type_dictionary)
       dict => config_file%get_dictionary("variables", required=.true., error=io_err)
-      ! call error_handler(io_err)
 
       call get_value(dict, "n_variables", n_var)
+      if (allocated(variables)) then
+        deallocate (variables)
+      end if
       allocate (variables(n_var))
 
       do i = 1, n_var
@@ -725,7 +896,6 @@ module subroutine get_logical_value(dict, keyword, logical_val, value_present, r
         select type (dict)
         type is (type_dictionary)
           dict_var => dict%get_dictionary(key, required=.true., error=io_err)
-          ! call error_handler(io_err)
           call get_value(dict_var, "name", variable)
           write (variables(i), '(A)') trim(variable)
         class default
@@ -753,7 +923,6 @@ module subroutine get_logical_value(dict, keyword, logical_val, value_present, r
     select type (config_file)
     type is (type_dictionary)
       dict => config_file%get_dictionary("variables", required=.true., error=io_err)
-      ! call error_handler(io_err)
 
       call get_value(dict, "n_variables", n_var)
       allocate (variable_types(n_var))
@@ -763,10 +932,8 @@ module subroutine get_logical_value(dict, keyword, logical_val, value_present, r
         select type (dict)
         type is (type_dictionary)
           dict_var => dict%get_dictionary(key, required=.true., error=io_err)
-          ! call error_handler(io_err)
           call get_value(dict_var, "type", scheme)
-          scheme = trim(scheme)
-          variable_types(i) = get_scheme_id(scheme)
+          variable_types(i) = get_scheme_id(trim(scheme))
         class default
           call error_abort("type unhandled")
         end select
@@ -801,7 +968,6 @@ module subroutine get_logical_value(dict, keyword, logical_val, value_present, r
     select type (config_file)
     type is (type_dictionary)
       dict => config_file%get_dictionary("boundaries", required=.true., error=io_err)
-      ! call error_handler(io_err)
 
       i = 1
       n_boundaries = size(phi%bcs%ids)
@@ -810,7 +976,6 @@ module subroutine get_logical_value(dict, keyword, logical_val, value_present, r
         select type (dict)
         type is (type_dictionary)
           dict2 => dict%get_dictionary(boundary_index, required=.true., error=io_err)
-          ! call error_handler(io_err)
 
           select case (bc_field)
           case ("name")
@@ -831,7 +996,6 @@ module subroutine get_logical_value(dict, keyword, logical_val, value_present, r
             type is (type_dictionary)
               write (variable, '(A, A)') "variable_", trim(bc_field)
               variable_dict => dict2%get_dictionary(trim(variable), required=.false., error=io_err)
-              ! call error_handler(io_err)
 
               if (associated(variable_dict)) then
                 call get_value(variable_dict, "type", bc_type, field_exists)

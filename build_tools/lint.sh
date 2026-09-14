@@ -2,9 +2,13 @@ ACTION=$1
 TARGET=$2
 GOAL_SCORE=8
 
+find_lint_targets() {
+  find "$1" -name "*.f90" ! -name "distorted_refs.f90"
+}
+
 
 if [ $ACTION = "lint" ]; then
-  for f in $(find $TARGET -name "*.f90"); do
+  for f in $(find_lint_targets "$TARGET"); do
     echo $f
     flint lint -r .flint_config.yaml $f
   done
@@ -18,7 +22,7 @@ elif [ $ACTION = "score_verbose" ]; then
   flint score -r .flint_config.yaml $TARGET --verbose
 elif [ $ACTION = "score_each_file" ]; then
   all_pass=0
-  for f in $(find $TARGET -name "*.f90"); do
+  for f in $(find_lint_targets "$TARGET"); do
     echo $f
     score=$(flint score -r .flint_config.yaml $f | grep -Eo '[+-]?[0-9]+[.][0-9]+')
     echo "  flint score: "$score"; goal is: "$GOAL_SCORE

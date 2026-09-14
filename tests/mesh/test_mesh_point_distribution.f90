@@ -5,27 +5,32 @@
 program test_mesh_point_distribution
 
   use testing_lib
+  use ccs_base, only: bnd_names_default
+  use core
   use mesh_utils, only: build_mesh
   use meshing, only: get_local_num_cells, get_global_num_cells
+  use meshing, only: set_mesh_object, nullify_mesh_object
 
   implicit none
 
-  type(ccs_mesh) :: mesh
-
-  integer(ccs_int) :: nx, ny, nz
+  integer(ccs_int) :: n
   integer(ccs_int) :: nlocal
   integer(ccs_int) :: n_expected
   integer(ccs_int) :: n_global
   integer(ccs_int) :: global_num_cells
+  type(ccs_options) :: run_options
 
   call init()
 
-  nx = 4
-  ny = 4
-  nz = 4
+  n = 4
+  
+  run_options%mesh%bnd_names = bnd_names_default
+  run_options%mesh%cps = n
+  run_options%mesh%domain_size = 1.0_ccs_real
+  mesh = build_mesh(par_env, shared_env, run_options)
+  call set_mesh_object(mesh)
 
-  mesh = build_mesh(par_env, shared_env, nx, ny, nz, 1.0_ccs_real)
-  call get_local_num_cells(mesh, nlocal)
+  call get_local_num_cells(nlocal)
   if (nlocal < 0) then
     ! XXX: Zero cells on a PE is not necessarily invalid...
     ! ? exit
@@ -38,7 +43,7 @@ program test_mesh_point_distribution
     ! end select
   end if
 
-  n_expected = nx * ny * nz
+  n_expected = n**3
 
   if (nlocal > n_expected) then
     write (message, *) "FAIL: Local number of cells ", nlocal, &
@@ -60,9 +65,11 @@ program test_mesh_point_distribution
     call stop_test(message)
   end if
 
-  call get_global_num_cells(mesh, global_num_cells)
+  call get_global_num_cells(global_num_cells)
   call assert_eq(n_expected, global_num_cells, &
                  '(test_mesh:test_mesh_point_distribution/2)')
+          
+  call nullify_mesh_object()
 
   call fin()
 

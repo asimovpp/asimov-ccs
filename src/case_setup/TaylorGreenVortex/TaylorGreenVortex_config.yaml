@@ -1,24 +1,29 @@
 ---
 title: TaylorGreenVortex
 
+# restart capability
+restart: false  
+
+# unstaedy state
+unsteady: true
+
+#  number of steady iterations
+iterations: 7
+
 #  number of timesteps
 steps: 10
-#  number of iterations
-iterations: 7
 # time step size
 dt: 1.0e-2
 
+mesh: 3d
 # Square/cubic mesh generation parameters
 # cells per side
 cps: 8
 # domain size
 L: 3.1415926535
 
-relaxation_factor:
-  u: 0.9
-  v: 0.9
-  w: 0.9
-  p: 0.1
+# Enable/disable solver debugging at runtime
+debug_solver: false
 
 target_residual: 1.0e-10
 
@@ -26,7 +31,24 @@ target_residual: 1.0e-10
 write_frequency: 5
 
 # Fluid properties
-viscocity : 1.0e-3
+viscosity : 1.0e-3
+
+# Report partition quality (true/false)
+compute_partqual : false
+
+# Compute matrix bandwidth (true/false)
+compute_bwidth : false
+
+# Partitioning options
+partitioning:
+  parhip:
+    # imbalance default is 0.03 - for larger meshes or core counts, it may be necessary
+    # to increase this value to avoid partitioning failure. To large a value for small 
+    # meshes/core counts may also result in failure. The default value of 0.03 is a 
+    # good starting point for most cases.
+    imbalance: 0.03
+    # mode: ULTRAFASTMESH = 0, FASTMESH = 1, ECOMESH = 2, ULTRAFASTSOCIAL = 3, FASTSOCIAL = 4, ECOSOCIAL = 5
+    mode: 4
 
 ### VALUES BELOW THIS POINT ARE NOT CURRENTLY USED
 
@@ -56,28 +78,44 @@ viscocity : 1.0e-3
 #  v: 1.0
 #  w: 1.0
 
-#post:
-#  type: center
-#  variables: [u, v, w, p]
+post:
+  type: center
+  variables: [u, v, w, p]
 
 variables:
   store_residuals: false
+  enable_cell_corrections: false
+  # grad_relaxation: 0.7
   n_variables: 5
   variable_1:
     name: u
     type: central
+    solve: on
+    relaxation: 0.9
   variable_2:
     name: v
     type: central
+    solve: on
+    relaxation: 0.9
   variable_3:
     name: w
     type: central
+    solve: on
+    relaxation: 0.9
   variable_4:
     name: p
     type: central
+    solve: on
+    relaxation: 0.1
+    # target_residual: 1.0e-10
+    # norm_residual: L2|Linfty
+    # solver_name: cg
+    # precon_name: gamg
+    # grad_relaxation: 0.7
   variable_5:
     name: p_prime
     type: central
+    solve: off
 
 boundaries:
   n_boundaries: 6

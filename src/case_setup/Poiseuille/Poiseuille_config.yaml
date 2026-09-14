@@ -1,24 +1,26 @@
 ---
 title: Poiseuille
 
+# restart capability
+restart: false
+
+# unstaedy state
+unsteady: false
+
+#  number of steady iterations
+iterations: 3000
+
 #  number of timesteps
 steps: 100
-#  number of iterations
-iterations: 7
 # time step size
 dt: 1.0e-2
 
+mesh: 2d
 # Square/cubic mesh generation parameters
 # cells per side
-cps: 32
+cps: 16
 # domain size
-L: 3.1415926535
-
-relaxation_factor:
-  u: 0.9
-  v: 0.9
-  w: 0.9
-  p: 0.1
+L: 1.0
 
 target_residual: 1.0e-10
 
@@ -26,7 +28,7 @@ target_residual: 1.0e-10
 write_frequency: 50
 
 # Fluid properties
-viscocity : 1.0e-3
+viscosity : 1.0e-3
 
 ### VALUES BELOW THIS POINT ARE NOT CURRENTLY USED
 
@@ -56,78 +58,56 @@ viscocity : 1.0e-3
 #  v: 1.0
 #  w: 1.0
 
-#post:
-#  type: center
-#  variables: [u, v, w, p]
+post:
+  type: center
+  variables: [u, v, w, p]
 
 variables:
   n_variables: 5
+  enable_cell_corrections: false
   variable_1:
     name: u
     type: central
+    solve: on
+    relaxation: 0.8
   variable_2:
     name: v
     type: central
+    solve: on
+    relaxation: 0.8
   variable_3:
     name: w
     type: central
+    solve: on
+    relaxation: 0.8
   variable_4:
     name: p
     type: central
+    solve: on
+    relaxation: 0.12
   variable_5:
     name: p_prime
     type: central
+    solve: off
 
 boundaries:
   n_boundaries: 4
   boundary_1: 
     name: left
-    type: neumann
+    type: inflow
     value: 0
-    variable_p:
-      type: extrapolate
     variable_u:
-      type: dirichlet
+      type: profile
       value: 1
-    variable_v:
-      type: dirichlet
-      value: 0
-    variable_w:
-      type: dirichlet
-      value: 0
   boundary_2:
     name: right
-    type: neumann
+    type: outflow
     value: 0
-    variable_p:
-      type: dirichlet
-      value: 0
-    variable_p_prime:
-      type: dirichlet
-      value: 0
   boundary_3:
     name: bottom
-    type: neumann
+    type: wall
     value: 0
-    variable_u:
-      type: dirichlet
-      value: 0
-    variable_v:
-      type: dirichlet
-      value: 0
-    variable_w:
-      type: dirichlet
-      value: 0
   boundary_4:
     name: top
-    type: neumann
+    type: wall
     value: 0
-    variable_u:
-      type: dirichlet
-      value: 0
-    variable_v:
-      type: dirichlet
-      value: 0
-    variable_w:
-      type: dirichlet
-      value: 0

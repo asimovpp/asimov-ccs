@@ -3,16 +3,17 @@
 !  Provides the interface for mesh reordering methods.
 module reordering
 
-  use kinds, only: ccs_int
+  use kinds, only: ccs_int, ccs_real
   use types, only: ccs_mesh
   use parallel_types, only: parallel_environment
+  use core, only: ccs_options
 
   implicit none
 
   private
   public :: reorder_cells
-  public :: compute_bandwidth
   public :: disable_reordering
+  public :: print_bandwidth
 
   interface
 
@@ -31,14 +32,14 @@ module reordering
       type(ccs_mesh), intent(inout) :: mesh
     end subroutine
 
-    !> Calculate and print the bandwidth of a mesh
-    module subroutine compute_bandwidth(mesh)
-      type(ccs_mesh), intent(in) :: mesh
-    end subroutine
+    !> Print statistics on the local matrix bandwidth
+    module subroutine print_bandwidth(par_env, run_options)
+      class(parallel_environment), allocatable, target, intent(in) :: par_env !< The parallel environment
+      type(ccs_options), intent(in) :: run_options                            !< Runtime options object
+    end subroutine print_bandwidth
 
     !> Generate a mesh cell reordering mapping.
-    module subroutine get_reordering(mesh, new_indices)
-      type(ccs_mesh), intent(in) :: mesh
+    module subroutine get_reordering(new_indices)
       integer(ccs_int), dimension(:), allocatable, intent(out) :: new_indices
     end subroutine
 

@@ -1,7 +1,9 @@
-import sys
-import os
 import logging as log
+import os
+import sys
+
 import yaml
+
 import process_dependencies as pdeps
 
 # define must-appear-together sets
@@ -33,8 +35,7 @@ def check_for_conflicts(config):
   #      sys.exit(1)
 
 
-def get_link_rule(config, deps):
-  link_obj = "ccs_app: "
+def get_link_rule(link_obj, config, deps):
   # keep track of link files in a list
   link_deps = []
   # add main and common files
@@ -47,7 +48,7 @@ def get_link_rule(config, deps):
   add_config_extras(link_deps, config)
 
   # turn array of filenames to a string with object postfix
-  return link_obj + " ".join(["${OBJ_DIR}/" + os.path.basename(x) + ".o" for x in link_deps])
+  return link_obj + ": "+ " ".join(["${OBJ_DIR}/" + os.path.basename(x) + ".o" for x in link_deps])
 
 
 def apply_config_mapping(config, config_mapping):
@@ -134,8 +135,32 @@ def add_config_extras(deps, config):
         deps.append(extra)
 
 
-def get_min_link_rule(mindeps):
-  return "ccs_app: " + " ".join(["${OBJ_DIR}/" + os.path.basename(x) + ".o" for x in mindeps.keys()])
+def get_min_link_rule(link_obj, mindeps):
+  return link_obj + ": " + " ".join(["${OBJ_DIR}/" + os.path.basename(x) + ".o" for x in mindeps.keys()])
+
+
+def get_option_list(configfile):
+  """returns flattened list of options in input yaml file"""
+  options = []
+  # file is config_mapping
+  if "bases" in configfile:
+    options = configfile["bases"]["mpi"]["options"]
+  # file is config
+  elif "main" in configfile:
+    # avoid errors in config without any options
+    if "options" in configfile:
+      options = configfile["options"]
+  else:
+    # malformed config file
+    raise ValueError("Config file does not contain 'bases' or 'main' section")
+
+  out = []
+  # flatten list
+  for o in options:
+    out.extend(options[o])
+
+  return out
+
 
 
 if __name__ == "__main__":
@@ -159,7 +184,15 @@ if __name__ == "__main__":
     config = yaml.load(f, Loader=yaml.FullLoader)
   log.debug("config read:\n%s", pretty_print(config))
 
-  deps = pdeps.parse_dependencies(sys.argv[2])
+  # read all available options from config_mapping file
+  all_options = get_option_list(config_mapping)
+  # read used options -- full app compile or test compile
+  chosen_options = get_option_list(config)
+
+  # Parse dependency tree
+  unfiltered_deps = pdeps.parse_dependencies(sys.argv[2])
+  # Remove unused options from dependecy tree
+  deps = pdeps.filter_dependencies(unfiltered_deps, chosen_options, all_options)
 
   mapped_config = apply_config_mapping(config, config_mapping)
   log.debug("mapped config:\n%s", pretty_print(mapped_config))
@@ -168,12 +201,16 @@ if __name__ == "__main__":
   if len(sys.argv) > 4:
     mindeps = generate_minimal_deps(deps, mapped_config["main"], sys.argv[4], mapped_config)
     add_config_extras(mindeps, mapped_config)
-    link_rule = get_min_link_rule(mindeps)
+    link_rule = get_min_link_rule("ccs_app", mindeps)
+    lib_rule = get_min_link_rule("lib", mindeps)
   else:
-    link_rule = get_link_rule(mapped_config, deps)
+    link_rule = get_link_rule("ccs_app", mapped_config, deps)
+    lib_rule = get_link_rule("lib", mapped_config, deps)
 
   log.debug("Configurator produced link rule:\n%s", link_rule)
   with open(sys.argv[3], "w") as f:
     f.write(link_rule)
+    f.write("\n")
+    f.write(lib_rule)
 
   sys.exit(0)

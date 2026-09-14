@@ -14,6 +14,7 @@ ASiMoV-CCS is implemented in a modular fashion by separating the interface decla
 - `python` - with the `pyyaml` module (and optionally the `lit` module to run tests)
 - `ParHIP` - https://github.com/KaHIP/KaHIP
 - `ParMETIS` - https://github.com/KarypisLab/ParMETIS
+- `rcm-f90` - https://github.com/asimovpp/RCM-f90
 
 **N.B.** although the build system currently requires both, only one of ParHIP or ParMETIS is used to partition the problem.
 
@@ -24,20 +25,27 @@ Set the following environment variables:
 - `PETSC_DIR` to point to the PETSc install directory 
 - `FYAMLC` to point to the root of your fortran-yaml-c build directory
 - `ADIOS2` to point to the ADIOS2 install directory
-- `PARHIP` to point to the root of the ParHIP install directory
-- `PARMETIS` to point to the root of the ParMETIS install directory
+- `PARHIP` to point to the root of the ParHIP install directory (optional)
+- `PARMETIS` to point to the root of the ParMETIS install directory (optional)
+- `RCMF90` to point to the root of the rcm-f90 install directory
 
+**N.B.** at least one of `PARHIP` or `PARMETIS` must be set when building.
 
 With the prerequisites in place, ASiMoV-CCS can be built from the root directory with
 ```
 make CMP=<compiler> all
 ```
 where `<compiler>` is one of: `gnu`, `intel` or `cray`. `CMP` sets the compilation environment according to files in `build_tools/archs/Makefile.<compiler>`, which can be customised according to your environment. 
+This also packages up the compiled code into a library `libccs.a`, which can be built explicity with
+```
+make CMP=<compiler> lib
+```
 
 Tests can be run with
 ```
 make CMP=<compiler> tests
 ```
+
 
 
 ## Configuring
@@ -62,6 +70,15 @@ will use the runtime configuration file `CaseName_config.yaml` in the current di
 mpirun -n 4 /path/to/ccs_app --ccs_case CaseName --ccs_in /path/to/case/dir/
 ```
 where `/path/to/case/dir/` contains the configuration file `CaseName_config.yaml`.
+
+When using ParHIP, the permitted amount of imbalance and the partitioning algorithm can optionally be configured in the runtime file:
+```
+partitioning:
+  parhip:
+    imbalance: 0.05 # 5% imbalance
+    mode: 4 # ULTRAFASTMESH = 0, FASTMESH = 1, ECOMESH = 2, ULTRAFASTSOCIAL = 3, FASTSOCIAL = 4, ECOSOCIAL = 5
+```
+If omitted, `imbalance` defaults to `0.03` (3%) and `mode` defaults to `4`. These settings apply only to ParHIP and do not alter the ParMETIS configuration.
 
 `ccs_app` accepts a number of runtime command line arguments, see `ccs_app --ccs_help` for details. 
 If built with PETSc, the normal PETSc command line arguments can be passed to `ccs_app` as well, in particular if you observe stagnating residuals being printed to `stdout` you might want to try tighter tolerances for the linear solvers by passing `-ksp_atol` and `-ksp_rtol` at runtime, e.g.
@@ -125,6 +142,10 @@ this requires either an ADIOS2 build supporting Python or installation of `h5py`
 CCS uses FORD for code documentation. You can install FORD using `pip install ford`. Documentation can then be generated using `make ford`. This will generate HTML documentation in the `doc` directory with entry point `index.html`.
 
 See https://github.com/Fortran-FOSS-Programmers/ford and https://forddocs.readthedocs.io/en/latest/ for more information on FORD.
+
+### Theory/user documentation
+The FORD-generated documentation also includes the [theory and user documentation](theory/index.md), building and
+accessing this follows the same process as the Code documentation.
 
 ### Developer documentation
 A developer and style guide can be generated using `make dev_guide`. This requires `latex`. The output can be found in `dev_guide/ccs_dev_guide.pdf`.

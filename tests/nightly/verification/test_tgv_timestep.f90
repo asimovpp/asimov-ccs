@@ -5,13 +5,13 @@ program test_tgv_timestep
 #include "ccs_macros.inc"
 
   use testing_lib
-  use error_analysis, only: get_order, print_error_summary
+  use error_analysis, only: compute_order, print_error_summary
   use tgv2d_core, only: run_tgv2d
   use timestepping, only: get_theoretical_order
+  use parallel, only: is_root
 
   implicit none
 
-  type(ccs_mesh), target :: mesh
   integer(ccs_int), parameter :: num_dt = 4
   integer(ccs_int), parameter :: nvar = 3
   real(ccs_real), dimension(nvar, num_dt) :: errors_L2
@@ -39,15 +39,15 @@ program test_tgv_timestep
   do i = 1, num_dt
     dt = dt_list(i)
     num_steps = int(0.1_ccs_real / dt)
-    call run_tgv2d(par_env, errors_L2(:, i), errors_Linf(:, i), input_dt=dt, input_num_steps=num_steps)
+    call run_tgv2d(par_env, shared_env, errors_L2(:, i), errors_Linf(:, i), input_dt=dt, input_num_steps=num_steps)
   end do
 
-  if (par_env%proc_id == par_env%root) then
+  if (is_root(par_env)) then
 
     call print_error_summary(variable_labels, refinements, errors_L2, errors_Linf)
 
-    call get_order(refinements, errors_L2, orders_L2)
-    call get_order(refinements, errors_Linf, orders_Linf)
+    call compute_order(refinements, errors_L2, orders_L2)
+    call compute_order(refinements, errors_Linf, orders_Linf)
 
     call get_theoretical_order(theoretical_order)
 

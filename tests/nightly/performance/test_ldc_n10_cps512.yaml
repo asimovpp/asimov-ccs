@@ -2,7 +2,7 @@
 # RUN: export outputfile="output_ldc.txt"
 # RUN: echo "date: $(date -Iminutes)" > $outputfile
 # RUN: echo "ncores: 10" >> $outputfile
-# RUN: echo "label: ldc_512" >> $outputfile
+# RUN: echo "label: ldc_512_10" >> $outputfile
 # RUN: echo "commitID: $(git rev-parse --short HEAD)" >> $outputfile
 # RUN: echo "commitdate: $(git show -s --format=%cd --date=iso)" >> $outputfile
 # RUN: echo "compiler: $CMP" >> $outputfile

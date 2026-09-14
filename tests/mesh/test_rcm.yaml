@@ -1,6 +1,0 @@
-# RUN: %build_test %s %t1 test_rcm.f90
-# RUN: %mpirun -n 4 %t1
-
-main: test_rcm
-base: mpi_petsc
-extra: parhip

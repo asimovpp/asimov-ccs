@@ -11,7 +11,12 @@ bases:
       parallel_env_error: parallel_errors_mpi_petsc
       parallel_utils: parallel_utils_mpi
       fv_common: fv_common
+      fv_equations_row: fv_equations_row
+      fv_equations_scalar_transport: fv_equations_scalar_transport
+      fv_equations_momentum: fv_equations_momentum
+      fv_equations_poisson: fv_equations_poisson
       fv: fv_discretisation
+      fv_kernels: fv_kernels
       read_config: read_config_yaml
       io: io_adios2
       io_setup: io_setup_adios2
@@ -24,15 +29,34 @@ bases:
       timestepping_common: timestepping_common
       partitioning: partitioning_parhip
       partitioning_common: partitioning_common
-      reordering: reordering_rcm
+      reordering: reordering_petsc
       reordering_common: reordering_common
       poisson_discretisation: poisson_discretisation_ref
       scalars_common: scalars_common
+      profiler: profiler_timers
+      core: core_solver
+      core_par: core_parallel
+      core_mesh: core_init_mesh
+      core_conf: core_configuration
+      core_fields_init: core_fields
+      core_flow: core_init_flow
+      diffusion_kernel: diffusion
+      fv_advection_kernels: fv_advection_kernels
+      advection_common: advection_common
+      central_difference_kernel: central_difference_kernel
+      cd_kernel_impl: central_difference_impl
+      gamma_kernel: gamma_kernel
+      gamma_impl: gamma_impl
+      linear_upwind_kernel: linear_upwind_kernel
+      luds_impl: linear_upwind_impl
+      upwind_kernel: upwind_kernel
+      upwind_impl: upwind_impl
     options:
       timestepping: [timestepping_first_order, timestepping_second_order, timestepping_theta]
-      reordering: [reordering_rcm, reordering_petsc]
+      reordering: [reordering_rcm, reordering_petsc, reordering_zcurve, reordering_none]
       poisson_discretisation: [poisson_discretisation_ref]
       partitioning: [partitioning_parhip, partitioning_parmetis]
+      profiler: [profiler_timers, profiler_caliper, profiler_likwid]
   mpi:
     defaults:
       mat_common: mat_common
@@ -45,7 +69,12 @@ bases:
       parallel_env_error: parallel_errors_mpi
       parallel_utils: parallel_utils_mpi
       fv_common: fv_common
+      fv_equations_row: fv_equations_row
+      fv_equations_scalar_transport: fv_equations_scalar_transport
+      fv_equations_momentum: fv_equations_momentum
+      fv_equations_poisson: fv_equations_poisson
       fv: fv_discretisation
+      fv_kernels: fv_kernels
       read_config: read_config_yaml
       io: io_adios2
       io_setup: io_setup_adios2
@@ -58,12 +87,31 @@ bases:
       timestepping_common: timestepping_common
       partitioning: partitioning_parhip
       partitioning_common: partitioning_common
-      reordering: reordering_rcm
+      reordering: reordering_petsc
       reordering_common: reordering_common
       poisson_discretisation: poisson_discretisation_ref
       scalars_common: scalars_common
+      profiler: profiler_timers
+      core: core_solver
+      core_par: core_parallel
+      core_mesh: core_init_mesh
+      core_conf: core_configuration
+      core_flow: core_init_flow
+      core_fields_init: core_fields
+      diffusion_kernel: diffusion
+      fv_advection_kernels: fv_advection_kernels
+      advection_common: advection_common
+      central_difference_kernel: central_difference_kernel
+      cd_kernel_impl: central_difference_impl
+      gamma_kernel: gamma_kernel
+      gamma_impl: gamma_impl
+      linear_upwind_kernel: linear_upwind_kernel
+      luds_impl: linear_upwind_impl
+      upwind_kernel: upwind_kernel
+      upwind_impl: upwind_impl
     options:
       timestepping: [timestepping_first_order, timestepping_second_order, timestepping_theta]
-      reordering: [reordering_rcm, reordering_petsc]
+      reordering: [reordering_rcm, reordering_petsc, reordering_zcurve, reordering_none]
       poisson_discretisation: [poisson_discretisation_ref]
       partitioning: [partitioning_parhip, partitioning_parmetis]
+      profiler: [profiler_timers, profiler_caliper, profiler_likwid]
