@@ -50,7 +50,8 @@
 - Added PETSc 3.24 support and dropped support for PETSc versions earlier than 3.23.
 - Updated for the ADIOS2 2.9 interface.
 - Added single-precision support consistent with the PETSc build.
-- Added an LLVM build configuration and improved GNU, Intel/ifx, Cray and macOS compatibility.
+- Added an LLVM build configuration and improved GNU, Cray and macOS compatibility.
+- Added initial support for Intel/ifx builds.
 - Added ReFrame-based HPC regression testing for ARCHER2 and Cirrus.
 - Expanded unit, parallel mesh, restart, kernel, boundary-condition, distorted-mesh, unstructured-discretisation, verification and performance testing.
 - Added theory and user documentation covering case structure, finite-volume kernels, transient terms and source terms.
