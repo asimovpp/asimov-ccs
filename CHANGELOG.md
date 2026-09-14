@@ -3,7 +3,7 @@
 ## v0.5
 
 ### Added
-- Added support for arbitrary cell types and improved discretisation on distorted, unstructured and non-Cartesian meshes.
+- Improved support for arbitrary cell types with added corrections. Improved discretisation on distorted, unstructured and non-Cartesian meshes.
 - Added high-level wall, inflow and outflow boundary conditions, named mesh boundaries and utilities for locating boundary faces.
 - Added non-time-accurate restart and steady-to-unsteady restart support.
 - Added user-defined fixed and linearised source terms for momentum and scalar-transport equations.
