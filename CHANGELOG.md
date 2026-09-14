@@ -57,6 +57,7 @@
 - Added theory and user documentation covering case structure, finite-volume kernels, transient terms and source terms.
 - Improved linting, formatting, CI dependency alignment and issue-reporting infrastructure.
 - Release builds against external dependencies tag [2026.09](https://github.com/asimovpp/ccs-dependencies/releases/tag/2026.09).
+- Reduced initialisation times and general solver performance improvements.
 
 ### Removed
 - Removed the superseded Scalar Advection example case.
@@ -65,7 +66,7 @@
 
 ---
 
-## Acknowledgements
+### Acknowledgements
 
 Contributions from the ASiMoV development team and community members.
 
