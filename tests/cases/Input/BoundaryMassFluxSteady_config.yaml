@@ -1,0 +1,63 @@
+title: BoundaryMassFluxSteady
+restart: false
+unsteady: false
+iterations: 1
+mesh: 2d
+cps: 4
+L: 1.0
+target_residual: 1.0e-10
+write_frequency: 100
+compute_partqual: false
+compute_bwidth: false
+
+diagnostics:
+  boundary_mass_fluxes: true
+
+post:
+  type: center
+  variables: [whisky, water]
+
+variables:
+  store_residuals: false
+  n_variables: 5
+  variable_1:
+    name: whisky
+    type: central
+    solve: on
+    relaxation: 0.9
+  variable_2:
+    name: water
+    type: upwind
+    solve: on
+    relaxation: 0.9
+  variable_3:
+    name: u
+    type: central
+    solve: off
+  variable_4:
+    name: v
+    type: central
+    solve: off
+  variable_5:
+    name: w
+    type: central
+    solve: off
+
+boundaries:
+  n_boundaries: 4
+  boundary_1:
+    name: left
+    type: neumann
+    value: 0
+  boundary_2:
+    name: right
+    type: neumann
+    value: 0
+  boundary_3:
+    name: bottom
+    type: neumann
+    value: 0
+  boundary_4:
+    name: top
+    type: neumann
+    value: 0

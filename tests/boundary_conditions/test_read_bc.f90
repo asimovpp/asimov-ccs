@@ -46,8 +46,10 @@ program bc_test
     call error_abort(trim(error))
   end if
   call get_boundary_names(parsed_config_file, bnd_names)
-  mesh%bnd_names = bnd_names ! Need to mock a mesh with bounday names
-  print *, mesh%bnd_names
+  allocate (mesh%boundary_patches(size(bnd_names)))
+  do i = 1, size(bnd_names)
+    mesh%boundary_patches(i)%name = bnd_names(i)
+  end do
   call get_boundary_count(parsed_config_file, n_boundaries)
   call get_variables(parsed_config_file, variable_names)
   allocate (phi(size(variable_names) - 4))

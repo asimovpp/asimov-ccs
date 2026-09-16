@@ -1,0 +1,3 @@
+# Explicitly enable boundary mass-flux reporting.
+diagnostics:
+  boundary_mass_fluxes: true

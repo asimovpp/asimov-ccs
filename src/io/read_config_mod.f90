@@ -30,10 +30,12 @@ module read_config
   public :: get_bc_field
   public :: get_boundary_count
   public :: get_boundary_names
+  public :: get_boundary_types
   public :: get_store_residuals
   public :: get_enable_cell_corrections
   public :: get_solver_eq_parameters
   public :: get_parhip_options
+  public :: get_diagnostics
 
   interface get_value
     module procedure get_integer_value
@@ -97,6 +99,12 @@ module read_config
       class(*), pointer, intent(in) :: config_file            !< the entry point to the config file
       character(len=:), allocatable, intent(inout) :: title   !< the case name string
     end subroutine
+
+    !> Get optional diagnostic-output controls.
+    module subroutine get_diagnostics(config_file, boundary_mass_fluxes)
+      class(*), pointer, intent(in) :: config_file !< The entry point to the config file
+      logical, intent(out) :: boundary_mass_fluxes !< Report integrated boundary mass fluxes
+    end subroutine get_diagnostics
 
     !v Get source of initial values
     !
@@ -250,11 +258,17 @@ module read_config
       integer(ccs_int), intent(out) :: n_boundaries !< number of boundaries
     end subroutine get_boundary_count
 
-    !> Gets the names of boundaries
+    !> Gets the names of boundaries.
     module subroutine get_boundary_names(config_file, bnd_names)
       class(*), pointer, intent(in) :: config_file                            !< pointer to configuration file
       character(len=128), dimension(:), allocatable, intent(out) :: bnd_names !< List of boundary names
     end subroutine get_boundary_names
+
+    !> Gets the configured types of boundaries.
+    module subroutine get_boundary_types(config_file, bnd_types)
+      class(*), pointer, intent(in) :: config_file                            !< Pointer to configuration file
+      character(len=128), dimension(:), allocatable, intent(out) :: bnd_types !< List of boundary types
+    end subroutine get_boundary_types
 
     !> Gets whether residuals should be stored or not
     module subroutine get_store_residuals(filename, store_residuals)

@@ -793,10 +793,10 @@ contains
     logical :: found
 
     found = .false.
-    nbc = size(mesh%bnd_names)
+    nbc = size(mesh%boundary_patches)
 
     do bc_id = 1, nbc
-      if (trim(name) == trim(mesh%bnd_names(bc_id))) then
+      if (trim(name) == trim(mesh%boundary_patches(bc_id)%name)) then
         found = .true.
         exit
       end if

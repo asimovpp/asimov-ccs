@@ -46,6 +46,7 @@ module core
     logical :: compute_bwidth = .true.
     logical :: compute_partqual = .true.
     character(len=ccs_string_len), dimension(:), allocatable :: bnd_names
+    character(len=ccs_string_len), dimension(:), allocatable :: bnd_types
   end type mesh_options
 
   !v Options for IO configuration
@@ -53,6 +54,11 @@ module core
     integer(ccs_int) :: write_frequency = huge(0_ccs_int)
     logical :: write_gradients = .false.
   end type io_options
+
+  !v Options for runtime diagnostics
+  type :: diagnostics_options
+    logical :: boundary_mass_fluxes = .false.
+  end type diagnostics_options
 
   !v Options for variable declarations
   type :: variable_options
@@ -109,6 +115,7 @@ module core
     type(ccs_paths) :: paths
     type(mesh_options) :: mesh
     type(io_options) :: io
+    type(diagnostics_options) :: diagnostics
     type(variable_options) :: variables
     type(solver_options) :: solve
     type(parallel_options) :: parallel

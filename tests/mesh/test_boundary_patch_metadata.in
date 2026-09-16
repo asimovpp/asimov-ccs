@@ -1,0 +1,17 @@
+# Deliberately unusual boundary names exercise normalisation and patch-type classification.
+# Slip_Wall uses its explicit wall type; In-let falls back from the numerical type neumann;
+# OUT let has no configured type; inlet retains an explicitly configured generic type.
+---
+boundaries:
+  n_boundaries: 4
+  boundary_1:
+    name: Slip_Wall
+    type: wall
+  boundary_2:
+    name: In-let
+    type: neumann
+  boundary_3:
+    name: OUT let
+  boundary_4:
+    name: inlet
+    type: generic
