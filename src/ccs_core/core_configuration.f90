@@ -6,8 +6,9 @@ submodule(core) core_configuration
                          get_variables, &
                          get_output_type, &
                          get_reference_number, &
-                         get_boundary_names, get_solver_eq_parameters, &
-                         get_parhip_options
+                         get_boundary_names, get_boundary_types, get_solver_eq_parameters, &
+                         get_parhip_options, &
+                         get_diagnostics
   use utils, only: exit_print
   use logging, only: log_unit_out
 
@@ -92,6 +93,7 @@ contains
     call get_parhip_options(config_file, &
                             run_options%partitioning%parhip%imbalance, &
                             run_options%partitioning%parhip%mode)
+    call get_diagnostics(config_file, run_options%diagnostics%boundary_mass_fluxes)
 
   end subroutine
 
@@ -120,6 +122,10 @@ contains
     end if
 
     call get_boundary_names(config_file, mesh_opt%bnd_names)
+    call get_boundary_types(config_file, mesh_opt%bnd_types)
+    if (size(mesh_opt%bnd_names) /= size(mesh_opt%bnd_types)) then
+      call error_abort("The number of boundary types does not match the number of named boundaries")
+    end if
 
     if (mesh_opt%init_mesh_type == read_input_mesh) then
     else

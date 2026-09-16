@@ -6,14 +6,14 @@ program test_read_config_yaml
 
   use fortran_yaml_c_interface, only: parse
   use read_config, only: get_value
-  
+
   implicit none
 
   character(len=*), parameter :: config_yaml = "config.yml"
   class(*), pointer :: config_file !< Pointer to config file
-  
+
   logical :: expected, required
-  
+
   call init()
   call setup()
 
@@ -21,7 +21,7 @@ program test_read_config_yaml
   required = .true. ! Require to find values
   call test_read_values(config_file, expected, required)
   call test_read_dict(config_file)
-  
+
   call fin()
 
 contains
@@ -83,6 +83,15 @@ contains
       if (sval /= "Hello world!") then
         call stop_test("String value does not match expectation")
       end if
+    else
+      ! Regression for missing optional strings: the reader must return an allocated empty string.
+      ! Assigning FYAML's unallocated get_string result previously failed with IntelX.
+      if (.not. allocated(sval)) then
+        call stop_test("Missing optional string value was not allocated")
+      end if
+      if (sval /= "") then
+        call stop_test("Missing optional string value is not empty")
+      end if
     end if
 
     print *, "- read logical true"
@@ -105,7 +114,7 @@ contains
         call stop_test("Logial (false) value does not match expectation")
       end if
     end if
-    
+
   end subroutine test_read_values
 
   ! Test reading values from a dictionary
@@ -123,8 +132,8 @@ contains
     character(len=:), allocatable :: sval
     logical :: val_present
 
-    select type(conf_file)
-    type is(type_dictionary)
+    select type (conf_file)
+    type is (type_dictionary)
 
       print *, "Reading dictionary values"
 
@@ -161,6 +170,19 @@ contains
         call stop_test("Non-dictionary should have raised an error")
       end if
 
+      ! Check the same allocated-empty-string contract when the optional value is a dictionary.
+      dict => conf_file
+      call get_value(dict, "optional", sval, val_present, required=.false.)
+      if (val_present) then
+        call stop_test("Non-string value should not be reported as present")
+      end if
+      if (.not. allocated(sval)) then
+        call stop_test("Non-string optional value was not allocated")
+      end if
+      if (sval /= "") then
+        call stop_test("Non-string optional value is not empty")
+      end if
+
       ! Read from optional dictionary
       print *, "+ Optional dictionary"
       dict => conf_file%get_dictionary("absent", required=.false., error=io_err)
@@ -179,5 +201,5 @@ contains
     end select
 
   end subroutine test_read_dict
-  
+
 end program test_read_config_yaml

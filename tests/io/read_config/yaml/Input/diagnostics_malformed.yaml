@@ -1,0 +1,4 @@
+# "sometimes" is an intentionally invalid boolean, not a reporting schedule.
+# Reading this setting must fail with a configuration error.
+diagnostics:
+  boundary_mass_fluxes: sometimes

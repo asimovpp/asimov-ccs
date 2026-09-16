@@ -1,0 +1,11 @@
+# RUN: %build_test %s %t1 test_read_diagnostics.f90
+# RUN: %mpirun -n 1 %t1 Input/diagnostics_enabled.yaml true
+# RUN: %mpirun -n 1 %t1 Input/diagnostics_disabled.yaml false
+# RUN: %mpirun -n 1 %t1 Input/diagnostics_absent.yaml false
+# RUN: %mpirun -n 1 %t1 Input/diagnostics_missing_key.yaml false
+# RUN: ! %mpirun -n 1 %t1 Input/diagnostics_malformed.yaml false > %t.malformed 2>&1
+# RUN: grep -F 'Error reading keyword boundary_mass_fluxes. Possibly missing keyword in yaml file.' %t.malformed
+
+main: test_read_diagnostics
+base: mpi_petsc
+extra: parhip

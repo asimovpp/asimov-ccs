@@ -1,0 +1,21 @@
+# RUN: %build_test %s %t1 boundary_mass_flux_reporting_driver.f90
+# RUN: %mpirun -n 4 %t1 --ccs_case Input/BoundaryMassFluxEnabled > %t.enabled
+# RUN: test "$(awk '/^Boundary mass-flux balance:/{count++} END {print count+0}' %t.enabled)" -eq 2
+# RUN: test "$(awk '/^Boundary mass-flux balance: step 1, time 1.000000E-01$/{count++} END {print count+0}' %t.enabled)" -eq 1
+# RUN: test "$(awk '/^Boundary mass-flux balance: step 2, time 2.000000E-01$/{count++} END {print count+0}' %t.enabled)" -eq 1
+# RUN: test "$(awk '/^Boundary mass-flux balance: step 1,/{step=1; next} /^Boundary mass-flux balance: step 2,/{step=2; next} step == 1 && /\| +\+1.000000E\+00$/{count++} END {print count+0}' %t.enabled)" -eq 4
+# RUN: test "$(awk '/^Boundary mass-flux balance: step 1,/{step=1; next} /^Boundary mass-flux balance: step 2,/{step=2; next} step == 1 && /GLOBAL IMBALANCE.*\+4.000000E\+00$/{count++} END {print count+0}' %t.enabled)" -eq 1
+# RUN: test "$(awk '/^Boundary mass-flux balance: step 2,/{step=2; next} step == 2 && /\| +\+2.000000E\+00$/{count++} END {print count+0}' %t.enabled)" -eq 4
+# RUN: test "$(awk '/^Boundary mass-flux balance: step 2,/{step=2; next} step == 2 && /GLOBAL IMBALANCE.*\+8.000000E\+00$/{count++} END {print count+0}' %t.enabled)" -eq 1
+# RUN: %mpirun -n 4 %t1 --ccs_case Input/BoundaryMassFluxSteady > %t.steady
+# RUN: test "$(awk '/^Boundary mass-flux balance:/{count++} END {print count+0}' %t.steady)" -eq 1
+# RUN: test "$(awk '/^Boundary mass-flux balance: steady solve$/{count++} END {print count+0}' %t.steady)" -eq 1
+# RUN: test "$(awk '/GLOBAL IMBALANCE/{count++} END {print count+0}' %t.steady)" -eq 1
+# RUN: %mpirun -n 4 %t1 --ccs_case Input/BoundaryMassFluxDisabled > %t.disabled
+# RUN: test "$(awk '/^Boundary mass-flux balance:/{count++} END {print count+0}' %t.disabled)" -eq 0
+# RUN: %mpirun -n 4 %t1 --ccs_case Input/BoundaryMassFluxAbsent > %t.absent
+# RUN: test "$(awk '/^Boundary mass-flux balance:/{count++} END {print count+0}' %t.absent)" -eq 0
+
+main: boundary_mass_flux_reporting_driver
+base: mpi_petsc
+extra: parhip

@@ -5,7 +5,7 @@
 submodule(core) core_solver
 #include "ccs_macros.inc"
   use kinds, only: ccs_int
-  use types, only: fluid
+  use types, only: face_field, field, fluid
   use parallel, only: is_root
   use parallel_types, only: parallel_environment
 
@@ -29,7 +29,11 @@ contains
   module subroutine run_solver(par_env, run_options, eval_sources, postproc, flow_fields)
 
     use timestepping, only: activate_timestepping, set_timestep
-    use flow_stats, only: report_cfl
+    use fields, only: get_field
+    use flow_stats, only: boundary_flux_context, boundary_mass_flux_balance, &
+                          create_boundary_flux_context, &
+                          integrate_boundary_mass_fluxes, &
+                          report_boundary_mass_flux_balance, report_cfl
 
     class(parallel_environment), allocatable, intent(in) :: par_env !< The parallel environment
     type(ccs_options), intent(in) :: run_options                    !< The runtime configuration
@@ -62,6 +66,10 @@ contains
 
     integer(ccs_int) :: it_start, it_end
 
+    type(boundary_flux_context) :: boundary_fluxes
+    type(boundary_mass_flux_balance) :: boundary_balance
+    class(field), pointer :: field_pointer
+    type(face_field), pointer :: mass_flux_f
     logical :: diverged = .false.
 
     call create_signal_handler()
@@ -80,12 +88,23 @@ contains
       num_steps = 1
     end if
 
+    call get_field(flow_fields, "mf", field_pointer)
+    select type (field_pointer)
+    type is (face_field)
+      mass_flux_f => field_pointer
+    class default
+      error stop "Mass flux must be a face field"
+    end select
+    boundary_fluxes = create_boundary_flux_context(mesh)
+
     do t = 1, num_steps
       call profiler_begin_region("Solver time inc I/O")
 
       ! XXX: Coupler update here
       call report_cfl(par_env, flow_fields)
       call advance_step(par_env, run_options, eval_sources, flow_fields, diverged)
+      boundary_balance = integrate_boundary_mass_fluxes(par_env, mass_flux_f, boundary_fluxes)
+      call report_boundary_mass_flux_balance(par_env, run_options, boundary_balance)
       ! XXX: Or coupler update here?
 
       if (timestepping_is_active()) then
@@ -107,6 +126,9 @@ contains
 
       call profiler_end_region("Solver time inc I/O")
     end do
+
+    nullify (mass_flux_f)
+    nullify (field_pointer)
 
   end subroutine run_solver
 
@@ -316,4 +338,3 @@ contains
   end subroutine write_step
 
 end submodule core_solver
-

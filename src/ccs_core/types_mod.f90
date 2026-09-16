@@ -12,6 +12,32 @@ module types
 
   private
 
+  !> Generic boundary patch type.
+  character(len=*), parameter, public :: patch_type_generic = "generic"
+  !> Inflow boundary patch type.
+  character(len=*), parameter, public :: patch_type_inflow = "inflow"
+  !> Outflow boundary patch type.
+  character(len=*), parameter, public :: patch_type_outflow = "outflow"
+  !> No-slip wall boundary patch type.
+  character(len=*), parameter, public :: patch_type_wall = "wall"
+  !> Slip-wall boundary patch type.
+  character(len=*), parameter, public :: patch_type_slipwall = "slipwall"
+
+  integer, parameter :: ascii_horizontal_tab = 9
+  integer, parameter :: ascii_vertical_tab = 11
+  integer, parameter :: ascii_form_feed = 12
+  integer, parameter :: ascii_carriage_return = 13
+  integer, parameter :: ascii_uppercase_start = iachar("A")
+  integer, parameter :: ascii_uppercase_end = iachar("Z")
+  integer, parameter :: ascii_lowercase_offset = iachar("a") - iachar("A")
+  character(len=*), parameter :: name_separators = " " // new_line("a") //  &
+                                 achar(ascii_horizontal_tab) //  &
+                                 achar(ascii_vertical_tab) //  &
+                                 achar(ascii_form_feed) //  &
+                                 achar(ascii_carriage_return) // "_-"
+
+  public :: classify_boundary_patch_type
+
   !> Stub type for vectors to be extended in sub-modules.
   type, public :: ccs_vector
     character(len=:), allocatable :: name  !< Name of the vector object
@@ -169,8 +195,14 @@ module types
     type(topology) :: topo
     type(geometry) :: geo
     logical :: is_generated = .false.                          !< Indicates whether mesh was generated (true) or read (false)
-    character(len=128), dimension(:), allocatable :: bnd_names !< Array of boundary names, index corresponding to the boundary ID
+    type(boundary_patch), dimension(:), allocatable :: boundary_patches !< Boundary metadata, index corresponding to the boundary ID
   end type ccs_mesh
+
+  !> Durable metadata describing one mesh boundary patch.
+  type, public :: boundary_patch
+    character(len=ccs_string_len) :: name = ""                   !< Boundary name
+    character(len=ccs_string_len) :: patch_type = patch_type_generic !< Boundary patch type
+  end type boundary_patch
 
   !> BC data type
   type, public :: bc_config
@@ -358,5 +390,80 @@ module types
       integer(ccs_int) :: order
     end function order_interface
   end interface
+
+contains
+
+  !> Classify a boundary patch from a recognised configured type or, as a fallback, its name.
+  !> Recognised configured types take precedence; fallback uses substring matching for compound names.
+  pure function classify_boundary_patch_type(name, configured_type) result(patch_type)
+    character(len=*), intent(in) :: name
+    character(len=*), optional, intent(in) :: configured_type
+    character(len=ccs_string_len) :: patch_type
+
+    character(len=len(name)) :: normalised_name
+
+    patch_type = patch_type_generic
+
+    if (present(configured_type)) then
+      ! Configured types use exact matches, so wall and slipwall can appear in either order.
+      select case (trim(configured_type))
+      case (patch_type_generic)
+        patch_type = patch_type_generic
+        return
+      case (patch_type_inflow)
+        patch_type = patch_type_inflow
+        return
+      case (patch_type_outflow)
+        patch_type = patch_type_outflow
+        return
+      case (patch_type_wall)
+        patch_type = patch_type_wall
+        return
+      case (patch_type_slipwall)
+        patch_type = patch_type_slipwall
+        return
+      end select
+    end if
+
+    normalised_name = normalise_name(name)
+
+    ! For name substrings, check slipwall before wall because slipwall contains wall.
+    if (index(normalised_name, patch_type_slipwall) > 0) then
+      patch_type = patch_type_slipwall
+    else if (index(normalised_name, patch_type_wall) > 0) then
+      patch_type = patch_type_wall
+    else if (index(normalised_name, patch_type_inflow) > 0 .or. &
+             index(normalised_name, "inlet") > 0) then
+      patch_type = patch_type_inflow
+    else if (index(normalised_name, patch_type_outflow) > 0 .or. &
+             index(normalised_name, "outlet") > 0) then
+      patch_type = patch_type_outflow
+    end if
+
+  end function classify_boundary_patch_type
+
+  !> Remove separators and convert ASCII uppercase characters to lowercase.
+  pure function normalise_name(name) result(normalised_name)
+
+    character(len=*), intent(in) :: name
+    character(len=len(name)) :: normalised_name
+
+    character :: char
+    integer :: i, normalised_length
+
+    normalised_name = ""
+    normalised_length = 0
+    do i = 1, len_trim(name)
+      char = name(i:i)
+      if (index(name_separators, char) > 0) cycle
+      normalised_length = normalised_length + 1
+      if (iachar(char) >= ascii_uppercase_start .and. iachar(char) <= ascii_uppercase_end) then
+        normalised_name(normalised_length:normalised_length) = achar(iachar(char) + ascii_lowercase_offset)
+      else
+        normalised_name(normalised_length:normalised_length) = char
+      end if
+    end do
+
+  end function normalise_name
 
 end module types

@@ -18,7 +18,7 @@ module mesh_utils
   use types, only: ccs_mesh, topology, &
                    io_environment, io_process, &
                    face_locator, cell_locator, neighbour_locator, vert_locator, &
-                   graph_connectivity
+                   graph_connectivity, classify_boundary_patch_type
   use io, only: read_scalar, read_array, &
                 configure_io, open_file, close_file, &
                 initialise_io, cleanup_io
@@ -112,6 +112,28 @@ module mesh_utils
 
 contains
 
+  !> Initialise durable boundary metadata from the mesh configuration.
+  subroutine initialise_boundary_patches(mesh, run_options)
+    type(ccs_mesh), intent(inout) :: mesh
+    type(ccs_options), intent(in) :: run_options
+
+    integer :: i
+
+    if (allocated(mesh%boundary_patches)) deallocate (mesh%boundary_patches)
+    allocate (mesh%boundary_patches(size(run_options%mesh%bnd_names)))
+
+    do i = 1, size(mesh%boundary_patches)
+      mesh%boundary_patches(i)%name = run_options%mesh%bnd_names(i)
+      if (allocated(run_options%mesh%bnd_types)) then
+        mesh%boundary_patches(i)%patch_type = &
+          classify_boundary_patch_type(run_options%mesh%bnd_names(i), run_options%mesh%bnd_types(i))
+      else
+        mesh%boundary_patches(i)%patch_type = classify_boundary_patch_type(run_options%mesh%bnd_names(i))
+      end if
+    end do
+
+  end subroutine initialise_boundary_patches
+
   !v Read mesh from file
   subroutine read_mesh(par_env, shared_env, run_options, mesh)
 
@@ -178,7 +200,7 @@ contains
 
     call cleanup_topo(shared_env, mesh)
 
-    mesh%bnd_names = run_options%mesh%bnd_names
+    call initialise_boundary_patches(mesh, run_options)
     call check_mesh_bnd_names(par_env, mesh)
 
     ! Compute the mesh surface integral if the mesh was read from an input file
@@ -204,8 +226,8 @@ contains
     if (is_root(par_env)) then
       write (log_unit_out, *) "=========================="
       write (log_unit_out, *) "Boundary ID map"
-      do i = 1, size(mesh%bnd_names)
-        write (log_unit_out, *) i, trim(mesh%bnd_names(i))
+      do i = 1, size(mesh%boundary_patches)
+        write (log_unit_out, *) i, trim(mesh%boundary_patches(i)%name)
       end do
     end if
 
@@ -216,7 +238,7 @@ contains
     bc_cnt = -minval(mesh%topo%nb_indices)
 
     ! Check range
-    id_names_valid = (bc_cnt == size(mesh%bnd_names))
+    id_names_valid = (bc_cnt == size(mesh%boundary_patches))
     select type (par_env)
     type is (parallel_environment_mpi)
       call MPI_Allreduce(MPI_IN_PLACE, id_names_valid, 1, MPI_LOGICAL, MPI_LOR, par_env%comm, ierr)
@@ -228,7 +250,7 @@ contains
     end if
 
     ! Check no boundary IDs exceed the range
-    id_names_valid = (bc_cnt <= size(mesh%bnd_names))
+    id_names_valid = (bc_cnt <= size(mesh%boundary_patches))
     select type (par_env)
     type is (parallel_environment_mpi)
       call MPI_Allreduce(MPI_IN_PLACE, id_names_valid, 1, MPI_LOGICAL, MPI_LOR, par_env%comm, ierr)
@@ -729,8 +751,6 @@ contains
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared memory environment
     type(ccs_options), intent(in) :: run_options
 
-    character(len=128), dimension(4) :: bnd_names      !< Boundary name list
-
     type(ccs_mesh) :: mesh                             !< The resulting mesh.
 
     character(:), allocatable :: error_message
@@ -740,8 +760,6 @@ contains
 
     side_length = run_options%mesh%domain_size
     cps = run_options%mesh%cps
-
-    bnd_names = run_options%mesh%bnd_names
 
     if (cps * cps < par_env%num_procs) then
       error_message = "ERROR: Global number of cells < number of ranks. &
@@ -765,8 +783,7 @@ contains
 
     call cleanup_topo(shared_env, mesh)
 
-    ! Create boundary names list
-    mesh%bnd_names = bnd_names
+    call initialise_boundary_patches(mesh, run_options)
     call check_mesh_bnd_names(par_env, mesh)
 
   end function build_square_mesh
@@ -1327,8 +1344,6 @@ contains
     class(parallel_environment), allocatable, target, intent(in) :: shared_env !< The shared memory environment
     type(ccs_options), intent(in) :: run_options
 
-    character(len=128), dimension(6) :: bnd_names
-
     type(ccs_mesh) :: mesh                             !< The resulting mesh.
 
     character(:), allocatable :: error_message
@@ -1340,8 +1355,6 @@ contains
     nx = run_options%mesh%cps
     ny = run_options%mesh%cps
     nz = run_options%mesh%cps
-
-    bnd_names = run_options%mesh%bnd_names
 
     call set_mesh_object(mesh)
     call set_mesh_generated(.true.)
@@ -1376,8 +1389,7 @@ contains
 
     call cleanup_topo(shared_env, mesh)
 
-    ! Create boundary names list
-    mesh%bnd_names = bnd_names
+    call initialise_boundary_patches(mesh, run_options)
     call check_mesh_bnd_names(par_env, mesh)
 
   end function build_mesh
@@ -2927,9 +2939,9 @@ contains
       call dprint("mesh%geo%face_interpol deallocated.")
     end if
 
-    if (allocated(mesh%bnd_names)) then
-      deallocate (mesh%bnd_names)
-      call dprint("mesh%bnd_names deallocated.")
+    if (allocated(mesh%boundary_patches)) then
+      deallocate (mesh%boundary_patches)
+      call dprint("mesh%boundary_patches deallocated.")
     end if
 
   end subroutine destroy_mesh_storage

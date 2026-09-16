@@ -103,13 +103,16 @@ contains
     logical, intent(out), optional :: value_present          !< Indicates whether the key-value pair is present in the dictionary
     logical, optional, intent(in) :: required                !< Flag indicating whether result is required. Absence implies not required.
 
+    class(type_scalar), pointer :: scalar
     type(type_error), allocatable :: io_err
 
     select type (dict)
     type is (type_dictionary)
 
       string_val = ""
-      string_val = dict%get_string(keyword, error=io_err)
+      ! FYAML leaves the get_string result unallocated on error, so inspect the
+      ! scalar node before assigning its character value.
+      scalar => dict%get_scalar(keyword, required=.true., error=io_err)
 
       if (allocated(io_err)) then
         if (present(value_present)) then
@@ -121,7 +124,7 @@ contains
           end if
         end if
       else
-        string_val = trim(string_val)
+        string_val = trim(scalar%string)
         if (present(value_present)) then
           value_present = .true.
         end if
@@ -210,6 +213,43 @@ contains
     end select
 
   end subroutine get_parhip_options
+
+  !> Read the optional boundary mass-flux reporting flag from the diagnostics dictionary.
+  !> An absent dictionary or key disables reporting; a present value must be a valid boolean.
+  module subroutine get_diagnostics(config_file, boundary_mass_fluxes)
+    class(*), pointer, intent(in) :: config_file
+    logical, intent(out) :: boundary_mass_fluxes
+
+    class(*), pointer :: diagnostics
+    class(*), pointer :: node
+    type(type_error), allocatable :: io_err
+
+    boundary_mass_fluxes = .false.
+
+    select type (config_file)
+    type is (type_dictionary)
+      node => config_file%get("diagnostics")
+      if (.not. associated(node)) return
+
+      diagnostics => config_file%get_dictionary("diagnostics", required=.true., &
+                                                error=io_err)
+      if (allocated(io_err)) then
+        call error_abort("Error reading keyword diagnostics. Possibly malformed dictionary in yaml file.")
+      end if
+
+      select type (typed_diagnostics => diagnostics)
+      type is (type_dictionary)
+        node => typed_diagnostics%get("boundary_mass_fluxes")
+        if (.not. associated(node)) return
+      class default
+        call error_abort("Unknown type")
+      end select
+      call get_logical_value(diagnostics, "boundary_mass_fluxes", &
+                             boundary_mass_fluxes, required=.true.)
+    class default
+      call error_abort("Unknown type")
+    end select
+  end subroutine get_diagnostics
 
   !v Get the name of the test case
   !
@@ -774,7 +814,6 @@ contains
     integer :: n_boundaries
 
     class(*), pointer :: dict, dict2
-    character(:), allocatable :: error
     type(type_error), allocatable :: io_err
 
     integer :: i
@@ -784,10 +823,6 @@ contains
 
     call get_boundary_count(config_file, n_boundaries)
     allocate (bnd_names(n_boundaries))
-
-    if (allocated(error)) then
-      call error_abort(trim(error))
-    end if
 
     select type (config_file)
     type is (type_dictionary)
@@ -810,6 +845,52 @@ contains
     end select
 
   end subroutine get_boundary_names
+
+  !> Read optional configured patch types in boundary-ID order, using an empty string when absent.
+  !> Return the configured text without classification; mesh initialisation resolves names and types.
+  module subroutine get_boundary_types(config_file, bnd_types)
+    class(*), pointer, intent(in) :: config_file
+    character(len=128), dimension(:), allocatable, intent(out) :: bnd_types
+
+    integer :: n_boundaries
+
+    class(*), pointer :: dict, dict2
+    type(type_error), allocatable :: io_err
+
+    integer :: i
+
+    character(len=25) :: boundary_entry
+    character(len=:), allocatable :: tmp_type
+    logical :: type_present
+
+    call get_boundary_count(config_file, n_boundaries)
+    allocate (bnd_types(n_boundaries))
+
+    select type (config_file)
+    type is (type_dictionary)
+      dict => config_file%get_dictionary("boundaries", required=.true., error=io_err)
+
+      do i = 1, n_boundaries
+        write (boundary_entry, '(A, I0)') "boundary_", i
+        select type (dict)
+        type is (type_dictionary)
+          dict2 => dict%get_dictionary(boundary_entry, required=.true., error=io_err)
+
+          call get_value(dict2, "type", tmp_type, type_present, required=.false.)
+          if (type_present) then
+            bnd_types(i) = trim(tmp_type)
+          else
+            bnd_types(i) = ""
+          end if
+        class default
+          call error_abort("type unhandled")
+        end select
+      end do
+    class default
+      call error_abort("type unhandled")
+    end select
+
+  end subroutine get_boundary_types
 
   module subroutine get_store_residuals(filename, store_residuals)
     character(len=*), intent(in) :: filename
