@@ -116,6 +116,36 @@ contains
 
   end subroutine
 
+  !> Get the file extension associated with an ADIOS2 engine
+  module subroutine get_file_extension(io_proc, file_type)
+    class(io_process), intent(in) :: io_proc
+    character(len=:), allocatable, intent(out) :: file_type
+
+    character(len=:), allocatable :: engine_type
+    integer(ccs_int) :: ierr
+
+    select type (io_proc)
+    type is (adios2_io_process)
+      call adios2_io_engine_type(engine_type, io_proc%io_task, ierr)
+      if (ierr /= 0) then
+        call error_abort("Failed to query the ADIOS2 engine type")
+      end if
+
+      select case (engine_type)
+      case ("HDF5")
+        file_type = ".h5"
+      case ("BP4", "BP5")
+        file_type = ".bp"
+      case default
+        call error_abort("Unknown ADIOS2 engine type: " // trim(engine_type))
+      end select
+
+    class default
+      call error_abort("Unknown IO process handler type")
+    end select
+
+  end subroutine
+
   !> Open file with ADIOS2
   module subroutine open_file(filename, mode, io_proc)
     character(len=*), intent(in) :: filename    !< name of file to open
@@ -123,7 +153,6 @@ contains
     !< "read", "write", "append"
     class(io_process), intent(inout) :: io_proc !< object that includes ADIOS2 handler information
 
-    character(len=:), allocatable :: engine_type
     character(len=:), allocatable :: file_type
 
     integer(ccs_int) :: ierr
@@ -134,18 +163,7 @@ contains
     type is (adios2_io_process)
 
       if (mode == "write") then
-
-        ! query the engine type - defined in the ADIOS2 XML configuration file
-        call adios2_io_engine_type(engine_type, io_proc%io_task, ierr)
-
-        ! Support for HDF5, BP4 and BP5
-        if (engine_type == "HDF5") then
-          file_type = ".h5"
-        else if (engine_type == "BP4" .or. engine_type == "BP5") then
-          file_type = ".bp"
-        else
-          call error_abort("Unknown ADIOS2 engine type: " // trim(engine_type))
-        end if
+        call get_file_extension(io_proc, file_type)
 
         ! Append the correct file extension
         call adios2_open(io_proc%engine, io_proc%io_task, filename // file_type, get_mode(mode), ierr)

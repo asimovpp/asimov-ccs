@@ -15,6 +15,7 @@ module io
   public :: initialise_io
   public :: cleanup_io
   public :: configure_io
+  public :: get_file_extension
   public :: open_file
   public :: close_file
   public :: get_num_steps
@@ -78,6 +79,12 @@ module io
       class(io_environment), intent(in) :: io_env            !< IO environment
       character(len=*), intent(in) :: process_name           !< name of the IO process to be configured
       class(io_process), allocatable, intent(out) :: io_proc !< the configured IO process
+    end subroutine
+
+    !> Get the file extension associated with an IO process's engine
+    module subroutine get_file_extension(io_proc, file_type)
+      class(io_process), intent(in) :: io_proc
+      character(len=:), allocatable, intent(out) :: file_type
     end subroutine
 
     !> Open file

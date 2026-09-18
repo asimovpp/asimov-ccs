@@ -5,7 +5,7 @@ submodule(io_visualisation) io_visualisation_adios2
 #include "ccs_macros.inc"
 
   use io, only: initialise_io, cleanup_io, configure_io, open_file, close_file, &
-                write_array, read_array
+                get_file_extension, write_array, read_array
   use adios2
   use adios2_types, only: adios2_io_process
   use profiler, only: profiler_begin_region, profiler_end_region
@@ -48,6 +48,7 @@ contains
 
     ! Local variables
     character(len=:), allocatable :: sol_file     ! Solution file name
+    character(len=:), allocatable :: file_type    ! Solution file extension
     character(len=:), allocatable :: adios2_file  ! ADIOS2 config file name
     character(len=:), allocatable :: data_name    ! String for storing data path in file
     integer(ccs_int) :: global_num_cells
@@ -93,22 +94,21 @@ contains
 
     end if
 
-    inquire (file=sol_file // '.bp', exist=sol_file_exists)
-    if (.not. sol_file_exists) then
-      inquire (file=sol_file // '.h5', exist=sol_file_exists)
-    end if
+    adios2_file = case_name // adiosconfig
+
+    call initialise_io(par_env, adios2_file, io_env)
+    call configure_io(io_env, "sol_reader", sol_reader)
+    call get_file_extension(sol_reader, file_type)
+
+    inquire (file=sol_file // file_type, exist=sol_file_exists)
     if (.not. sol_file_exists) then
       if (is_root(par_env)) then
-        call error_abort("ERROR: Restart requested, but no solution file was found. Expected .bp or .h5 solution file.")
+        call debug_print("ERROR: Restart requested, but no solution file was found. Expected file of type '" // file_type // "'.", __FILE__, __LINE__)
       end if
       call sync(par_env)
       stop 1, quiet=.true.
     end if
 
-    adios2_file = case_name // adiosconfig
-
-    call initialise_io(par_env, adios2_file, io_env)
-    call configure_io(io_env, "sol_reader", sol_reader)
     call open_file(sol_file, "read", sol_reader)
 
     call get_global_num_cells(global_num_cells)
