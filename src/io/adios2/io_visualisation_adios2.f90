@@ -9,9 +9,10 @@ submodule(io_visualisation) io_visualisation_adios2
   use adios2
   use adios2_types, only: adios2_io_process
   use profiler, only: profiler_begin_region, profiler_end_region
-  use utils, only: exit_print, update
+  use utils, only: debug_print, exit_print, update
   use fields, only: get_field
   use types, only: field
+  use parallel, only: is_root, sync
 
   implicit none
 
@@ -71,6 +72,8 @@ contains
 
     integer(ccs_long) :: steps
 
+    logical :: sol_file_exists
+
     type(cell_locator) :: loc_p
     integer(ccs_int) :: index_global
 
@@ -88,6 +91,18 @@ contains
       ! Steady case
       sol_file = trim(case_name // '_sol')
 
+    end if
+
+    inquire (file=sol_file // '.bp', exist=sol_file_exists)
+    if (.not. sol_file_exists) then
+      inquire (file=sol_file // '.h5', exist=sol_file_exists)
+    end if
+    if (.not. sol_file_exists) then
+      if (is_root(par_env)) then
+        call error_abort("ERROR: Restart requested, but no solution file was found. Expected .bp or .h5 solution file.")
+      end if
+      call sync(par_env)
+      stop 1, quiet=.true.
     end if
 
     adios2_file = case_name // adiosconfig
