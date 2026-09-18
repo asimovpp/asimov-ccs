@@ -392,11 +392,17 @@ contains
     call get_vert_per_cell(vert_per_cell)
     call get_global_num_vertices(nvrt)
 
-    ! Topology
+    ! Topology - cell shapes (assumed 3D) as determined by the number of vertices per cell
     if (vert_per_cell == 4) then
-      write (ioxdmf, '(a,a,i0,a)') l4, '<Topology Type = "Quadrilateral" NumberOfElements = "', ncel, '" BaseOffset = "1">'
-    else
+      write (ioxdmf, '(a,a,i0,a)') l4, '<Topology Type = "Tetrahedron" NumberOfElements = "', ncel, '" BaseOffset = "1">'
+    else if (vert_per_cell == 5) then
+      write (ioxdmf, '(a,a,i0,a)') l4, '<Topology Type = "Pyramid" NumberOfElements = "', ncel, '" BaseOffset = "1">'
+    else if (vert_per_cell == 6) then
+      write (ioxdmf, '(a,a,i0,a)') l4, '<Topology Type = "Wedge" NumberOfElements = "', ncel, '" BaseOffset = "1">'
+    else if (vert_per_cell == 8) then
       write (ioxdmf, '(a,a,i0,a)') l4, '<Topology Type = "Hexahedron" NumberOfElements = "', ncel, '" BaseOffset = "1">'
+    else
+      error stop 'Unsupported number of vertices per cell'
     end if
 
     fmt = '(a,a,i0,1x,i0,3(a))'
