@@ -77,30 +77,34 @@ contains
     integer(ccs_int), optional, intent(in) :: maxstep                       !< The maximum time-step count
     real(ccs_real), optional, intent(in) :: dt                              !< The time-step size
 
+    logical :: write_xdmf_file !< Whether to write an XDMF descriptor for the output
+
     ! Write the required fields ('heavy' data)
     if (present(step) .and. present(maxstep)) then
       ! Unsteady case
       call profiler_begin_region("Write fields time")
-      call write_fields(par_env, run_options, mesh, flow, step, maxstep)
+      call write_fields(par_env, run_options, mesh, flow, write_xdmf_file, step, maxstep)
       call profiler_end_region("Write fields time")
     else
       ! Steady case
       call profiler_begin_region("Write fields time")
-      call write_fields(par_env, run_options, mesh, flow)
+      call write_fields(par_env, run_options, mesh, flow, write_xdmf_file)
       call profiler_end_region("Write fields time")
     end if
 
-    ! Write the XML descriptor ('light' data)
-    if (present(step) .and. present(maxstep) .and. present(dt)) then
-      ! Unsteady case
-      call profiler_begin_region("Write xdmf time")
-      call write_xdmf(par_env, run_options, flow, step, maxstep, dt)
-      call profiler_end_region("Write xdmf time")
-    else
-      ! Steady case
-      call profiler_begin_region("Write xdmf time")
-      call write_xdmf(par_env, run_options, flow)
-      call profiler_end_region("Write xdmf time")
+    ! XDMF can only describe the HDF5 output supported here.
+    if (write_xdmf_file) then
+      if (present(step) .and. present(maxstep) .and. present(dt)) then
+        ! Unsteady case
+        call profiler_begin_region("Write xdmf time")
+        call write_xdmf(par_env, run_options, flow, step, maxstep, dt)
+        call profiler_end_region("Write xdmf time")
+      else
+        ! Steady case
+        call profiler_begin_region("Write xdmf time")
+        call write_xdmf(par_env, run_options, flow)
+        call profiler_end_region("Write xdmf time")
+      end if
     end if
 
   end subroutine
@@ -393,6 +397,7 @@ contains
     call get_global_num_vertices(nvrt)
 
     ! Topology - cell shapes (assumed 3D) as determined by the number of vertices per cell
+    ! This will current not support a mixed mesh, but could be extended to do so in the future.
     if (vert_per_cell == 4) then
       write (ioxdmf, '(a,a,i0,a)') l4, '<Topology Type = "Tetrahedron" NumberOfElements = "', ncel, '" BaseOffset = "1">'
     else if (vert_per_cell == 5) then

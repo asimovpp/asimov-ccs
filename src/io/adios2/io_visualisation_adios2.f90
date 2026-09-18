@@ -179,7 +179,7 @@ contains
   end subroutine read_fields
 
   !> Write the field data to file
-  module subroutine write_fields(par_env, run_options, mesh, flow, step, maxstep)
+  module subroutine write_fields(par_env, run_options, mesh, flow, write_xdmf_file, step, maxstep)
 
     use kinds, only: ccs_long
     use constants, only: ndim, adiosconfig
@@ -195,6 +195,7 @@ contains
     type(ccs_options), intent(in) :: run_options                             !< The runtime configuration
     type(ccs_mesh), intent(in) :: mesh                                       !< The mesh
     type(fluid), intent(inout) :: flow                                       !< The flow variables
+    logical, intent(out) :: write_xdmf_file                                  !< Whether the output supports XDMF
     integer(ccs_int), optional, intent(in) :: step                           !< The current time-step count
     integer(ccs_int), optional, intent(in) :: maxstep                        !< The maximum time-step count
 
@@ -202,6 +203,7 @@ contains
     character(len=:), allocatable :: sol_file     ! Solution file name
     character(len=:), allocatable :: adios2_file  ! ADIOS2 config file name
     character(len=:), allocatable :: data_name    ! String for storing data path in file
+    character(len=:), allocatable :: engine_type  ! ADIOS2 output engine type
 
     ! Variables for per timestep file naming in unsteady case
     character(len=10) :: step_str
@@ -220,6 +222,7 @@ contains
     real(ccs_real), dimension(:), allocatable :: data
 
     integer(ccs_int) :: i
+    integer(ccs_int) :: ierr
 
     integer(ccs_int) :: global_num_cells
 
@@ -232,6 +235,17 @@ contains
 
     call initialise_io(par_env, adios2_file, io_env)
     call configure_io(io_env, "sol_writer", sol_writer)
+
+    select type (sol_writer)
+    type is (adios2_io_process)
+      call adios2_io_engine_type(engine_type, sol_writer%io_task, ierr)
+      if (ierr /= 0) then
+        call error_abort("Failed to query the ADIOS2 solution output engine")
+      end if
+      write_xdmf_file = trim(engine_type) == "HDF5"
+    class default
+      call error_abort("Unknown IO process handler type")
+    end select
 
     if (present(step) .and. present(maxstep)) then
 
