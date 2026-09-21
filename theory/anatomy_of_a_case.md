@@ -30,7 +30,7 @@ Following field creation, their initial values are set by `initialise_flow`; if 
 restart these values are read from a solution file, otherwise the `get_init_flow` and
 `get_init_mass_flux` subroutines which are passed as arguments to `initialise_flow` are used to
 compute the initial values.
-Restarting requires both the restart flag and the exact path of the ADIOS2 dataset, including its
+Restarting requires both the restart flag and the exact path of the solution file to restart from, including its
 extension, in the runtime configuration:
 
 ```yaml
