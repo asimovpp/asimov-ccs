@@ -30,6 +30,17 @@ Following field creation, their initial values are set by `initialise_flow`; if 
 restart these values are read from a solution file, otherwise the `get_init_flow` and
 `get_init_mass_flux` subroutines which are passed as arguments to `initialise_flow` are used to
 compute the initial values.
+Restarting requires both the restart flag and the exact path of the ADIOS2 dataset, including its
+extension, in the runtime configuration:
+
+```yaml
+restart: true
+restart_file: /path/to/PreviousCase_sol_10.bp
+```
+
+Relative restart paths are resolved from the working directory in which the executable is run.
+ADIOS2 validates the supplied path, which may identify either a BP dataset directory or an HDF5
+file. The program exits with an error if `restart_file` is missing, empty, unreadable or invalid.
 The first of these, `get_init_flow`, is used to initialise the cell-centred fields and takes a cell
 locator and field name as input arguments, returning the initial field value at a point as its
 return value.
