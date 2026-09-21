@@ -14,6 +14,7 @@ submodule(io_visualisation) io_visualisation_common
   use core, only: ccs_options, build_mesh_2d, build_mesh_3d, read_input_mesh
   use types, only: field
   use fields, only: get_field
+  use utils, only: exit_print
 
   implicit none
 
@@ -124,7 +125,6 @@ contains
     character(len=:), allocatable :: sol_file    ! Name of the solution file
     character(len=50) :: fmt                     ! Format string
     integer(ccs_int), save :: ioxdmf             ! IO unit of the XDMF file
-    integer(ccs_int), save :: step_counter = 0   ! ADIOS2 step counter
     integer(ccs_int) :: num_vel_cmp             ! Number of velocity components in output field list
     integer(ccs_int) :: i                       ! Loop counter
 
@@ -134,7 +134,13 @@ contains
     class(field), pointer :: phi
 
     xdmf_file = run_options%paths%case_name // '_sol.xmf'
-    sol_file = run_options%paths%case_name // '_sol'
+    if (present(step) .and. present(maxstep)) then
+      sol_file = run_options%paths%case_name // '_sol_' // trim(timestep_suffix(step, maxstep)) // '.h5'
+    else if (.not. present(step) .and. .not. present(maxstep)) then
+      sol_file = run_options%paths%case_name // '_sol.h5'
+    else
+      call error_abort("Both step and maxstep are required for transient XDMF output")
+    end if
 
     ! On first call, write the header of the XML file
     if (is_root(par_env)) then
@@ -217,14 +223,14 @@ contains
     write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', trim(dimstring), 3, '" ItemType = "Function" Function = "JOIN($0, $1, $2)">'
         end if
 
-        fmt = '(a,a,a,3(a),i0,a)'
+        fmt = '(7a)'
 
         do i = 1, size(flow%fields)
           call get_field(flow, i, phi)
           if (phi%output) then
             if ((trim(phi%name) == 'u') .or. (trim(phi%name) == 'v') .or. (trim(phi%name) == 'w')) then
-              write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', trim(dimstring), '">', trim(sol_file), ':/Step', &
-                step_counter, '/' // trim(phi%name) // '</DataItem>'
+              write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', trim(dimstring), '">', trim(sol_file), &
+                ':/Step0/', trim(phi%name) // '</DataItem>'
             end if
           end if
         end do
@@ -233,26 +239,26 @@ contains
       end if
 
       ! Pressure
-      fmt = '(a,a,a,3(a),i0,a)'
+      fmt = '(6a)'
       do i = 1, size(flow%fields)
         call get_field(flow, i, phi)
         if (trim(phi%name) == 'p') then
           write (ioxdmf, '(a,a)') l4, '<Attribute Name = "pressure" AttributeType = "Scalar" Center = "Cell">'
-          write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', trim(dimstring), '" Format = "HDF">', trim(sol_file), ':/Step', &
-            step_counter, '/p</DataItem>'
+          write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', trim(dimstring), '" Format = "HDF">', trim(sol_file), &
+            ':/Step0/p</DataItem>'
           write (ioxdmf, '(a,a)') l4, '</Attribute>'
         end if
       end do
 
       ! Scalars
-      fmt = '(a,a,a,3(a),i0,a)'
+      fmt = '(7a)'
       do i = 1, size(flow%fields)
         call get_field(flow, i, phi)
         if (phi%output) then
           if (.not. any(skip_fields == trim(phi%name))) then
             write (ioxdmf, '(a,a)') l4, '<Attribute Name = "' // phi%name // '" AttributeType = "Scalar" Center = "Cell">'
-            write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', trim(dimstring), '" Format = "HDF">', trim(sol_file), ':/Step', &
-              step_counter, '/' // trim(phi%name) // '</DataItem>'
+            write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', trim(dimstring), '" Format = "HDF">', trim(sol_file), &
+              ':/Step0/', trim(phi%name) // '</DataItem>'
             write (ioxdmf, '(a,a)') l4, '</Attribute>'
           end if
         end if
@@ -275,14 +281,14 @@ contains
             ' Function = "0.5 * ($0*$0 + $1*$1 + $2*$2)">'
         end if
 
-        fmt = '(a,a,a,3(a),i0,a)'
+        fmt = '(7a)'
 
         do i = 1, size(flow%fields)
           call get_field(flow, i, phi)
           if (phi%output) then
             if ((trim(phi%name) == 'u') .or. (trim(phi%name) == 'v') .or. (trim(phi%name) == 'w')) then
-              write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', trim(dimstring), '">', trim(sol_file), ':/Step', &
-                step_counter, '/' // trim(phi%name) // '</DataItem>'
+              write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', trim(dimstring), '">', trim(sol_file), &
+                ':/Step0/', trim(phi%name) // '</DataItem>'
             end if
           end if
         end do
@@ -298,19 +304,19 @@ contains
         write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', ncel, '" ItemType = "Function"', &
           ' Function = "0.5 * (($5-$3)*($5-$3) + ($1-$4)*($1-$4) + ($2-$0)*($2-$0))">'
 
-        fmt = '(a,a,i0,3(a),i0,a)'
-        write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', trim(dimstring), '">', trim(sol_file), ':/Step', &
-          step_counter, '/dudy</DataItem>'
-        write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', trim(dimstring), '">', trim(sol_file), ':/Step', &
-          step_counter, '/dudz</DataItem>'
-        write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', trim(dimstring), '">', trim(sol_file), ':/Step', &
-          step_counter, '/dvdx</DataItem>'
-        write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', trim(dimstring), '">', trim(sol_file), ':/Step', &
-          step_counter, '/dvdz</DataItem>'
-        write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', trim(dimstring), '">', trim(sol_file), ':/Step', &
-          step_counter, '/dwdx</DataItem>'
-        write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', trim(dimstring), '">', trim(sol_file), ':/Step', &
-          step_counter, '/dwdy</DataItem>'
+        fmt = '(6a)'
+        write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', trim(dimstring), '">', trim(sol_file), &
+          ':/Step0/dudy</DataItem>'
+        write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', trim(dimstring), '">', trim(sol_file), &
+          ':/Step0/dudz</DataItem>'
+        write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', trim(dimstring), '">', trim(sol_file), &
+          ':/Step0/dvdx</DataItem>'
+        write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', trim(dimstring), '">', trim(sol_file), &
+          ':/Step0/dvdz</DataItem>'
+        write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', trim(dimstring), '">', trim(sol_file), &
+          ':/Step0/dwdx</DataItem>'
+        write (ioxdmf, fmt) l6, '<DataItem Format = "HDF" Dimensions = "', trim(dimstring), '">', trim(sol_file), &
+          ':/Step0/dwdy</DataItem>'
         write (ioxdmf, '(a,a)') l5, '</DataItem>'
         write (ioxdmf, '(a,a)') l4, '</Attribute>'
       end if
@@ -320,8 +326,8 @@ contains
         call get_field(flow, i, phi)
         if (allocated(phi%residuals)) then
           write (ioxdmf, '(a,a)') l4, '<Attribute Name = "residuals_' // trim(phi%name) // '" AttributeType = "Scalar" Center = "Cell">'
-          write (ioxdmf, fmt) l5, '<DataItem Dimensions = "', trim(dimstring), '" Format = "HDF">', trim(sol_file), ':/Step', &
-            step_counter, '/' // trim(phi%name) // '_res</DataItem>'
+          write (ioxdmf, '(7a)') l5, '<DataItem Dimensions = "', trim(dimstring), '" Format = "HDF">', trim(sol_file), &
+            ':/Step0/', trim(phi%name) // '_res</DataItem>'
           write (ioxdmf, '(a,a)') l4, '</Attribute>'
         end if
       end do
@@ -347,10 +353,26 @@ contains
       end if
     end if ! root
 
-    ! Increment ADIOS2 step counter
-    step_counter = step_counter + 1
-
   end subroutine write_xdmf
+
+  ! Create a zero-padded timestep suffix for transient solution files
+  module function timestep_suffix(step, maxstep) result(step_str)
+
+    integer(ccs_int), intent(in) :: step
+    integer(ccs_int), intent(in) :: maxstep
+    character(len=10) :: step_str
+
+    character(len=20) :: format_str
+    character(len=10) :: mag_str
+    integer :: mag
+
+    ! Use the number of digits in maxstep as the suffix width.
+    mag = floor(log10(real(maxstep))) + 1
+    write (mag_str, '(I0)') mag
+    format_str = trim("(I" // trim(mag_str) // "." // trim(mag_str) // ")")
+    write (step_str, trim(format_str)) step
+
+  end function timestep_suffix
 
   subroutine write_xdmf_mesh(run_options, ioxdmf)
 
@@ -386,17 +408,30 @@ contains
     character(len=:), allocatable :: geo_file    ! Name of the mesh file
     character(len=:), allocatable :: fmt                     ! Format string
 
-    geo_file = run_options%paths%case_name // '.geo'
+    geo_file = run_options%paths%case_name // '_mesh.geo'
 
     call get_global_num_cells(ncel)
-    call get_vert_per_cell(vert_per_cell)
+
+    ! XXX: Hardcoded vert_per_cell for now because icem tet meshes store their vertices for each cell in an "n_cells * 8" 2D array. 
+    !      For tet meshes for example, only 4 unique indices per cell will be in this array, but the full 8 values need to be read by paraview.
+    ! call get_vert_per_cell(vert_per_cell)
+    vert_per_cell = 8
+
+
     call get_global_num_vertices(nvrt)
 
-    ! Topology
+    ! Topology - cell shapes (assumed 3D) as determined by the number of vertices per cell
+    ! This will current not support a mixed mesh, but could be extended to do so in the future.
     if (vert_per_cell == 4) then
-      write (ioxdmf, '(a,a,i0,a)') l4, '<Topology Type = "Quadrilateral" NumberOfElements = "', ncel, '" BaseOffset = "1">'
-    else
+      write (ioxdmf, '(a,a,i0,a)') l4, '<Topology Type = "Tetrahedron" NumberOfElements = "', ncel, '" BaseOffset = "1">'
+    else if (vert_per_cell == 5) then
+      write (ioxdmf, '(a,a,i0,a)') l4, '<Topology Type = "Pyramid" NumberOfElements = "', ncel, '" BaseOffset = "1">'
+    else if (vert_per_cell == 6) then
+      write (ioxdmf, '(a,a,i0,a)') l4, '<Topology Type = "Wedge" NumberOfElements = "', ncel, '" BaseOffset = "1">'
+    else if (vert_per_cell == 8) then
       write (ioxdmf, '(a,a,i0,a)') l4, '<Topology Type = "Hexahedron" NumberOfElements = "', ncel, '" BaseOffset = "1">'
+    else
+      error stop 'Unsupported number of vertices per cell'
     end if
 
     fmt = '(a,a,i0,1x,i0,3(a))'
