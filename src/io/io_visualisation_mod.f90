@@ -62,21 +62,23 @@ module io_visualisation
     end subroutine
 
     !> Read the flow solution for the current time-step to file
-    module subroutine read_solution(par_env, case_name, mesh, flow, step, maxstep)
+    module subroutine read_solution(par_env, case_name, mesh, flow, restart_file, step, maxstep)
       class(parallel_environment), intent(in) :: par_env     !< The parallel environment
       character(len=:), allocatable, intent(in) :: case_name !< The case name
       type(ccs_mesh), intent(in) :: mesh                     !< The mesh
       type(fluid), intent(inout) :: flow                     !< The flow variables
+      character(len=*), intent(in) :: restart_file           !< Explicit restart dataset path
       integer(ccs_int), optional, intent(in) :: step         !< The current time-step count
       integer(ccs_int), optional, intent(in) :: maxstep      !< The maximum time-step count
     end subroutine
 
     !> Read the field data to file
-    module subroutine read_fields(par_env, case_name, mesh, flow, step, maxstep)
+    module subroutine read_fields(par_env, case_name, mesh, flow, restart_file, step, maxstep)
       class(parallel_environment), intent(in) :: par_env     !< The parallel environment
       character(len=:), allocatable, intent(in) :: case_name !< The case name
       type(ccs_mesh), intent(in) :: mesh                     !< The mesh
       type(fluid), intent(inout) :: flow                     !< The flow variables
+      character(len=*), intent(in) :: restart_file           !< Explicit restart dataset path
       integer(ccs_int), optional, intent(in) :: step         !< The current time-step count
       integer(ccs_int), optional, intent(in) :: maxstep      !< The maximum time-step count
     end subroutine

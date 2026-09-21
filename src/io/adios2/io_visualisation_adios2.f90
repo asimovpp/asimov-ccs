@@ -5,14 +5,13 @@ submodule(io_visualisation) io_visualisation_adios2
 #include "ccs_macros.inc"
 
   use io, only: initialise_io, cleanup_io, configure_io, open_file, close_file, &
-                get_file_extension, write_array, read_array
+                write_array, read_array
   use adios2
   use adios2_types, only: adios2_io_process
   use profiler, only: profiler_begin_region, profiler_end_region
-  use utils, only: debug_print, exit_print, update
+  use utils, only: exit_print, update
   use fields, only: get_field
   use types, only: field
-  use parallel, only: is_root, sync
 
   implicit none
 
@@ -27,7 +26,7 @@ contains
   end subroutine
 
   !> Read the field data from file
-  module subroutine read_fields(par_env, case_name, mesh, flow, step, maxstep)
+  module subroutine read_fields(par_env, case_name, mesh, flow, restart_file, step, maxstep)
 
     use kinds, only: ccs_long
     use constants, only: ndim, adiosconfig
@@ -43,18 +42,15 @@ contains
     character(len=:), allocatable, intent(in) :: case_name !< The case name
     type(ccs_mesh), intent(in) :: mesh                     !< The mesh
     type(fluid), intent(inout) :: flow                     !< The flow variables
+    character(len=*), intent(in) :: restart_file           !< Explicit restart dataset path
     integer(ccs_int), optional, intent(in) :: step         !< The current time-step count
     integer(ccs_int), optional, intent(in) :: maxstep      !< The maximum time-step count
 
     ! Local variables
     character(len=:), allocatable :: sol_file     ! Solution file name
-    character(len=:), allocatable :: file_type    ! Solution file extension
     character(len=:), allocatable :: adios2_file  ! ADIOS2 config file name
     character(len=:), allocatable :: data_name    ! String for storing data path in file
     integer(ccs_int) :: global_num_cells
-
-    ! Variables for per timestep file naming in unsteady case
-    character(len=10) :: step_str
 
     class(io_environment), allocatable, save :: io_env
     class(io_process), allocatable, save :: sol_reader
@@ -73,43 +69,22 @@ contains
 
     integer(ccs_long) :: steps
 
-    logical :: sol_file_exists
-
     type(cell_locator) :: loc_p
     integer(ccs_int) :: index_global
 
     real(ccs_real), dimension(:), pointer :: output_data
     class(field), pointer :: phi
 
-    if (present(step)) then
-
-      ! Convert to string
-      write (step_str, '(I0)') step
-      ! Unsteady case
-      sol_file = trim(case_name // '_sol_' // step_str)
-
-    else
-      ! Steady case
-      sol_file = trim(case_name // '_sol')
-
-    end if
-
     adios2_file = case_name // adiosconfig
 
     call initialise_io(par_env, adios2_file, io_env)
     call configure_io(io_env, "sol_reader", sol_reader)
-    call get_file_extension(sol_reader, file_type)
+    sol_file = trim(restart_file)
 
-    inquire (file=sol_file // file_type, exist=sol_file_exists)
-    if (.not. sol_file_exists) then
-      if (is_root(par_env)) then
-        call debug_print("ERROR: Restart requested, but no solution file was found. Expected file of type '" // file_type // "'.", __FILE__, __LINE__)
-      end if
-      call sync(par_env)
-      stop 1, quiet=.true.
-    end if
-
-    call open_file(sol_file, "read", sol_reader)
+    ! ADIOS2 performs the validation because BP datasets are directories while
+    ! HDF5 datasets are regular files.
+    call open_file(sol_file, "read", sol_reader, &
+                   error_context="Restart dataset does not exist, is not readable, or is not a valid ADIOS2 dataset")
 
     call get_global_num_cells(global_num_cells)
 

@@ -88,10 +88,11 @@ module io
     end subroutine
 
     !> Open file
-    module subroutine open_file(filename, mode, io_proc)
+    module subroutine open_file(filename, mode, io_proc, error_context)
       character(len=*), intent(in) :: filename    !< name of file to open
       character(len=*), intent(in) :: mode        !< choose whether to read, write or append
       class(io_process), intent(inout) :: io_proc !< object that include IO environment handles
+      character(len=*), optional, intent(in) :: error_context !< Error text used if the open fails
     end subroutine
 
     !> Close file

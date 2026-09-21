@@ -200,6 +200,10 @@ contains
     if (present) then
       variables%restart = restart
     end if
+    call get_value(config_file, 'restart_file', variables%restart_file, present, required=.false.)
+    if (variables%restart .and. (.not. present .or. len_trim(variables%restart_file) == 0)) then
+      call error_abort("Restart requested, but no `restart_file` was specified.")
+    end if
 
     call get_output_type(config_file, post_type, variables%output_variables)
 

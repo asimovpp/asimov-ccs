@@ -65,6 +65,7 @@ module core
     character(len=ccs_string_len), dimension(:), allocatable :: variable_names
     integer(ccs_int), dimension(:), allocatable :: variable_types
     character(len=ccs_string_len), dimension(:), allocatable :: output_variables
+    character(len=:), allocatable :: restart_file
     logical :: restart = .false.
   end type variable_options
 

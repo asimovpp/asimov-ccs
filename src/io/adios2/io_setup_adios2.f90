@@ -96,12 +96,16 @@ contains
       type is (adios2_io_process)
 
         call adios2_declare_io(io_proc%io_task, io_env%adios, process_name, ierr)
-        if (timestepping_is_active()) then
-          delta_t = get_timestep()
-          call adios2_define_attribute(dt_attr, io_proc%io_task, "dt", delta_t, ierr)
+        ! Attributes describe newly written output. Defining them on a reader
+        ! conflicts with attributes already stored in BP datasets.
+        if (index(process_name, "reader") == 0) then
+          if (timestepping_is_active()) then
+            delta_t = get_timestep()
+            call adios2_define_attribute(dt_attr, io_proc%io_task, "dt", delta_t, ierr)
+          end if
+          call get_current_time(sim_time)
+          call adios2_define_attribute(time_attr, io_proc%io_task, "simulation time", sim_time, ierr)
         end if
-        call get_current_time(sim_time)
-        call adios2_define_attribute(time_attr, io_proc%io_task, "simulation time", sim_time, ierr)
 
       class default
 
@@ -147,11 +151,12 @@ contains
   end subroutine
 
   !> Open file with ADIOS2
-  module subroutine open_file(filename, mode, io_proc)
+  module subroutine open_file(filename, mode, io_proc, error_context)
     character(len=*), intent(in) :: filename    !< name of file to open
     character(len=*), intent(in) :: mode        !< choose whether to read/ write or append valid options are:
     !< "read", "write", "append"
     class(io_process), intent(inout) :: io_proc !< object that includes ADIOS2 handler information
+    character(len=*), optional, intent(in) :: error_context !< Error text used if the open fails
 
     character(len=:), allocatable :: file_type
 
@@ -172,7 +177,11 @@ contains
 
         call adios2_open(io_proc%engine, io_proc%io_task, filename, get_mode(mode), ierr)
         if (ierr /= 0) then
-          call error_abort("Failed to open file for read/append: " // trim(filename))
+          if (present(error_context)) then
+            call error_abort(trim(error_context) // ": '" // trim(filename) // "'")
+          else
+            call error_abort("Failed to open file for read/append: " // trim(filename))
+          end if
         end if
 
       end if

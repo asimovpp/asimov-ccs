@@ -52,7 +52,8 @@ contains
       call initialise_cell_values(flow_fields, get_init_flow, run_options)
       call initialise_mass_flux(flow_fields, get_init_mass_flux)
     else
-      call read_solution(par_env, run_options%paths%case_path, mesh, flow_fields)
+      call read_solution(par_env, run_options%paths%case_path, mesh, flow_fields, &
+                         run_options%variables%restart_file)
     end if
 
     call profiler_end_region('Flow initialisation')
