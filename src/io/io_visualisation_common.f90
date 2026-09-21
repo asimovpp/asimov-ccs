@@ -411,7 +411,13 @@ contains
     geo_file = run_options%paths%case_name // '_mesh.geo'
 
     call get_global_num_cells(ncel)
-    call get_vert_per_cell(vert_per_cell)
+
+    ! XXX: Hardcoded vert_per_cell for now because icem tet meshes store their vertices for each cell in an "n_cells * 8" 2D array. 
+    !      For tet meshes for example, only 4 unique indices per cell will be in this array, but the full 8 values need to be read by paraview.
+    ! call get_vert_per_cell(vert_per_cell)
+    vert_per_cell = 8
+
+
     call get_global_num_vertices(nvrt)
 
     ! Topology - cell shapes (assumed 3D) as determined by the number of vertices per cell
