@@ -408,7 +408,7 @@ contains
     character(len=:), allocatable :: geo_file    ! Name of the mesh file
     character(len=:), allocatable :: fmt                     ! Format string
 
-    geo_file = run_options%paths%case_name // '.geo'
+    geo_file = run_options%paths%case_name // '_mesh.geo'
 
     call get_global_num_cells(ncel)
     call get_vert_per_cell(vert_per_cell)
