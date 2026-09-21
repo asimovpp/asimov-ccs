@@ -42,12 +42,11 @@ module io_visualisation
     end subroutine
 
     !> Write the field data to file
-    module subroutine write_fields(par_env, run_options, mesh, flow, write_xdmf_file, step, maxstep)
+    module subroutine write_fields(par_env, run_options, mesh, flow, step, maxstep)
       class(parallel_environment), target, allocatable, intent(in) :: par_env  !< The parallel environment
       type(ccs_options), intent(in) :: run_options                             !< The runtime configuration
       type(ccs_mesh), intent(in) :: mesh                                       !< The mesh
       type(fluid), intent(inout) :: flow                                       !< The flow variables
-      logical, intent(out) :: write_xdmf_file                                  !< Whether the output supports XDMF
       integer(ccs_int), optional, intent(in) :: step                           !< The current time-step count
       integer(ccs_int), optional, intent(in) :: maxstep                        !< The maximum time-step count
     end subroutine
