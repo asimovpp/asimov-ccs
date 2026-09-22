@@ -138,8 +138,8 @@ contains
       select case (engine_type)
       case ("HDF5")
         file_type = ".h5"
-      case ("BP4", "BP5")
-        file_type = ".bp"
+      case ("BP4", "BP5") ! Note that BP4 and BP5 are not interchangeable, but they use the same file extension.
+        file_type = ".bp" ! It is therefore important to select the correct engine type, or ADIOS2 will fail to read the file.
       case default
         call error_abort("Unknown ADIOS2 engine type: " // trim(engine_type))
       end select
