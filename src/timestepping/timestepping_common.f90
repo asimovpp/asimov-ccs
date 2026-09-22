@@ -61,6 +61,7 @@ submodule(timestepping) timestepping_common
   logical :: timestep_is_set = .false. !< flag to signify whether dt has already been set
   real(ccs_real) :: dt = huge(0.0_ccs_real) !< timestep size
   integer(ccs_int) :: current_step = 0
+  integer(ccs_int) :: step_offset = 0 !< number of timesteps completed before this run (restart)
 
 contains
 
@@ -78,8 +79,17 @@ contains
     timestepping_active = .false.
     timestep_is_set = .false.
     current_step = 0
+    step_offset = 0
 
   end subroutine
+
+  module subroutine set_step_offset(offset)
+
+    integer(ccs_int), intent(in) :: offset
+
+    step_offset = offset
+
+  end subroutine set_step_offset
 
   module subroutine set_timestep(timestep)
 
@@ -112,7 +122,7 @@ contains
     integer(ccs_int), intent(out) :: step
 
     if (timestepping_active) then
-      step = current_step
+      step = step_offset + current_step
     else
       step = -1
     end if
@@ -124,7 +134,7 @@ contains
     real(ccs_real), intent(out) :: time
 
     if (timestepping_active .and. timestep_is_set) then
-      time = current_step * dt
+      time = (step_offset + current_step) * dt
     else
       time = -1.0_ccs_real
     end if

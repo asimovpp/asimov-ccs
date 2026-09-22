@@ -40,6 +40,10 @@ contains
     ! Read case name and runtime parameters from configuration file
     call read_configuration(run_options)
 
+    if (run_options%solve%unsteady .and. run_options%variables%restart .and. run_options%variables%restart_step == 0) then
+      call error_abort("Could not determine the restart timestep from the solution file '" // run_options%variables%restart_file // "'. Expected a filename of the form <case>_sol_<step><ext>.")
+    end if
+
     ! Print the run configuration
     call print_configuration(par_env, run_options)
 
@@ -204,10 +208,57 @@ contains
     if (variables%restart .and. (.not. present .or. len_trim(variables%restart_file) == 0)) then
       call error_abort("Restart requested, but no `restart_file` was specified.")
     end if
+    if (variables%restart) then
+      variables%restart_step = get_solution_step(variables%restart_file)
+    end if
 
     call get_output_type(config_file, post_type, variables%output_variables)
 
   end subroutine get_variable_definitions
+
+  !> Extract the timestep number from a solution file name, e.g. "case_sol_10.bp" -> 10.
+  !  Returns 0 if no step number can be determined.
+  pure function get_solution_step(file_name) result(step)
+
+    character(len=*), intent(in) :: file_name
+
+    integer(ccs_int) :: step
+    integer(ccs_int) :: pos, i, k
+    character(len=:), allocatable :: tail
+
+    step = 0
+
+    pos = 0
+    i = 1
+    do while (i <= len(file_name) - 4)
+      if (file_name(i:i + 4) == "_sol_") then
+        pos = i + 5
+      end if
+      i = i + 1
+    end do
+
+    if (pos == 0) then
+      return
+    end if
+
+    tail = file_name(pos:)
+    k = index(tail, ".")
+    if (k > 0) then
+      tail = tail(1:k - 1)
+    end if
+
+    do i = 1, len(tail)
+      if (ichar(tail(i:i)) < ichar("0") .or. ichar(tail(i:i)) > ichar("9")) then
+        return
+      end if
+    end do
+
+    read (tail, *, iostat=i) step
+    if (i /= 0) then
+      step = 0
+    end if
+
+  end function get_solution_step
 
   !> Parses flow reference values from the configuration file
   subroutine get_reference_values(config_file, reference_values)

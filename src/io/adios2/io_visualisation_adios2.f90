@@ -29,13 +29,10 @@ contains
   module subroutine read_fields(par_env, case_name, mesh, flow, restart_file, step, maxstep)
 
     use kinds, only: ccs_long
-    use constants, only: ndim, adiosconfig
-    use types, only: cell_locator
-    use meshing, only: get_global_num_cells, create_cell_locator, get_global_index, get_natural_index, get_local_num_cells
-    use utils, only: get_natural_data
+    use constants, only: adiosconfig
+    use meshing, only: get_global_num_cells
     use vec, only: get_vector_data, restore_vector_data
     use io, only: get_num_steps
-    use vec, only: get_global_data_vec
 
     ! Arguments
     class(parallel_environment), intent(in) :: par_env     !< The parallel environment
@@ -59,19 +56,11 @@ contains
     integer(ccs_long), dimension(1) :: sel_start
     integer(ccs_long), dimension(1) :: sel_count
 
-    integer(ccs_long), dimension(2) :: sel2_shape
-    integer(ccs_long), dimension(2) :: sel2_start
-    integer(ccs_long), dimension(2) :: sel2_count
-
     real(ccs_real), dimension(:), allocatable, target :: data
-    real(ccs_real), dimension(:), allocatable :: re_order_data
 
     integer(ccs_int) :: i
 
     integer(ccs_long) :: steps
-
-    type(cell_locator) :: loc_p
-    integer(ccs_int) :: index_global
 
     real(ccs_real), dimension(:), pointer :: output_data
     class(field), pointer :: phi
@@ -101,58 +90,38 @@ contains
 
     call get_global_num_cells(global_num_cells)
 
-    ! Need to get data relating to first cell
-    call create_cell_locator(1, loc_p)
-
-    call get_global_index(loc_p, index_global)
-
+    ! The file stores field data in global natural ordering, while the cells
+    ! owned by a rank are scattered through that ordering. Read the whole
+    ! variable on every rank; local slots are recovered via the natural
+    ! indices below (the inverse of the reordering applied when writing).
     ! 1D data
     sel_shape(1) = global_num_cells
-    sel_start(1) = index_global - 1
-    call get_local_num_cells(sel_count(1))
-
-    ! 2D data
-    sel2_shape(1) = ndim
-    sel2_shape(2) = global_num_cells
-    sel2_start(1) = 0
-    sel2_start(2) = index_global - 1
-    sel2_count(1) = ndim
-    call get_local_num_cells(sel2_count(2))
+    sel_start(1) = 0
+    sel_count(1) = global_num_cells
 
     ! Get number of steps in solution file
     call get_num_steps(sol_reader, steps)
     steps = steps - 1  ! Set to max. step (count starts from 0)
 
-    ! Loop over output list and write out
+    ! Loop over output list and read in
     call profiler_begin_region("Read output time")
     do i = 1, size(flow%fields)
       call get_field(flow, i, phi)
       if (phi%output) then
-        ! XXX: This seems unnecessary?
-        call profiler_begin_region("Get natural data (output)")
-        call get_natural_data(par_env, mesh, phi%values, data)
-        call profiler_end_region("Get natural data (output)")
+        if (size(data) /= global_num_cells) then
+          if (allocated(data)) then
+            deallocate (data)
+          end if
+          allocate (data(global_num_cells))
+        end if
 
         data_name = "/" // trim(phi%name)
 
         call read_array(sol_reader, data_name, sel_start, sel_count, data, steps)
+
+        ! Map the global natural-ordered data back to local slot ordering
         call get_vector_data(phi%values, output_data)
-        output_data = data
-        call restore_vector_data(phi%values, output_data)
-        call get_global_data_vec(par_env, mesh, phi%values, re_order_data)
-        ! re-ordering here.
-
-        call get_vector_data(phi%values, output_data)
-        output_data = re_order_data
-
-        ! XXX: This doesn't appear to do anything
-        ! call get_local_num_cells(n_local)
-        ! do index_p = 1, n_local
-        !   call create_cell_locator(index_p, loc_p)
-        !   call get_global_index(loc_p, global_index_p)
-        !   call get_natural_index(loc_p, natural_index_p)
-        ! end do
-
+        output_data(1:mesh%topo%local_num_cells) = data(mesh%topo%natural_indices(1:mesh%topo%local_num_cells))
         call restore_vector_data(phi%values, output_data)
         call update(phi%values)
 

@@ -13,6 +13,7 @@ module timestepping
 
   public :: apply_timestep
   public :: set_timestep
+  public :: set_step_offset
   public :: get_timestep
   public :: get_current_step
   public :: get_current_time
@@ -50,6 +51,13 @@ module timestepping
     !> Set timestep size
     module subroutine set_timestep(timestep)
       real(ccs_real), intent(in) :: timestep
+    end subroutine
+
+    !> Set the number of timesteps already completed before this run (e.g. when
+    !> restarting from a solution file). This value is added to the internal step
+    !> count when reporting the current step and time.
+    module subroutine set_step_offset(offset)
+      integer(ccs_int), intent(in) :: offset
     end subroutine
 
     !> Get timestep size

@@ -67,6 +67,7 @@ module core
     character(len=ccs_string_len), dimension(:), allocatable :: output_variables
     character(len=:), allocatable :: restart_file
     logical :: restart = .false.
+    integer(ccs_int) :: restart_step = 0
   end type variable_options
 
   !v Options for solver configuration
