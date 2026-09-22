@@ -39,8 +39,12 @@ restart_file: /path/to/PreviousCase_sol_10.bp
 ```
 
 Relative restart paths are resolved from the working directory in which the executable is run.
-ADIOS2 validates the supplied path, which may identify either a BP dataset directory or an HDF5
-file. The program exits with an error if `restart_file` is missing, empty, unreadable or invalid.
+The extension of `restart_file` must match the engine configured for `sol_reader` in the ADIOS2
+configuration: `*.h5` files require the HDF5 engine, while `*.bp` files require the BP4 or BP5
+engine. The file is then opened and ADIOS2 validates the supplied path, which may identify either
+a BP dataset directory or an HDF5 file. The program exits with an error if `restart_file` is
+missing, empty, unreadable, has an extension that does not match the `sol_reader` engine, or is
+not a valid ADIOS2 dataset.
 The first of these, `get_init_flow`, is used to initialise the cell-centred fields and takes a cell
 locator and field name as input arguments, returning the initial field value at a point as its
 return value.
