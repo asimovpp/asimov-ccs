@@ -441,6 +441,10 @@ contains
           write (log_unit_out, *) "* Running for ", num_iters, "iterations"
         end if
       end associate
+      if (run_options%variables%restart) then
+        write (log_unit_out, *) "* RESTART"
+        write (log_unit_out, *) "* Restarting from solution file: ", run_options%variables%restart_file
+      end if
       write (log_unit_out, *) "******************************************************************************"
       write (log_unit_out, *) "* REFERENCE VALUES"
       write (log_unit_out, *) "* Pressure      : ", run_options%reference_values%p_ref
