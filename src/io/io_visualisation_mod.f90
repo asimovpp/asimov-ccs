@@ -61,6 +61,13 @@ module io_visualisation
       real(ccs_real), optional, intent(in) :: dt                               !< The time-step size
     end subroutine
 
+    !> Create the zero-padded suffix used for transient solution files
+    module function timestep_suffix(step, maxstep) result(step_str)
+      integer(ccs_int), intent(in) :: step    !< The current time-step count
+      integer(ccs_int), intent(in) :: maxstep !< The maximum time-step count
+      character(len=10) :: step_str
+    end function
+
     !> Read the flow solution for the current time-step to file
     module subroutine read_solution(par_env, case_name, mesh, flow, restart_file, step, maxstep)
       class(parallel_environment), intent(in) :: par_env     !< The parallel environment
