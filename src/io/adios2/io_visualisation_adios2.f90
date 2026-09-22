@@ -358,28 +358,6 @@ contains
     end select
   end subroutine end_step
 
-  ! Create a timestep suffix string for the solution file
-  function timestep_suffix(step, maxstep) result(step_str)
-
-    integer(ccs_int), intent(in) :: step
-    integer(ccs_int), intent(in) :: maxstep
-    character(len=10) :: step_str
-
-    character(len=20) :: format_str
-    character(len=10) :: mag_str
-    integer :: mag
-
-    ! How many decimal digits in maxstep? Convert to string
-    mag = floor(log10(real(maxstep))) + 1
-    ! Convert to string
-    write (mag_str, '(I0)') mag
-    ! Create the format string for the file numbering
-    format_str = trim("(I" // trim(mag_str) // "." // trim(mag_str) // ")")
-    ! do not use format_str right now - keep it simple
-    write (step_str, trim(format_str)) step
-
-  end function
-
   !> Check whether a file name ends with the expected file extension
   pure function file_has_extension(filename, extension) result(has_extension)
     character(len=*), intent(in) :: filename  !< File name to check
