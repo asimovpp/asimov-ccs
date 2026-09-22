@@ -5,7 +5,7 @@ submodule(io_visualisation) io_visualisation_adios2
 #include "ccs_macros.inc"
 
   use io, only: initialise_io, cleanup_io, configure_io, open_file, close_file, &
-                write_array, read_array
+                get_file_extension, write_array, read_array
   use adios2
   use adios2_types, only: adios2_io_process
   use profiler, only: profiler_begin_region, profiler_end_region
@@ -48,6 +48,7 @@ contains
 
     ! Local variables
     character(len=:), allocatable :: sol_file     ! Solution file name
+    character(len=:), allocatable :: file_type    ! File extension of the sol_reader engine
     character(len=:), allocatable :: adios2_file  ! ADIOS2 config file name
     character(len=:), allocatable :: data_name    ! String for storing data path in file
     integer(ccs_int) :: global_num_cells
@@ -81,10 +82,25 @@ contains
     call configure_io(io_env, "sol_reader", sol_reader)
     sol_file = trim(restart_file)
 
+    ! The file extension must match the engine configured for sol_reader:
+    ! '*.h5' files require the HDF5 engine, while '*.bp' files require BP4 or BP5
+    call get_file_extension(sol_reader, file_type)
+    if (.not. file_has_extension(sol_file, file_type)) then
+      call error_abort("Restart file '" // sol_file // "' does not end with '" // file_type // "', " //
+                       "which is the file type of the engine configured for 'sol_reader'. " //
+                       "Set 'restart_file' to a file with the matching extension, or set the " //
+                       "'sol_reader' engine in the ADIOS2 configuration to a matching engine.")
+    end if
+
     ! ADIOS2 performs the validation because BP datasets are directories while
     ! HDF5 datasets are regular files.
     call open_file(sol_file, "read", sol_reader, &
                    error_context="Restart dataset does not exist, is not readable, or is not a valid ADIOS2 dataset")
+
+    ! The BP4/BP5 engines only expose a dataset's variables once a step is
+    ! active, so engage the step machinery before reading. Engines without
+    ! explicit step support (e.g. HDF5) treat this as a no-op.
+    call begin_step(sol_reader)
 
     call get_global_num_cells(global_num_cells)
 
@@ -152,6 +168,9 @@ contains
     if (allocated(data)) then
       deallocate (data)
     end if
+
+    ! Close the active step opened before reading
+    call end_step(sol_reader)
 
     ! Close the file and finalise ADIOS2 IO environment
     if (present(step)) then
@@ -392,6 +411,20 @@ contains
     format_str = trim("(I" // trim(mag_str) // "." // trim(mag_str) // ")")
     ! do not use format_str right now - keep it simple
     write (step_str, trim(format_str)) step
+
+  end function
+
+  !> Check whether a file name ends with the expected file extension
+  pure function file_has_extension(filename, extension) result(has_extension)
+    character(len=*), intent(in) :: filename  !< File name to check
+    character(len=*), intent(in) :: extension !< Expected file extension, e.g. '.h5' or '.bp'
+    logical :: has_extension
+
+    if (len_trim(filename) < len(extension)) then
+      has_extension = .false.
+    else
+      has_extension = filename(len_trim(filename) - len(extension) + 1:len_trim(filename)) == extension
+    end if
 
   end function
 
