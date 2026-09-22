@@ -86,10 +86,7 @@ contains
     ! '*.h5' files require the HDF5 engine, while '*.bp' files require BP4 or BP5
     call get_file_extension(sol_reader, file_type)
     if (.not. file_has_extension(sol_file, file_type)) then
-      call error_abort("Restart file '" // sol_file // "' does not end with '" // file_type // "', " //
-                       "which is the file type of the engine configured for 'sol_reader'. " //
-                       "Set 'restart_file' to a file with the matching extension, or set the " //
-                       "'sol_reader' engine in the ADIOS2 configuration to a matching engine.")
+      call error_abort("Restart file '" // sol_file // "' does not end with '" // file_type // ".")
     end if
 
     ! ADIOS2 performs the validation because BP datasets are directories while
