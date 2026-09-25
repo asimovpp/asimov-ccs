@@ -66,6 +66,12 @@ restart_file: /path/to/Previous/Solution_sol_${step}.${ext}
 
 where ${step} is the timestep you want to restart from and ${ext} the file type - valid types are h5 and bp.
 
+The `steps` value in the configuration is the final timestep to run up to (an absolute step number),
+not the number of additional timesteps. A restarted run therefore continues from the step encoded in
+`restart_file` until the `steps` value is reached. For example, restarting from step 10 with `steps: 20`
+runs another 10 timesteps, up to and including timestep 20. The program exits with an error if `steps`
+is less than or equal to the restart step, as the simulation would not advance.
+
 Relative restart paths are resolved from the working directory in which the executable is run.
 The extension of `restart_file` must match the engine configured for `sol_reader` in the ADIOS2
 configuration: `*.h5` files require the HDF5 engine, while `*.bp` files require the BP4 or BP5
