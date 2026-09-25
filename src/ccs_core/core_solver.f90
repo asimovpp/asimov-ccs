@@ -105,7 +105,10 @@ contains
     end select
     boundary_fluxes = create_boundary_flux_context(mesh)
 
-    do t = step_offset + 1, step_offset + num_steps
+    ! num_steps is the final timestep to run up to (an absolute step number).
+    ! On a restart step_offset is the step to resume from, so the loop runs from
+    ! step_offset + 1 to num_steps; otherwise step_offset is 0 and it runs 1 to num_steps.
+    do t = step_offset + 1, num_steps
       call profiler_begin_region("Solver time inc I/O")
 
       ! XXX: Coupler update here
@@ -311,7 +314,7 @@ contains
       associate (num_steps => run_options%solve%num_steps, &
                  write_frequency => run_options%io%write_frequency, &
                  step_offset => run_options%variables%restart_step)
-        check_to_write = ((t == 1 + step_offset) .or. (t == num_steps + step_offset) .or. (mod(t, write_frequency) == 0))
+        check_to_write = ((t == 1 + step_offset) .or. (t == num_steps) .or. (mod(t, write_frequency) == 0))
       end associate
     else
       ! End of steady run
@@ -333,7 +336,9 @@ contains
     integer(ccs_int) :: num_steps
     real(ccs_real) :: dt
 
-    num_steps = run_options%solve%num_steps + run_options%variables%restart_step
+    ! num_steps is the final timestep (an absolute step number); it is passed as the
+    ! maximum step for output (filename padding and file finalisation).
+    num_steps = run_options%solve%num_steps
     dt = run_options%solve%dt
 
     call profiler_begin_region("I/O time for solution")

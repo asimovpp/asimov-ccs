@@ -9,7 +9,7 @@ submodule(core) core_configuration
                          get_boundary_names, get_boundary_types, get_solver_eq_parameters, &
                          get_parhip_options, &
                          get_diagnostics
-  use utils, only: exit_print
+  use utils, only: exit_print, str
   use logging, only: log_unit_out
 
   implicit none
@@ -28,6 +28,7 @@ contains
 
     character(len=:), allocatable :: case_name
     character(len=:), allocatable :: input_path
+    character(len=:), allocatable :: restart_msg
 
     call read_command_line_arguments(par_env, cps=cps_cmdline, case_name=case_name, &
                                      in_dir=input_path)
@@ -41,7 +42,14 @@ contains
     call read_configuration(run_options)
 
     if (run_options%solve%unsteady .and. run_options%variables%restart .and. run_options%variables%restart_step == 0) then
-      call error_abort("Could not determine the restart timestep from the solution file '" // run_options%variables%restart_file // "'. Expected a filename of the form <case>_sol_<step><ext>.")
+      call error_abort("Could not determine the restart timestep from the solution file '"  //  run_options%variables%restart_file  //  "'. Expected a filename of the form <case>_sol_<step><ext>.")
+    end if
+    if (run_options%solve%unsteady .and. run_options%variables%restart .and. &
+        run_options%solve%num_steps <= run_options%variables%restart_step) then
+      restart_msg = "On restart, the configured 'steps' value (" // str(run_options%solve%num_steps) //  &
+                    ") must be greater than the restart step (" // str(run_options%variables%restart_step) //  &
+                    ") so that the simulation can advance."
+      call error_abort(restart_msg)
     end if
 
     ! Print the run configuration
@@ -486,7 +494,12 @@ contains
         write (log_unit_out, *) "******************************************************************************"
         write (log_unit_out, *) "* SIMULATION LENGTH"
         if (dt /= huge(dt)) then
-          write (log_unit_out, *) "* Running for ", num_steps, "timesteps and ", num_iters, "iterations"
+          if (run_options%variables%restart) then
+            ! On a restart, num_steps is the final timestep to run up to (an absolute step number)
+            write (log_unit_out, *) "* Running up to timestep ", num_steps, " and ", num_iters, "iterations"
+          else
+            write (log_unit_out, *) "* Running for ", num_steps, "timesteps and ", num_iters, "iterations"
+          end if
           write (log_unit_out, '(1x, a, e10.3)') "* Time step size: ", dt
         else
           write (log_unit_out, *) "* Running for ", num_iters, "iterations"
@@ -495,6 +508,7 @@ contains
       if (run_options%variables%restart) then
         write (log_unit_out, *) "* RESTART"
         write (log_unit_out, *) "* Restarting from solution file: ", run_options%variables%restart_file
+        write (log_unit_out, *) "* Restart step: ", run_options%variables%restart_step
       end if
       write (log_unit_out, *) "******************************************************************************"
       write (log_unit_out, *) "* REFERENCE VALUES"
