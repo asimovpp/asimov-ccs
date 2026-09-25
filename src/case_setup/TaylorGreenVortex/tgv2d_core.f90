@@ -22,7 +22,7 @@ module tgv2d_core
 
   implicit none
 
-  public :: run_tgv2d
+  public :: run_tgv2d, get_init_flow, get_init_mass_flux, eval_sources, postproc_tgv
 
   ! Global variables to pass error calculations to the postprocessing subroutine
   real(ccs_real), dimension(3) :: tgv2d_error_L2_global = huge(0.0_ccs_real)
