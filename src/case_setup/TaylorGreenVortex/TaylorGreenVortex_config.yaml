@@ -2,7 +2,8 @@
 title: TaylorGreenVortex
 
 # restart capability
-restart: false  
+restart: false
+#restart_file: /path/to/previous/solution_sol_${step}.${ext}
 
 # unstaedy state
 unsteady: true
@@ -11,7 +12,7 @@ unsteady: true
 iterations: 7
 
 #  number of timesteps
-steps: 10
+steps: 40
 # time step size
 dt: 1.0e-2
 
