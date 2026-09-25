@@ -65,6 +65,9 @@ restart_file: /path/to/Previous/Solution_sol_${step}.${ext}
 ```
 
 where ${step} is the timestep you want to restart from and ${ext} the file type - valid types are h5 and bp.
+The `${step}` component is optional: if the solution file name carries no timestep (for example a
+steady-state solution `Solution_sol.${ext}`), the timestep counter is restarted from 0 and the run
+proceeds from timestep 1 up to the `steps` value.
 
 The `steps` value in the configuration is the final timestep to run up to (an absolute step number),
 not the number of additional timesteps. A restarted run therefore continues from the step encoded in

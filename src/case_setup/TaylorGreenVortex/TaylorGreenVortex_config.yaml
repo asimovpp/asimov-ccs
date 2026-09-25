@@ -2,8 +2,8 @@
 title: TaylorGreenVortex
 
 # restart capability
-restart: false
-#restart_file: /path/to/previous/solution_sol_${step}.${ext}
+restart: true
+restart_file: TaylorGreenVortex_sol_30.bp #/path/to/previous/solution_sol_${step}.${ext}
 
 # unstaedy state
 unsteady: true

@@ -41,9 +41,6 @@ contains
     ! Read case name and runtime parameters from configuration file
     call read_configuration(run_options)
 
-    if (run_options%solve%unsteady .and. run_options%variables%restart .and. run_options%variables%restart_step == 0) then
-      call error_abort("Could not determine the restart timestep from the solution file '"  //  run_options%variables%restart_file  //  "'. Expected a filename of the form <case>_sol_<step><ext>.")
-    end if
     if (run_options%solve%unsteady .and. run_options%variables%restart .and. &
         run_options%solve%num_steps <= run_options%variables%restart_step) then
       restart_msg = "On restart, the configured 'steps' value (" // str(run_options%solve%num_steps) //  &
@@ -225,8 +222,9 @@ contains
   end subroutine get_variable_definitions
 
   !> Extract the timestep number from a solution file name, e.g. "case_sol_10.bp" -> 10.
-  !  Returns 0 if no step number can be determined.
-  pure function get_solution_step(file_name) result(step)
+  !> Returns 0 when the file name carries no step number (e.g. "case_sol.bp"),
+  !> in which case a restart restarts the timestep counter from 0.
+  pure module function get_solution_step(file_name) result(step)
 
     character(len=*), intent(in) :: file_name
 
@@ -508,7 +506,11 @@ contains
       if (run_options%variables%restart) then
         write (log_unit_out, *) "* RESTART"
         write (log_unit_out, *) "* Restarting from solution file: ", run_options%variables%restart_file
-        write (log_unit_out, *) "* Restart step: ", run_options%variables%restart_step
+        if (run_options%variables%restart_step == 0) then
+          write (log_unit_out, *) "* No timestep found in the solution file name; the timestep counter is restarted from 0"
+        else
+          write (log_unit_out, *) "* Restart step: ", run_options%variables%restart_step
+        end if
       end if
       write (log_unit_out, *) "******************************************************************************"
       write (log_unit_out, *) "* REFERENCE VALUES"
