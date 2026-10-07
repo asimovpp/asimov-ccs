@@ -87,7 +87,7 @@ program test_restart_target
 
   ! ---- Phase 3: restart from a solution file with no timestep (counter resets to 0) ----
   ! Rename the written step solution to a name carrying no timestep. Only rank 0 owns
-  ! the file (the ADIOS2 HDF5 engine is serial), so only rank 0 performs the rename.
+  ! the file, so only rank 0 performs the rename.
   staged_file = run_options%paths%case_name // "_sol_" // str(restart_step) // ".h5"
   nostep_file = run_options%paths%case_name // "_sol" // ".h5"
   if (par_env%proc_id == 0) then
