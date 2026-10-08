@@ -30,6 +30,7 @@ Following field creation, their initial values are set by `initialise_flow`; if 
 restart these values are read from a solution file, otherwise the `get_init_flow` and
 `get_init_mass_flux` subroutines which are passed as arguments to `initialise_flow` are used to
 compute the initial values.
+
 The first of these, `get_init_flow`, is used to initialise the cell-centred fields and takes a cell
 locator and field name as input arguments, returning the initial field value at a point as its
 return value.
@@ -52,3 +53,32 @@ by the flow, `nullify_mesh_object` frees the mesh pointer and `cleanup_parallel_
 finalises the parallel environment.
 Before finalising the parallel environment, calling `timer_print_all` will output the timings
 reported by the instrumentation of the case and `ASiMoV-CCS`.
+
+# Restarting the simulation
+
+Restarting requires both the restart flag and the exact path of the solution file to restart from, including its
+extension, in the runtime configuration:
+
+```yaml
+restart: true
+restart_file: /path/to/Previous/Solution_sol_${step}.${ext}
+```
+
+where ${step} is the timestep you want to restart from and ${ext} the file type - valid types are h5 and bp.
+The `${step}` component is optional: if the solution file name carries no timestep (for example a
+steady-state solution `Solution_sol.${ext}`), the timestep counter is restarted from 0 and the run
+proceeds from timestep 1 up to the `steps` value.
+
+The `steps` value in the configuration is the final timestep to run up to (an absolute step number),
+not the number of additional timesteps. A restarted run therefore continues from the step encoded in
+`restart_file` until the `steps` value is reached. For example, restarting from step 10 with `steps: 20`
+runs another 10 timesteps, up to and including timestep 20. The program exits with an error if `steps`
+is less than or equal to the restart step, as the simulation would not advance.
+
+Relative restart paths are resolved from the working directory in which the executable is run.
+The extension of `restart_file` must match the engine configured for `sol_reader` in the ADIOS2
+configuration: `*.h5` files require the HDF5 engine, while `*.bp` files require the BP4 or BP5
+engine. The file is then opened and ADIOS2 validates the supplied path, which may identify either
+a BP dataset directory or an HDF5 file. The program exits with an error if `restart_file` is
+missing, empty, unreadable, has an extension that does not match the `sol_reader` engine, or is
+not a valid ADIOS2 dataset.

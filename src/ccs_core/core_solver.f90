@@ -28,7 +28,7 @@ contains
   ! solution output.
   module subroutine run_solver(par_env, run_options, eval_sources, postproc, flow_fields)
 
-    use timestepping, only: activate_timestepping, set_timestep
+    use timestepping, only: activate_timestepping, set_timestep, set_step_offset
     use fields, only: get_field
     use flow_stats, only: boundary_flux_context, boundary_mass_flux_balance, &
                           create_boundary_flux_context, &
@@ -63,6 +63,7 @@ contains
 
     integer(ccs_int) :: t ! Timestep counter
     integer(ccs_int) :: num_steps
+    integer(ccs_int) :: step_offset
 
     integer(ccs_int) :: it_start, it_end
 
@@ -77,6 +78,9 @@ contains
     if (run_options%solve%unsteady) then
       call activate_timestepping()
       call set_timestep(run_options%solve%dt)
+      if (run_options%variables%restart) then
+        call set_step_offset(run_options%variables%restart_step)
+      end if
     end if
 
     it_start = run_options%solve%it_start
@@ -86,6 +90,10 @@ contains
     else
       ! num steps may not have been set
       num_steps = 1
+    end if
+    step_offset = 0
+    if (run_options%solve%unsteady .and. run_options%variables%restart) then
+      step_offset = run_options%variables%restart_step
     end if
 
     call get_field(flow_fields, "mf", field_pointer)
@@ -97,7 +105,10 @@ contains
     end select
     boundary_fluxes = create_boundary_flux_context(mesh)
 
-    do t = 1, num_steps
+    ! num_steps is the final timestep to run up to (an absolute step number).
+    ! On a restart step_offset is the step to resume from, so the loop runs from
+    ! step_offset + 1 to num_steps; otherwise step_offset is 0 and it runs 1 to num_steps.
+    do t = step_offset + 1, num_steps
       call profiler_begin_region("Solver time inc I/O")
 
       ! XXX: Coupler update here
@@ -301,8 +312,9 @@ contains
 
     if (timestepping_is_active()) then
       associate (num_steps => run_options%solve%num_steps, &
-                 write_frequency => run_options%io%write_frequency)
-        check_to_write = ((t == 1) .or. (t == num_steps) .or. (mod(t, write_frequency) == 0))
+                 write_frequency => run_options%io%write_frequency, &
+                 step_offset => run_options%variables%restart_step)
+        check_to_write = ((t == 1 + step_offset) .or. (t == num_steps) .or. (mod(t, write_frequency) == 0))
       end associate
     else
       ! End of steady run
@@ -324,6 +336,8 @@ contains
     integer(ccs_int) :: num_steps
     real(ccs_real) :: dt
 
+    ! num_steps is the final timestep (an absolute step number); it is passed as the
+    ! maximum step for output (filename padding and file finalisation).
     num_steps = run_options%solve%num_steps
     dt = run_options%solve%dt
 

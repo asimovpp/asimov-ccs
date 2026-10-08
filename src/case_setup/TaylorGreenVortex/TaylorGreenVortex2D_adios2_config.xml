@@ -19,4 +19,11 @@
     </engine>
 
   </io>
+
+  <io name="sol_reader">
+
+    <engine type="HDF5">
+    </engine>
+
+  </io>
 </adios-config>

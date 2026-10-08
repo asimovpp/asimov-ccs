@@ -41,13 +41,14 @@ contains
   end subroutine
 
   !> Read the flow solution
-  module subroutine read_solution(par_env, case_name, mesh, flow, step, maxstep)
+  module subroutine read_solution(par_env, case_name, mesh, flow, restart_file, step, maxstep)
 
     ! Arguments
     class(parallel_environment), intent(in) :: par_env     !< The parallel environment
     character(len=:), allocatable, intent(in) :: case_name !< The case name
     type(ccs_mesh), intent(in) :: mesh                     !< The mesh
     type(fluid), intent(inout) :: flow                     !< The flow variables
+    character(len=*), intent(in) :: restart_file           !< Explicit restart dataset path
     integer(ccs_int), optional, intent(in) :: step         !< The current time-step count
     integer(ccs_int), optional, intent(in) :: maxstep      !< The maximum time-step count
 
@@ -55,12 +56,12 @@ contains
     if (present(step) .and. present(maxstep)) then
       ! Unsteady case
       call profiler_begin_region("Read fields time")
-      call read_fields(par_env, case_name, mesh, flow, step, maxstep)
+      call read_fields(par_env, case_name, mesh, flow, restart_file, step, maxstep)
       call profiler_end_region("Read fields time")
     else
       ! Steady case
       call profiler_begin_region("Read fields time")
-      call read_fields(par_env, case_name, mesh, flow)
+      call read_fields(par_env, case_name, mesh, flow, restart_file)
       call profiler_end_region("Read fields time")
     end if
 

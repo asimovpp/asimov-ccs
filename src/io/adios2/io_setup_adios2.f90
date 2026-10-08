@@ -96,12 +96,16 @@ contains
       type is (adios2_io_process)
 
         call adios2_declare_io(io_proc%io_task, io_env%adios, process_name, ierr)
-        if (timestepping_is_active()) then
-          delta_t = get_timestep()
-          call adios2_define_attribute(dt_attr, io_proc%io_task, "dt", delta_t, ierr)
+        ! Attributes describe newly written output. Defining them on a reader
+        ! conflicts with attributes already stored in BP datasets.
+        if (index(process_name, "reader") == 0) then
+          if (timestepping_is_active()) then
+            delta_t = get_timestep()
+            call adios2_define_attribute(dt_attr, io_proc%io_task, "dt", delta_t, ierr)
+          end if
+          call get_current_time(sim_time)
+          call adios2_define_attribute(time_attr, io_proc%io_task, "simulation time", sim_time, ierr)
         end if
-        call get_current_time(sim_time)
-        call adios2_define_attribute(time_attr, io_proc%io_task, "simulation time", sim_time, ierr)
 
       class default
 
@@ -116,14 +120,44 @@ contains
 
   end subroutine
 
+  !> Get the file extension associated with an ADIOS2 engine
+  module subroutine get_file_extension(io_proc, file_type)
+    class(io_process), intent(in) :: io_proc
+    character(len=:), allocatable, intent(out) :: file_type
+
+    character(len=:), allocatable :: engine_type
+    integer(ccs_int) :: ierr
+
+    select type (io_proc)
+    type is (adios2_io_process)
+      call adios2_io_engine_type(engine_type, io_proc%io_task, ierr)
+      if (ierr /= 0) then
+        call error_abort("Failed to query the ADIOS2 engine type")
+      end if
+
+      select case (engine_type)
+      case ("HDF5")
+        file_type = ".h5"
+      case ("BP4", "BP5") ! Note that BP4 and BP5 are not interchangeable, but they use the same file extension.
+        file_type = ".bp" ! It is therefore important to select the correct engine type, or ADIOS2 will fail to read the file.
+      case default
+        call error_abort("Unknown ADIOS2 engine type: " // trim(engine_type))
+      end select
+
+    class default
+      call error_abort("Unknown IO process handler type")
+    end select
+
+  end subroutine
+
   !> Open file with ADIOS2
-  module subroutine open_file(filename, mode, io_proc)
+  module subroutine open_file(filename, mode, io_proc, error_context)
     character(len=*), intent(in) :: filename    !< name of file to open
     character(len=*), intent(in) :: mode        !< choose whether to read/ write or append valid options are:
     !< "read", "write", "append"
     class(io_process), intent(inout) :: io_proc !< object that includes ADIOS2 handler information
+    character(len=*), optional, intent(in) :: error_context !< Error text used if the open fails
 
-    character(len=:), allocatable :: engine_type
     character(len=:), allocatable :: file_type
 
     integer(ccs_int) :: ierr
@@ -134,18 +168,7 @@ contains
     type is (adios2_io_process)
 
       if (mode == "write") then
-
-        ! query the engine type - defined in the ADIOS2 XML configuration file
-        call adios2_io_engine_type(engine_type, io_proc%io_task, ierr)
-
-        ! Support for HDF5, BP4 and BP5
-        if (engine_type == "HDF5") then
-          file_type = ".h5"
-        else if (engine_type == "BP4" .or. engine_type == "BP5") then
-          file_type = ".bp"
-        else
-          call error_abort("Unknown ADIOS2 engine type: " // trim(engine_type))
-        end if
+        call get_file_extension(io_proc, file_type)
 
         ! Append the correct file extension
         call adios2_open(io_proc%engine, io_proc%io_task, filename // file_type, get_mode(mode), ierr)
@@ -154,7 +177,11 @@ contains
 
         call adios2_open(io_proc%engine, io_proc%io_task, filename, get_mode(mode), ierr)
         if (ierr /= 0) then
-          call error_abort("Failed to open file for read/append: " // trim(filename))
+          if (present(error_context)) then
+            call error_abort(trim(error_context) // ": '" // trim(filename) // "'")
+          else
+            call error_abort("Failed to open file for read/append: " // trim(filename))
+          end if
         end if
 
       end if

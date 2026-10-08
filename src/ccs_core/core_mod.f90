@@ -16,6 +16,7 @@ module core
   private
 
   public :: get_config
+  public :: get_solution_step
   public :: initialise_flow
   public :: configure_parallelism
   public :: initialise_mesh
@@ -65,7 +66,9 @@ module core
     character(len=ccs_string_len), dimension(:), allocatable :: variable_names
     integer(ccs_int), dimension(:), allocatable :: variable_types
     character(len=ccs_string_len), dimension(:), allocatable :: output_variables
+    character(len=:), allocatable :: restart_file
     logical :: restart = .false.
+    integer(ccs_int) :: restart_step = 0
   end type variable_options
 
   !v Options for solver configuration
@@ -129,6 +132,15 @@ module core
       class(parallel_environment), intent(in) :: par_env !< The parallel environment
       type(ccs_options), intent(out) :: run_options      !< The runtime configuration
     end subroutine get_config
+
+    !v Extract the timestep number from a solution file name, e.g. "case_sol_10.bp" -> 10.
+    !  Returns 0 when the file name carries no step number (a restart then restarts
+    !  the timestep counter from 0).
+    pure module function get_solution_step(file_name) result(step)
+      use kinds, only: ccs_int
+      character(len=*), intent(in) :: file_name
+      integer(ccs_int) :: step
+    end function get_solution_step
 
     !v Subroutine to configure sub parallel environments.
     !
