@@ -335,15 +335,14 @@ contains
     call end_step(sol_writer)
 
     ! Close the file and finalise ADIOS2 IO environment
+    call close_file(sol_writer)
     if (present(step)) then
       ! Unsteady case
       if (step == maxstep) then
-        call close_file(sol_writer)
         call cleanup_io(io_env)
       end if
     else
       ! Steady case
-      call close_file(sol_writer)
       call cleanup_io(io_env)
     end if
 
