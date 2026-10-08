@@ -103,6 +103,8 @@ variables:
   variable_8:
     name: scalar
     type: central
+    solve: on
+    relaxation: 0.7
 
 boundaries:
   n_boundaries: 10
