@@ -29,7 +29,7 @@ module pressure_solve
 
   implicit none
 
-    contains
+  contains
   !v Solves the pressure correction equation
   !
   !  Solves the pressure correction equation formed by the mass-imbalance.
