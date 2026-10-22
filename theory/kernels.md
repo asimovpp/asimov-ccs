@@ -49,7 +49,9 @@ end type
 ```
 
 In particular, `eval_explicit` should directly return the rhs or `b` and `eval_coeffs` returns `aP` and `aF` in the following:
-- dphi/dt + div(F) = S => dphi/dt + [aP phiP + aF phiF - b] = S
+$$
+d\phi/dt + div(F) = S => d\phi/dt + [a_P \phi_P + a_F \phi_F - b] = S
+$$
 
 Equation
 --------
