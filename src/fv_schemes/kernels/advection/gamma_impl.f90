@@ -41,7 +41,7 @@ contains
     gamma_m = compute_gamma(phi_pt, bm)
     phi_g = gamma_m * phi_cd + (1.0_ccs_real - gamma_m) * phi_up
 
-    expl = flux_coeff * (phi_g - phi_up)
+    expl = - flux_coeff * (phi_g - phi_up)
   end function advect_gamma_eval_explicit
 
   pure subroutine get_flow_orientation(flux_coeff, phi, grads, rvecs, phi_C, phi_D, grad_C, d)

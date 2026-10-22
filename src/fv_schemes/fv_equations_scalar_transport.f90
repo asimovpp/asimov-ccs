@@ -218,7 +218,7 @@ contains
                                                self%payload%rvecs_f(:, :, j), &
                                                self%payload%gradients_f(:, :, j))
 
-      rhs = rhs - diff_expl - adv_expl - self%payload%correction_f(j) * self%payload%flux_f(j)
+      rhs = rhs + diff_expl + adv_expl - self%payload%correction_f(j) * self%payload%flux_f(j)
       a_P = a_P + adv_coeffs(1) + diff_coeffs(1)
       a_F = adv_coeffs(2) + diff_coeffs(2)
 

@@ -41,25 +41,25 @@ program test_distorted_kernels
       explicit = diffusion%eval_explicit(phi_val(:, ifield, icase), diff_corr(icase), lf(icase), &
                                          rvec(:, :, icase), grad_phi(:, :, ifield, icase))
       write (msg, '(a, i0, a, i0)') "diff exp c", icase, " f", ifield
-      call assert_close(explicit, diff_exp(ifield, icase), rtol, atol, &
+      call assert_close(explicit, -diff_exp(ifield, icase), rtol, atol, &
                         trim(msg))
 
       explicit = cd%eval_explicit(phi_val(:, ifield, icase), adv_flux(icase), lf(icase), &
                                   rvec(:, :, icase), grad_phi(:, :, ifield, icase))
       write (msg, '(a, i0, a, i0)') "cd exp c", icase, " f", ifield
-      call assert_close(explicit, cd_exp(ifield, icase), rtol, atol, &
+      call assert_close(explicit, -cd_exp(ifield, icase), rtol, atol, &
                         trim(msg))
 
       explicit = upwind%eval_explicit(phi_val(:, ifield, icase), adv_flux(icase), lf(icase), &
                                       rvec(:, :, icase), grad_phi(:, :, ifield, icase))
       write (msg, '(a, i0, a, i0)') "upwind c", icase, " f", ifield
-      call assert_close(explicit, upwind_exp(ifield, icase), rtol, atol, &
+      call assert_close(explicit, -upwind_exp(ifield, icase), rtol, atol, &
                         trim(msg))
 
       explicit = luds%eval_explicit(phi_val(:, ifield, icase), adv_flux(icase), lf(icase), &
                                     rvec(:, :, icase), grad_phi(:, :, ifield, icase))
       write (msg, '(a, i0, a, i0)') "luds c", icase, " f", ifield
-      call assert_close(explicit, luds_exp(ifield, icase), rtol, atol, &
+      call assert_close(explicit, -luds_exp(ifield, icase), rtol, atol, &
                         trim(msg))
     end do
   end do
