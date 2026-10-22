@@ -48,6 +48,9 @@ contains
 end type
 ```
 
+In particular, `eval_explicit` should directly return the rhs or `b` and `eval_coeffs` returns `aP` and `aF` in the following:
+- dphi/dt + div(F) = S => dphi/dt + [aP phiP + aF phiF - b] = S
+
 Equation
 --------
 
