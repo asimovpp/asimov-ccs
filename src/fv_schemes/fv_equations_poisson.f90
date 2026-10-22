@@ -155,7 +155,7 @@ contains
 
       self%payload%is_boundary_f(j) = is_boundary_f
       self%payload%coeff_f(j) = coeffs(1)
-      self%payload%rhs_f(j) = explicit_term_f
+      self%payload%rhs_f(j) = - explicit_term_f
 
       if (.not. is_boundary_f) then
         self%payload%coeff_nb(j) = coeffs(2)

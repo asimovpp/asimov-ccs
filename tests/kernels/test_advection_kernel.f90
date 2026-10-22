@@ -119,7 +119,7 @@ contains
     real(ccs_real), dimension(2) :: coeffs
 
     coeffs = k%eval_coeffs(u0)
-    flux_disc = coeffs(2) * phiCell(2) + coeffs(1) * phiCell(1) + &
+    flux_disc = coeffs(2) * phiCell(2) + coeffs(1) * phiCell(1) - &
                  k%eval_explicit(phiCell, u0, interpF, rvecs, grads)
     flux_exact = u0 * phiFace
     err = abs(flux_exact - flux_disc)
@@ -155,7 +155,7 @@ contains
     phi_const = [phi0, phi0]
     grads_zero = 0.0_ccs_real
     rhs = k%eval_explicit(phi_const, u0, interpF, rvecs, grads_zero)
-    flux = coeffs(1) * phi0 + coeffs(2) * phi0 + rhs
+    flux = coeffs(1) * phi0 + coeffs(2) * phi0 - rhs
 
     call assert_eq(flux, u0 * phi0, hdr//trim(name)//': constant-phi flux', outval=ok)
     if (.not. ok) then
@@ -191,12 +191,12 @@ contains
     ! positive velocity
     coeffs = k%eval_coeffs(u0)
     rhs = k%eval_explicit(phi, u0, interpF, rvecs, grads)
-    flux_pos = coeffs(1)*phi(1) + coeffs(2)*phi(2) + rhs
+    flux_pos = coeffs(1)*phi(1) + coeffs(2)*phi(2) - rhs
 
     ! negative velocity
     coeffs = k%eval_coeffs(-u0)
     rhs = k%eval_explicit(phi, -u0, interpF, rvecs, grads)
-    flux_neg = coeffs(1) * phi(1) + coeffs(2) * phi(2) + rhs
+    flux_neg = coeffs(1) * phi(1) + coeffs(2) * phi(2) - rhs
 
     call assert_eq(flux_neg, -flux_pos, hdr//trim(name)//': antisymmetry', outval=ok)
     if (.not. ok) then

@@ -43,7 +43,7 @@ contains
 
     ! Non-orthogonality correction (diffusive flux) (Ferziger & Peric 4th ed, sec 9.7.2)
     expl = (dot_product(grads(:, 2), rvecs(:, 2)) - dot_product(grads(:, 1), rvecs(:, 1)))
-    expl = -flux_coeff * expl
+    expl = flux_coeff * expl
 
   end function diffusion_eval
 

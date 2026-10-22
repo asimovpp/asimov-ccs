@@ -45,7 +45,7 @@ contains
 
     ! LUDS computes face value as upwind + linear extrapolation, therefore
     ! the deferred correction (f_LUDS - f_U) reduces to the linear extrapolation.
-    expl = flux_coeff * phi_lud         ! deferred correction
+    expl = - flux_coeff * phi_lud         ! deferred correction
   end function advect_luds_eval_explicit
 
   module pure function get_luds_width(self) result(width)

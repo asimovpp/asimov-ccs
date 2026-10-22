@@ -35,7 +35,7 @@ contains
     phi_cd = lf * phi(1) + (1.0_ccs_real - lf) * phi(2)
 
     ! --- deferred correction term
-    expl = flux_coeff * phi_cd - flux_up
+    expl = - (flux_coeff * phi_cd - flux_up)
   end function advect_cd_eval_explicit
 
   module pure function get_cd_width(self) result(width)
