@@ -32,8 +32,8 @@ submodule(pv_coupling) pv_coupling_simple
                      get_max_faces, is_mesh_set
   use scalars, only: update_scalars
   use timestepping, only: update_old_values
-  use residuals, only: compute_residuals, compute_global_residuals, init_residuals, normalise_residuals, &
-                       get_max_residuals, print_residuals, is_converged
+  use residuals, only: compute_residuals, compute_global_residuals, init_residuals, &
+                       get_max_residuals, print_residuals, is_converged, normalise_residuals, finalise_residuals
   use parallel, only: is_root
   use pressure_solve, only: calculate_pressure_correction
   use logging, only: log_unit_out
@@ -77,7 +77,6 @@ contains
     class(ccs_vector), allocatable :: invA    ! Inverse diagonal coefficient
     class(ccs_vector), allocatable :: workvec ! Temporary workspace vector
     class(ccs_vector), allocatable :: sourcevec
-    class(ccs_vector), allocatable :: res
     type(ccs_residuals) :: residuals
     integer(ccs_int) :: max_faces ! The maximum number of faces per cell
 
@@ -169,9 +168,8 @@ contains
     call create_vector(vec_properties, workvec)
     call create_vector(vec_properties, sourcevec)
 
-    ! Create vectors for storing residuals
+    ! Initialise residual monitoring
     call dprint("NONLINEAR: setup residuals")
-    call create_vector(vec_properties, res)
     call init_residuals(flow, residuals)
 
     ! Get pressure gradient
@@ -201,7 +199,7 @@ contains
       ! Solve momentum equation with guessed pressure and velocity fields (eq. 4)
       call dprint("NONLINEAR: guess velocity")
       call calculate_velocity(par_env, flow, eval_sources, M, source, &
-                              lin_system, invA, workvec, sourcevec, res, residuals)
+                              lin_system, invA, workvec, sourcevec, residuals)
 
       ! Calculate pressure correction from mass imbalance (sub. eq. 11 into eq. 8)
       call dprint("NONLINEAR: mass imbalance")
@@ -211,7 +209,7 @@ contains
 
       ! Update velocity with velocity correction (eq. 6)
       call dprint("NONLINEAR: correct face velocity")
-      call update_face_velocity(flow, invA, p_prime, mf, res, residuals)
+      call update_face_velocity(flow, invA, p_prime, mf, workvec, residuals)
       call dprint("NONLINEAR: correct velocity")
       call update_velocity(flow)
 
@@ -279,10 +277,7 @@ contains
       call destroy_vector(sourcevec)
       deallocate (sourcevec)
     end if
-    if (allocated(res)) then
-      call destroy_vector(res)
-      deallocate (res)
-    end if
+    call finalise_residuals()
     if (allocated(invAu)) then
       call destroy_vector(invAu)
       deallocate (invAu)
@@ -306,7 +301,7 @@ contains
   !  equations) and solve to obtain an intermediate velocity field u* that will not
   !  satisfy continuity.
   subroutine calculate_velocity(par_env, flow, eval_sources, M, vec, &
-                                lin_sys, invA, workvec, sourcevec, res, residuals)
+                                lin_sys, invA, workvec, sourcevec, residuals)
 
     ! Arguments
     class(parallel_environment), allocatable, intent(in) :: par_env !< the parallel environment
@@ -329,7 +324,6 @@ contains
     class(ccs_vector), intent(inout) :: invA             !< vector containing the inverse momentum coefficients
     class(ccs_vector), intent(inout) :: workvec          !< vector for work space
     class(ccs_vector), intent(inout) :: sourcevec        !< vector for work space
-    class(ccs_vector), intent(inout) :: res              !< residual field
     type(ccs_residuals), intent(inout) :: residuals      !< RMS and L-inf of residuals for each flow variable
 
     logical :: u_sol
@@ -359,7 +353,7 @@ contains
     if (u_sol) then
       call zero_vector(invAu)
       call calculate_velocity_component(flow, par_env, eval_sources, p, 1, M, vec, lin_sys, u, invAu, &
-                                        workvec, sourcevec, res, residuals)
+                                        workvec, sourcevec, residuals)
       call axpy(1.0_ccs_real, invAu, invA)
       call vec_reciprocal(invAu)
       dim = dim + 1.0_ccs_real
@@ -370,7 +364,7 @@ contains
     if (v_sol) then
       call zero_vector(invAv)
       call calculate_velocity_component(flow, par_env, eval_sources, p, 2, M, vec, lin_sys, v, invAv, &
-                                        workvec, sourcevec, res, residuals)
+                                        workvec, sourcevec, residuals)
       call axpy(1.0_ccs_real, invAv, invA)
       call vec_reciprocal(invAv)
       dim = dim + 1.0_ccs_real
@@ -381,7 +375,7 @@ contains
     if (w_sol) then
       call zero_vector(invAw)
       call calculate_velocity_component(flow, par_env, eval_sources, p, 3, M, vec, lin_sys, w, invAw, &
-                                        workvec, sourcevec, res, residuals)
+                                        workvec, sourcevec, residuals)
       call axpy(1.0_ccs_real, invAw, invA)
       call vec_reciprocal(invAw)
       dim = dim + 1.0_ccs_real
@@ -399,7 +393,7 @@ contains
   end subroutine calculate_velocity
 
   subroutine calculate_velocity_component(flow, par_env, eval_sources, p, component, M, vec, &
-                                          lin_sys, u, invA, workvec, sourcevec, input_res, residuals)
+                                          lin_sys, u, invA, workvec, sourcevec, residuals)
 
     use timestepping, only: apply_timestep
     use profiler
@@ -427,30 +421,17 @@ contains
     class(ccs_matrix), allocatable, intent(inout) :: M
     class(ccs_vector), allocatable, intent(inout) :: vec
     type(equation_system), intent(inout) :: lin_sys
-    class(field), target, intent(inout) :: u
+    class(field), intent(inout) :: u
     class(ccs_vector), intent(inout) :: invA
     class(ccs_vector), intent(inout) :: workvec
     class(ccs_vector), intent(inout) :: sourcevec
-    class(ccs_vector), target, intent(inout) :: input_res
-    class(ccs_vector), pointer :: res
     type(ccs_residuals), intent(inout) :: residuals
 
     ! Local variables
     class(linear_solver), allocatable :: lin_solver
-
     ! First zero matrix/RHS
     call zero(vec)
     call zero(M)
-
-    ! Select either field residuals or reuse 'input_res'
-    if (allocated(u%residuals)) then
-      res => u%residuals
-    else
-      res => input_res
-    end if
-
-    ! Zero residual vector
-    call zero(res)
 
     ! Calculate fluxes and populate coefficient matrix
     if (component == 1) then
@@ -519,8 +500,8 @@ contains
     call set_solver_method(u%solver_parameters%solver_name, lin_solver)
     call set_solver_precon(u%solver_parameters%precon_name, lin_solver)
 
-    ! Compute residual
-    call compute_residuals(flow, M, u, vec, res, residuals)
+    ! Compute residuals and let the residual module decide whether to store the field.
+    call compute_residuals(flow, M, vec, u, residuals)
 
     ! Solve the linear system
     call dprint("GV: solve u")
@@ -703,7 +684,8 @@ contains
             duvw(1) = (interpolation_factor * duvwp(1)) + ((1.0_ccs_real - interpolation_factor) * duvwf(1))
             duvw(2) = (interpolation_factor * duvwp(2)) + ((1.0_ccs_real - interpolation_factor) * duvwf(2))
             duvw(3) = (interpolation_factor * duvwp(3)) + ((1.0_ccs_real - interpolation_factor) * duvwf(3))
-        viscosity_face=(interpolation_factor*viscosity_data(index_p))+((1.0_ccs_real-interpolation_factor)*viscosity_data(index_nb))
+            viscosity_face = (interpolation_factor * viscosity_data(index_p)) &
+                             + ((1.0_ccs_real - interpolation_factor) * viscosity_data(index_nb))
             r1 = face_area * viscosity_face * dot_product(duvw, face_normal)
           else ! boundary face
             r1 = face_area * viscosity_data(index_p) * dot_product(duvwp, face_normal)
@@ -724,7 +706,8 @@ contains
             duvw(1) = (interpolation_factor * duvwp(1)) + ((1.0_ccs_real - interpolation_factor) * duvwf(1))
             duvw(2) = (interpolation_factor * duvwp(2)) + ((1.0_ccs_real - interpolation_factor) * duvwf(2))
             duvw(3) = (interpolation_factor * duvwp(3)) + ((1.0_ccs_real - interpolation_factor) * duvwf(3))
-        viscosity_face=(interpolation_factor*viscosity_data(index_p))+((1.0_ccs_real-interpolation_factor)*viscosity_data(index_nb))
+            viscosity_face = (interpolation_factor * viscosity_data(index_p)) &
+                             + ((1.0_ccs_real - interpolation_factor) * viscosity_data(index_nb))
             r1 = face_area * viscosity_face * dot_product(duvw, face_normal)
           else ! boundary face
             r1 = face_area * viscosity_data(index_p) * dot_product(duvwp, face_normal)
@@ -745,7 +728,8 @@ contains
             duvw(1) = (interpolation_factor * duvwp(1)) + ((1.0_ccs_real - interpolation_factor) * duvwf(1))
             duvw(2) = (interpolation_factor * duvwp(2)) + ((1.0_ccs_real - interpolation_factor) * duvwf(2))
             duvw(3) = (interpolation_factor * duvwp(3)) + ((1.0_ccs_real - interpolation_factor) * duvwf(3))
-        viscosity_face=(interpolation_factor*viscosity_data(index_p))+((1.0_ccs_real-interpolation_factor)*viscosity_data(index_nb))
+            viscosity_face = (interpolation_factor * viscosity_data(index_p)) &
+                             + ((1.0_ccs_real - interpolation_factor) * viscosity_data(index_nb))
             r1 = face_area * viscosity_face * dot_product(duvw, face_normal)
           else ! boundary face
             r1 = face_area * viscosity_data(index_p) * dot_product(duvwp, face_normal)
@@ -779,16 +763,13 @@ contains
 
   end subroutine calculate_momentum_viscous_source
 
-
   !> Computes the per-cell mass imbalance, updating the face velocity flux as it does so.
-  subroutine compute_mass_imbalance(invA, flow, input_b, residuals)
+  subroutine compute_mass_imbalance(invA, flow, rhs, residuals)
 
     class(ccs_vector), intent(inout) :: invA !< The inverse momentum equation diagonal coefficient
     type(fluid), intent(inout) :: flow                   !< Container for flow fields
-    class(ccs_vector), target, intent(inout) :: input_b   !< The per-cell mass imbalance
+    class(ccs_vector), intent(inout) :: rhs !< Live pressure-correction RHS containing the raw mass imbalance
     type(ccs_residuals), intent(inout) :: residuals !< Residual for each equation
-
-    class(ccs_vector), pointer :: b   !< The per-cell mass imbalance
     type(vector_values) :: vec_values
     integer(ccs_int) :: local_num_cells
     integer(ccs_int) :: i   ! Cell counter
@@ -814,8 +795,6 @@ contains
     integer(ccs_int) :: index_nb      ! Neighbour cell index
 
     real(ccs_real) :: mib ! Cell mass imbalance
-    integer(ccs_int) :: ifield
-
     class(field), pointer :: u        !< The x velocity component
     class(field), pointer :: v        !< The y velocity component
     class(field), pointer :: w        !< The z velocity component
@@ -831,14 +810,8 @@ contains
     call create_vector_values(1_ccs_int, vec_values)
     call set_mode(insert_mode, vec_values)
 
-    if (allocated(p%residuals)) then
-      b => p%residuals
-    else
-      b => input_b
-    end if
-
     ! First zero RHS
-    call zero(b)
+    call zero(rhs)
 
     call get_vector_data_readonly(p%x_gradients, dpdx_data)
     call get_vector_data_readonly(p%y_gradients, dpdy_data)
@@ -886,7 +859,7 @@ contains
 
       call set_row(global_index_p, vec_values)
       call set_entry(mib, vec_values)
-      call set_values(vec_values, b)
+      call set_values(vec_values, rhs)
     end do
 
     call restore_vector_data_readonly(p%x_gradients, dpdx_data)
@@ -896,12 +869,11 @@ contains
 
     call restore_vector_data(mf%values, mf_data)
 
-    call update(b)
+    call update(rhs)
     call update(mf%values)
 
-    ! Pressure residual
-    call get_field_idx(flow, p, ifield)
-    call normalise_residuals(b, ifield, residuals)
+    ! Snapshot the raw mass imbalance before pressure preparation removes its mean and negates the RHS.
+    call compute_residuals(flow, rhs, p, residuals)
 
   end subroutine compute_mass_imbalance
 
@@ -984,7 +956,8 @@ contains
     type(ccs_residuals), intent(inout) :: residuals !< Residual for each equation
 
     integer(ccs_int) :: local_num_cells
-    integer(ccs_int) :: i, ifield
+    integer(ccs_int) :: i
+    integer(ccs_int) :: ifield
 
     real(ccs_real) :: mf_prime
     real(ccs_real), dimension(:), allocatable :: zero_arr
@@ -1063,7 +1036,7 @@ contains
     !! Get corrected mass-imbalance
     call update(b)
 
-    ! Stores residuals
+    ! Monitor this cell residual without copying it into the face-centred mf storage.
     call get_field_idx(flow, mf, ifield)
     call normalise_residuals(b, ifield, residuals)
 

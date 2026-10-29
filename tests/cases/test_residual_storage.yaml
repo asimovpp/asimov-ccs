@@ -1,0 +1,37 @@
+# Separate processes isolate solver history for each storage mode. Coupled cases
+# compare all fields, corrected cell mass imbalance and the five-equation history;
+# scalar-only cases exercise the path without the optional residual monitor.
+# Both paths run on one and four ranks, with a serial comparison of natural cells.
+# RUN: %build_test %s %t1 test_residual_storage.f90
+# RUN: mkdir -p %t.coupled.1.off
+# RUN: cp %S/Input/ResidualStorageOff_config.yaml %S/Input/ResidualStorageOff_adios2_config.xml %t.coupled.1.off/
+# RUN: cd %t.coupled.1.off && %mpirun -n 1 %t1 --ccs_case ResidualStorageOff > output.log
+# RUN: mkdir -p %t.coupled.1.on
+# RUN: cp %S/Input/ResidualStorageOn_config.yaml %S/Input/ResidualStorageOn_adios2_config.xml %t.coupled.1.on/
+# RUN: cd %t.coupled.1.on && %mpirun -n 1 %t1 --ccs_case ResidualStorageOn > output.log
+# RUN: %mpirun -n 1 %t1 compare %t.coupled.1.off %t.coupled.1.on
+# RUN: mkdir -p %t.scalar.1.off
+# RUN: cp %S/Input/ResidualStorageOff_config.yaml %S/Input/ResidualStorageOff_adios2_config.xml %t.scalar.1.off/
+# RUN: cd %t.scalar.1.off && env CCS_RESIDUAL_SCALAR=1 %mpirun -n 1 %t1 --ccs_case ResidualStorageOff > output.log
+# RUN: mkdir -p %t.scalar.1.on
+# RUN: cp %S/Input/ResidualStorageOn_config.yaml %S/Input/ResidualStorageOn_adios2_config.xml %t.scalar.1.on/
+# RUN: cd %t.scalar.1.on && env CCS_RESIDUAL_SCALAR=1 %mpirun -n 1 %t1 --ccs_case ResidualStorageOn > output.log
+# RUN: %mpirun -n 1 %t1 compare_scalar %t.scalar.1.off %t.scalar.1.on
+# RUN: mkdir -p %t.coupled.4.off
+# RUN: cp %S/Input/ResidualStorageOff_config.yaml %S/Input/ResidualStorageOff_adios2_config.xml %t.coupled.4.off/
+# RUN: cd %t.coupled.4.off && %mpirun -n 4 %t1 --ccs_case ResidualStorageOff > output.log
+# RUN: mkdir -p %t.coupled.4.on
+# RUN: cp %S/Input/ResidualStorageOn_config.yaml %S/Input/ResidualStorageOn_adios2_config.xml %t.coupled.4.on/
+# RUN: cd %t.coupled.4.on && %mpirun -n 4 %t1 --ccs_case ResidualStorageOn > output.log
+# RUN: %mpirun -n 1 %t1 compare %t.coupled.4.off %t.coupled.4.on
+# RUN: mkdir -p %t.scalar.4.off
+# RUN: cp %S/Input/ResidualStorageOff_config.yaml %S/Input/ResidualStorageOff_adios2_config.xml %t.scalar.4.off/
+# RUN: cd %t.scalar.4.off && env CCS_RESIDUAL_SCALAR=1 %mpirun -n 4 %t1 --ccs_case ResidualStorageOff > output.log
+# RUN: mkdir -p %t.scalar.4.on
+# RUN: cp %S/Input/ResidualStorageOn_config.yaml %S/Input/ResidualStorageOn_adios2_config.xml %t.scalar.4.on/
+# RUN: cd %t.scalar.4.on && env CCS_RESIDUAL_SCALAR=1 %mpirun -n 4 %t1 --ccs_case ResidualStorageOn > output.log
+# RUN: %mpirun -n 1 %t1 compare_scalar %t.scalar.4.off %t.scalar.4.on
+
+main: test_residual_storage
+base: mpi_petsc
+extra: parhip

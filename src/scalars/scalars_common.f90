@@ -58,7 +58,6 @@ contains
     class(ccs_vector), allocatable :: rhs
     class(ccs_vector), allocatable :: D
     class(ccs_vector), allocatable :: source
-    class(ccs_vector), allocatable :: res
 
     integer(ccs_int) :: nfields  ! Number of variables in the flowfield
     integer(ccs_int) :: s        ! Scalar field counter
@@ -89,7 +88,6 @@ contains
     call create_vector(vec_properties, rhs)
     call create_vector(vec_properties, D)
     call create_vector(vec_properties, source)
-    call create_vector(vec_properties, res)
 
     ! Check whether we need to update the old values
     call dprint("SCALAR: check new timestep")
@@ -126,7 +124,7 @@ contains
         call update_old_values(phi)
       end if
 
-      call transport_scalar(par_env, flow, eval_sources, M, rhs, D, source, phi, res, residuals)
+      call transport_scalar(par_env, flow, eval_sources, M, rhs, D, source, phi, residuals)
     end do
 
     if (allocated(M)) then
@@ -145,15 +143,11 @@ contains
       call destroy_vector(source)
       deallocate (source)
     end if
-    if (allocated(res)) then
-      call destroy_vector(res)
-      deallocate (res)
-    end if
 
   end subroutine update_scalars
 
   !> Subroutine to transport a scalar field.
-  subroutine transport_scalar(par_env, flow, eval_sources, M, rhs, D, S, phi, res, residuals)
+  subroutine transport_scalar(par_env, flow, eval_sources, M, rhs, D, S, phi, residuals)
 
     class(parallel_environment), allocatable, intent(in) :: par_env !< parallel environment
     type(fluid), intent(inout) :: flow                              !< The structure containting all the fluid fields
@@ -174,7 +168,6 @@ contains
     class(ccs_vector), intent(inout) :: D !< Working vector for equation diagonal
     class(ccs_vector), intent(inout) :: S !< Working vector for equation RHS
     class(field), intent(inout) :: phi ! The scalar field
-    class(ccs_vector), allocatable, intent(inout) :: res
     type(ccs_residuals), intent(inout), optional :: residuals
 
     class(field), pointer :: mf  ! The advecting velocity field
@@ -217,10 +210,8 @@ contains
 
     call solve(lin_solver)
 
-    ! Compute residuals
-    if (present(residuals)) then
-      call compute_residuals(flow, M, phi, rhs, res, residuals)
-    end if
+    ! Forward the optional monitor so scalar-only runs can also store the raw residual.
+    call compute_residuals(flow, M, rhs, phi, residuals)
 
     call update_gradient(phi)
 
