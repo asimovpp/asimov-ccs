@@ -14,22 +14,50 @@ module residuals
   use utils, only: exit_print
   use fields, only: get_field, count_fields, get_field_idx, get_is_field_solved
   use mat, only: mat_vec_product
-  use vec, only: vec_aypx
+  use vec, only: vec_aypx, duplicate_vector, destroy_vector, update_vector
   use meshing, only: get_global_num_cells
   use timestepping, only: get_current_step, get_current_time
   use kinds, only: CCS_MPI_PRECISION
   use logging, only: log_unit_out
 
+  implicit none
+
+  private
+
+  public :: compute_residuals
+  public :: compute_global_residuals
+  public :: get_max_residuals
+  public :: init_residuals
+  public :: finalise_residuals
+  public :: print_residuals
+  public :: is_converged
+  public :: normalise_residuals
+
+  class(ccs_vector), allocatable :: residual_work !< Lazy workspace used when only norms are requested
+
+  interface compute_residuals
+    module procedure compute_matrix_residuals
+    module procedure compute_precomputed_residuals
+  end interface compute_residuals
+
 contains
 
-  !v Allocate residuals arrays
+  !> Initialises residual monitoring, resetting norms and releasing previous workspace.
+  !>
+  !> All monitored matrix residuals in a session must use the same cell distribution,
+  !> communicator and halo mapping. Call this routine before monitoring a different
+  !> mesh or partition. The next calculation that monitors norms without storing a
+  !> residual field then creates matching workspace.
   subroutine init_residuals(flow, residuals)
-    type(fluid), intent(in) :: flow                              !< The structure containting all the fluid fields
-    type(ccs_residuals), intent(inout) :: residuals
+    type(fluid), intent(in) :: flow !< Fields whose residual norms will be monitored
+    type(ccs_residuals), intent(inout) :: residuals !< Monitoring arrays to reset and resize for these fields
     integer(ccs_int) :: nfields
 
+    call finalise_residuals()
     call count_fields(flow, nfields)
 
+    if (allocated(residuals%L2)) deallocate (residuals%L2)
+    if (allocated(residuals%Linfty)) deallocate (residuals%Linfty)
     allocate (residuals%L2(nfields))
     allocate (residuals%Linfty(nfields))
 
@@ -38,24 +66,68 @@ contains
 
   end subroutine
 
-  !v Computes residuals from a matric, vector and rhs.
-  ! Residuals are stored in 'res' variable and their norms in the residuals data structure
-  subroutine compute_residuals(flow, M, phi, rhs, res, residuals)
+  !> Releases private residual storage; repeated calls are safe.
+  subroutine finalise_residuals()
+
+    if (allocated(residual_work)) then
+      call destroy_vector(residual_work)
+      deallocate (residual_work)
+    end if
+
+  end subroutine finalise_residuals
+
+  !> Computes the raw residual rhs - matrix*phi and, when requested, its norms.
+  ! Storage and monitoring are independent; private workspace is needed only for monitoring without storage.
+  subroutine compute_matrix_residuals(flow, matrix, rhs, phi, residuals)
     type(fluid), intent(in) :: flow                              !< The structure containting all the fluid fields
-    class(ccs_matrix), intent(in) :: M
-    class(field), intent(in) :: phi
+    class(ccs_matrix), intent(in) :: matrix
     class(ccs_vector), intent(in) :: rhs
-    class(ccs_vector), intent(inout) :: res
-    type(ccs_residuals), intent(inout) :: residuals
+    class(field), intent(inout) :: phi
+    type(ccs_residuals), optional, intent(inout) :: residuals
     integer(ccs_int) :: ifield
 
-    call mat_vec_product(M, phi%values, res)
-    call vec_aypx(rhs, -1.0_ccs_real, res)
+    if (.not. allocated(phi%residuals) .and. .not. present(residuals)) return
 
-    call get_field_idx(flow, phi, ifield)
-    call normalise_residuals(res, ifield, residuals)
+    if (allocated(phi%residuals)) then
+      call mat_vec_product(matrix, phi%values, phi%residuals)
+      call vec_aypx(rhs, -1.0_ccs_real, phi%residuals)
+      call update_vector(phi%residuals)
+      if (present(residuals)) then
+        call get_field_idx(flow, phi, ifield)
+        call normalise_residuals(phi%residuals, ifield, residuals)
+      end if
+    else if (present(residuals)) then
+      ! The cell layout is fixed during a nonlinear solve. Initialisation releases
+      ! old workspace before a new mesh, partition or communicator is used; equal
+      ! vector lengths alone would not establish that these layouts are compatible.
+      if (.not. allocated(residual_work)) call duplicate_vector(rhs, residual_work)
+      call mat_vec_product(matrix, phi%values, residual_work)
+      call vec_aypx(rhs, -1.0_ccs_real, residual_work)
+      call get_field_idx(flow, phi, ifield)
+      call normalise_residuals(residual_work, ifield, residuals)
+    end if
 
-  end subroutine
+  end subroutine compute_matrix_residuals
+
+  !> Monitors a precomputed cell residual and optionally stores an independent field snapshot.
+  ! The raw residual values remain unchanged; intent(inout) permits the vector's readonly accessor.
+  subroutine compute_precomputed_residuals(flow, raw_residual, phi, residuals)
+    type(fluid), intent(in) :: flow
+    class(ccs_vector), intent(inout) :: raw_residual
+    class(field), intent(inout) :: phi
+    type(ccs_residuals), optional, intent(inout) :: residuals
+    integer(ccs_int) :: ifield
+
+    if (present(residuals)) then
+      call get_field_idx(flow, phi, ifield)
+      call normalise_residuals(raw_residual, ifield, residuals)
+    end if
+    if (allocated(phi%residuals)) then
+      call vec_aypx(raw_residual, 0.0_ccs_real, phi%residuals)
+      call update_vector(phi%residuals)
+    end if
+
+  end subroutine compute_precomputed_residuals
 
   !v Computes normalised residuals and stores them in residuals structure.
   ! Residuals are normalised by cell volumes**(2/3) and their L2 (squared) and Linfinity norms are stored

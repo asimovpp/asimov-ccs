@@ -13,6 +13,7 @@ module vec
   private
 
   public :: create_vector
+  public :: duplicate_vector
   public :: destroy_vector
   public :: set_vector_values
   public :: clear_vector_values_entries
@@ -54,6 +55,12 @@ module vec
       !< but (potentially) uninitialised.
       character(len=*), optional, intent(in) :: name !< Name of the vector object
     end subroutine
+
+    !> Creates an independent vector with the same parallel layout as the template.
+    module subroutine duplicate_vector(template, duplicate)
+      class(ccs_vector), intent(in) :: template !< Vector whose layout is duplicated
+      class(ccs_vector), allocatable, intent(out) :: duplicate !< New vector with independent storage
+    end subroutine duplicate_vector
 
     !> Interface to destroy a vector object.
     module subroutine destroy_vector(v)

@@ -1,0 +1,128 @@
+title: ResidualStorageOff
+restart: false
+unsteady: true
+# Fixed fixture: two timesteps, three iterations each, on [0, pi] cubed.
+iterations: 3
+steps: 2
+dt: 0.01
+mesh: 3d
+cps: 4
+L: 3.14159265358979323846
+viscosity: 0.01
+# Disable early convergence so that every expected history row is produced.
+target_residual: 0.0
+write_frequency: 100
+compute_partqual: false
+compute_bwidth: false
+post:
+  type: center
+  variables: [u, v, w, p, c]
+variables:
+  store_residuals: false
+  n_variables: 6
+  variable_1:
+    name: u
+    type: central
+    solve: on
+    relaxation: 0.9
+  variable_2:
+    name: v
+    type: central
+    solve: on
+    relaxation: 0.9
+  variable_3:
+    name: w
+    type: central
+    solve: on
+    relaxation: 0.9
+  variable_4:
+    name: p
+    # Use Jacobi for this small, singular all-Neumann pressure system.
+    precon_name: jacobi
+    type: central
+    solve: on
+    relaxation: 0.1
+  variable_5:
+    name: p_prime
+    type: central
+    solve: off
+    relaxation: 0.9
+  variable_6:
+    name: c
+    type: central
+    solve: on
+    relaxation: 0.9
+boundaries:
+  n_boundaries: 6
+  boundary_1:
+    name: left
+    type: dirichlet
+    value: 0
+    variable_p:
+      type: extrapolate
+    variable_p_prime:
+      type: neumann
+      value: 0
+    variable_c:
+      type: dirichlet
+      value: 1
+  boundary_2:
+    name: right
+    type: dirichlet
+    value: 0
+    variable_p:
+      type: extrapolate
+    variable_p_prime:
+      type: neumann
+      value: 0
+    variable_c:
+      type: dirichlet
+      value: 1
+  boundary_3:
+    name: bottom
+    type: dirichlet
+    value: 0
+    variable_p:
+      type: extrapolate
+    variable_p_prime:
+      type: neumann
+      value: 0
+    variable_c:
+      type: dirichlet
+      value: 1
+  boundary_4:
+    name: top
+    type: dirichlet
+    value: 0
+    variable_p:
+      type: extrapolate
+    variable_p_prime:
+      type: neumann
+      value: 0
+    variable_c:
+      type: dirichlet
+      value: 1
+  boundary_5:
+    name: back
+    type: dirichlet
+    value: 0
+    variable_p:
+      type: extrapolate
+    variable_p_prime:
+      type: neumann
+      value: 0
+    variable_c:
+      type: dirichlet
+      value: 1
+  boundary_6:
+    name: front
+    type: dirichlet
+    value: 0
+    variable_p:
+      type: extrapolate
+    variable_p_prime:
+      type: neumann
+      value: 0
+    variable_c:
+      type: dirichlet
+      value: 1

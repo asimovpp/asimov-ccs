@@ -103,6 +103,33 @@ contains
 
   end subroutine
 
+  !> Creates independent PETSc storage while preserving the template's ghost layout.
+  module subroutine duplicate_vector(template, duplicate)
+    use petscvec, only: VecDuplicate
+
+    class(ccs_vector), intent(in) :: template
+    class(ccs_vector), allocatable, intent(out) :: duplicate
+    integer(ccs_err) :: ierr
+
+    select type (template)
+    type is (vector_petsc)
+      allocate (vector_petsc :: duplicate)
+      select type (duplicate)
+      type is (vector_petsc)
+        call VecDuplicate(template%v, duplicate%v, ierr)
+        if (ierr /= 0) call error_abort("Unable to duplicate PETSc vector.")
+        duplicate%allocated = .true.
+        duplicate%ghosted = template%ghosted
+        duplicate%mode = huge(0_ccs_int)
+        duplicate%modeset = .false.
+        duplicate%checked_out = .false.
+      end select
+    class default
+      call error_abort("Unknown vector type.")
+    end select
+
+  end subroutine duplicate_vector
+
   !> Destroy a PETSc-backed vector.
   module subroutine destroy_vector(v)
 
